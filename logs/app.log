@@ -1,0 +1,504 @@
+2026-01-14 21:15:57,077 - NoteApp - WARNING - [data_manager.py:229] - Attempted to delete protected folder: .trash
+2026-01-15 18:24:04,267 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 37157
+2026-01-15 18:24:04,268 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" style="vertical...
+2026-01-15 18:24:04,271 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 35747
+2026-01-15 19:45:45,996 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 13269
+2026-01-15 19:45:45,997 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 13269
+2026-01-15 19:45:45,997 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 146488
+2026-01-15 19:45:46,056 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 146488
+2026-01-15 19:45:46,056 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 22776
+2026-01-15 19:45:46,056 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-15 19:45:46,057 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 21282
+2026-01-15 19:45:56,108 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 13269
+2026-01-15 19:45:56,109 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 13269
+2026-01-15 19:45:56,109 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 146488
+2026-01-15 19:45:56,168 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 146488
+2026-01-15 19:45:56,169 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 22776
+2026-01-15 19:45:56,169 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-15 19:45:56,169 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 21282
+2026-01-15 19:46:26,491 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 13261
+2026-01-15 19:46:26,492 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 13261
+2026-01-15 19:46:28,436 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 146488
+2026-01-15 19:46:28,495 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 146488
+2026-01-15 19:46:30,321 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 22776
+2026-01-15 19:46:30,321 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-15 19:46:30,322 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 21282
+2026-01-15 19:46:32,221 - NoteApp - INFO - [exporter.py:739] - Exporting folder 'Python internals' to C:/Users/IMAM/Desktop/Python internalsFullExport.pdf (Native + Footer)...
+2026-01-15 19:51:31,867 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 22776
+2026-01-15 19:51:31,867 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-15 19:51:31,867 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 21282
+2026-01-15 19:51:31,867 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 146488
+2026-01-15 19:51:31,926 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 146488
+2026-01-15 19:51:31,926 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 13261
+2026-01-15 19:51:31,926 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 13261
+2026-01-15 19:58:11,074 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 146611
+2026-01-15 19:58:11,134 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 146611
+2026-01-15 22:43:59,579 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 11567
+2026-01-15 22:43:59,581 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 11567
+2026-01-15 22:43:59,581 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 34316
+2026-01-15 22:43:59,581 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-15 22:43:59,583 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 32822
+2026-01-15 22:43:59,583 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 215495
+2026-01-15 22:43:59,864 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 215495
+2026-01-15 22:43:59,864 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 89124
+2026-01-15 22:43:59,880 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 89124
+2026-01-15 23:20:27,832 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 30064
+2026-01-15 23:20:27,833 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 30064
+2026-01-15 23:20:38,473 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 30064
+2026-01-15 23:20:38,473 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 30064
+2026-01-15 23:20:45,423 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 30064
+2026-01-15 23:20:45,423 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 30064
+2026-01-15 23:24:22,120 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 29988
+2026-01-15 23:24:22,121 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 29988
+2026-01-15 23:29:08,105 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 117, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 353, in __init__
+    self.editor_splitter = QSplitter(Qt.Orientation.Horizontal)
+                           ^^^^^^^^^
+NameError: name 'QSplitter' is not defined
+2026-01-15 23:35:41,502 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 6823
+2026-01-15 23:35:41,503 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 6823
+2026-01-15 23:47:28,240 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 7022
+2026-01-15 23:47:28,240 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 7022
+2026-01-15 23:49:49,799 - NoteApp - DEBUG - [exporter.py:195] - [PDF] Cleaning artifacts. HTML len: 6894
+2026-01-15 23:49:49,800 - NoteApp - DEBUG - [exporter.py:208] - [PDF] Cleaned HTML len: 6894
+2026-01-15 23:49:50,775 - NoteApp - INFO - [exporter.py:914] - Exporting folder 'welocme working testing' to C:/Users/IMAM/Desktop/welocme working testingFullExport.pdf (Native + Footer)...
+2026-01-16 00:25:51,319 - NoteApp - DEBUG - [exporter.py:195] - [PDF] Cleaning artifacts. HTML len: 48227
+2026-01-16 00:25:51,325 - NoteApp - DEBUG - [exporter.py:208] - [PDF] Cleaned HTML len: 48227
+2026-01-16 00:55:57,337 - NoteApp - DEBUG - [exporter.py:195] - [PDF] Cleaning artifacts. HTML len: 22850
+2026-01-16 00:55:57,338 - NoteApp - DEBUG - [exporter.py:208] - [PDF] Cleaned HTML len: 22850
+2026-01-16 09:18:10,055 - NoteApp - DEBUG - [exporter.py:195] - [PDF] Cleaning artifacts. HTML len: 20610
+2026-01-16 09:18:10,057 - NoteApp - DEBUG - [exporter.py:208] - [PDF] Cleaned HTML len: 20610
+2026-01-16 10:29:06,141 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 119, in setup_ui
+    self.editor.set_theme_mode(current_theme)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 431, in set_theme_mode
+    old_mode = self.theme_mode
+               ^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'theme_mode'. Did you mean: 'set_theme_mode'?
+2026-01-16 14:57:13,843 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 48093
+2026-01-16 14:57:13,857 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 48093
+2026-01-16 15:27:25,214 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 11567
+2026-01-16 15:27:25,215 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 11567
+2026-01-16 15:27:27,616 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 34192
+2026-01-16 15:27:27,617 - NoteApp - DEBUG - [exporter.py:202] - [PDF] Found artifact table, extracting img: <img src="wb_drawing_aa5158cfb463" / width="1275" ...
+2026-01-16 15:27:27,619 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 32698
+2026-01-16 15:27:34,152 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 250489
+2026-01-16 15:27:34,749 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 250489
+2026-01-16 15:27:41,122 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 89124
+2026-01-16 15:27:41,149 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 89124
+2026-01-16 15:27:47,782 - NoteApp - INFO - [exporter.py:741] - Exporting folder 'Python internals' to C:/Users/IMAM/Desktop/Python internalsFullExport.pdf (Native + Footer)...
+2026-01-16 16:47:47,443 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 86b49fda-6311-4076-b5f9-34ac59b110d0: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\welocme working testing\\tmpgunhtr7b.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\welocme working testing\\86b49fda-6311-4076-b5f9-34ac59b110d0.json'
+2026-01-16 17:02:57,514 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 117, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 431, in __init__
+    self.setup_toolbar()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 675, in setup_toolbar
+    self.btn_custom_hl = QToolButton()
+                         ^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'QToolButton' where it is not associated with a value
+2026-01-16 18:32:29,921 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 117, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 365, in __init__
+    self.layout = QVBoxLayout(self)
+                  ^^^^^^^^^^^
+UnboundLocalError: cannot access local variable 'QVBoxLayout' where it is not associated with a value
+2026-01-16 18:56:43,301 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 8568
+2026-01-16 18:56:43,302 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 8568
+2026-01-16 21:06:16,983 - NoteApp - DEBUG - [exporter.py:193] - [PDF] Cleaning artifacts. HTML len: 15706
+2026-01-16 21:06:16,985 - NoteApp - DEBUG - [exporter.py:206] - [PDF] Cleaned HTML len: 15706
+2026-01-16 21:06:16,996 - NoteApp - INFO - [exporter.py:186] - Exporting note 'newnotes' to C:/Users/IMAM/Desktop/newnotes.pdf (Native + Footer)...
+2026-01-16 22:23:13,895 - NoteApp - ERROR - [data_manager.py:207] - Error saving note ef8adf70-4684-4aff-94a4-e3d61ec570de: [Errno 28] No space left on device
+2026-01-16 22:23:15,475 - NoteApp - ERROR - [data_manager.py:207] - Error saving note ef8adf70-4684-4aff-94a4-e3d61ec570de: [Errno 28] No space left on device
+2026-01-16 22:23:17,810 - NoteApp - ERROR - [data_manager.py:207] - Error saving note ef8adf70-4684-4aff-94a4-e3d61ec570de: [Errno 28] No space left on device
+2026-01-16 22:23:21,741 - NoteApp - ERROR - [data_manager.py:207] - Error saving note ef8adf70-4684-4aff-94a4-e3d61ec570de: [Errno 28] No space left on device
+2026-01-16 22:23:22,997 - NoteApp - ERROR - [data_manager.py:207] - Error saving note ef8adf70-4684-4aff-94a4-e3d61ec570de: [Errno 28] No space left on device
+2026-01-17 00:51:10,522 - NoteApp - INFO - [exporter.py:599] - Exporting folder 'Python internal' to C:/Users/IMAM/Desktop/Python internalFullExport.pdf (Native + Footer)...
+2026-01-17 00:58:00,161 - NoteApp - INFO - [exporter.py:650] - Exporting folder 'Python internal' to C:/Users/IMAM/Desktop/Python internalFullExport.pdf (Native + Footer)...
+2026-01-17 01:02:38,340 - NoteApp - INFO - [exporter.py:653] - Exporting folder 'Python internal' to C:/Users/IMAM/Desktop/Python internalFullExportd.pdf (Native + Footer)...
+2026-01-17 01:07:50,031 - NoteApp - INFO - [exporter.py:660] - Exporting folder 'Python internal' to C:/Users/IMAM/Desktop/Python internalFullExport.pdf (Native + Footer)...
+2026-01-17 13:06:36,417 - NoteApp - INFO - [exporter.py:666] - Exporting folder 'python internals' to C:/Users/IMAM/Desktop/python internalsFullExportdd.pdf (Native + Footer)...
+2026-01-17 13:08:56,242 - NoteApp - INFO - [exporter.py:666] - Exporting folder 'python internals' to C:/Users/IMAM/Desktop/python internalsFullExportddd.pdf (Native + Footer)...
+2026-01-17 16:28:05,526 - NoteApp - INFO - [exporter.py:666] - Exporting folder 'Python internals' to C:/Users/IMAM/Desktop/Python internalsFullExport.pdf (Native + Footer)...
+2026-01-17 16:29:29,924 - NoteApp - INFO - [exporter.py:666] - Exporting folder 'Python internals' to C:/Users/IMAM/Desktop/1.Python internalsFullExport.pdf (Native + Footer)...
+2026-01-18 09:35:11,930 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:35:17,255 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:46:21,019 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:52:41,475 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:52:44,089 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:25,423 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:29,043 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:30,298 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:34,916 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:37,589 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 09:53:39,347 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:04:42,339 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:10:10,455 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:10:11,333 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:11:01,427 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:11:16,051 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:13:45,041 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:16:02,115 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:27:53,589 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:27:57,447 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:27:59,940 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:28:08,301 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:28:11,329 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:28:32,303 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:25,315 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:37,346 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:43,675 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:46,361 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:47,761 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:48,651 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:49,969 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:50,850 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:51,773 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:52,664 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:29:55,723 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:00,630 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:04,786 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:22,128 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:30,449 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:35,563 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:30:39,817 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:46:34,184 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:46:35,431 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 10:48:25,101 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:35:02,492 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:40:04,410 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:40:25,897 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:42:52,017 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:43:49,047 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:44:24,361 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-18 11:49:30,765 - NoteApp - ERROR - [data_manager.py:207] - Error saving note 6e4f188b-b60f-416b-80e7-8979853f4825: [Errno 28] No space left on device
+2026-01-21 01:44:23,939 - NoteApp - INFO - [exporter.py:347] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 01:55:15,905 - NoteApp - INFO - [exporter.py:370] - Exporting note 'what we get when we install python ' to C:/Users/IMAM/Desktop/what we get when we install python .pdf (Native + Footer)...
+2026-01-21 01:55:51,338 - NoteApp - INFO - [exporter.py:370] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 01:56:36,590 - NoteApp - INFO - [exporter.py:370] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 02:07:17,739 - NoteApp - INFO - [exporter.py:367] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 02:08:17,162 - NoteApp - INFO - [exporter.py:367] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 02:25:35,277 - NoteApp - INFO - [exporter.py:375] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 02:34:21,045 - NoteApp - INFO - [exporter.py:375] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 10:43:53,908 - NoteApp - INFO - [exporter.py:386] - Exporting note 'Dynamic Typing and its Impact' to C:/Users/IMAM/Desktop/Dynamic Typing and its Impact.pdf (Native + Footer)...
+2026-01-21 11:33:10,336 - NoteApp - INFO - [exporter.py:716] - Exporting folder 'Unlock the secrest of python' to C:/Users/IMAM/Desktop/Unlock the secrest of pythonFullExport.pdf (Native + Footer)...
+2026-01-21 11:46:26,267 - NoteApp - INFO - [exporter.py:736] - Exporting folder 'Python Programming' to C:/Users/IMAM/Desktop/Python ProgrammingFullExport.pdf (Native + Footer)...
+2026-01-21 11:47:57,229 - NoteApp - INFO - [exporter.py:736] - Exporting folder 'Unlock the secrest of python' to C:/Users/IMAM/Desktop/Unlock the secrest of pythonFullExport.pdf (Native + Footer)...
+2026-01-22 00:36:24,415 - NoteApp - INFO - [exporter.py:419] - Exporting note '2.What is SQL (Visually Explained)  #SQL Course 2' to C:/Users/IMAM/Desktop/2.What is SQL Visually Explained  SQL Course 2ds.pdf (Native + Footer)...
+2026-01-22 12:22:22,719 - NoteApp - INFO - [exporter.py:419] - Exporting note '2.What is SQL (Visually Explained)  #SQL Course 2' to C:/Users/IMAM/Desktop/2.What is SQL Visually Explained  SQL Course 2.pdf (Native + Footer)...
+2026-01-27 04:07:46,646 - NoteApp - INFO - [exporter.py:419] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python.pdf (Native + Footer)...
+2026-01-27 04:31:32,684 - NoteApp - INFO - [exporter.py:428] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python1.pdf (Native + Footer)...
+2026-01-27 04:37:50,308 - NoteApp - INFO - [exporter.py:428] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python3.pdf (Native + Footer)...
+2026-01-27 04:42:00,088 - NoteApp - INFO - [exporter.py:428] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python4.pdf (Native + Footer)...
+2026-01-27 04:50:09,380 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 117, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 559, in __init__
+    self.find_bar.closed.connect(self.editor.setFocus)
+                                 ^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'editor'
+2026-01-27 09:21:44,003 - NoteApp - INFO - [exporter.py:429] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python5.pdf (Native + Footer)...
+2026-01-27 09:26:27,402 - NoteApp - INFO - [exporter.py:434] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python6.pdf (Native + Footer)...
+2026-01-27 09:30:13,502 - NoteApp - INFO - [exporter.py:442] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python2.pdf (Native + Footer)...
+2026-01-27 09:38:22,477 - NoteApp - INFO - [exporter.py:463] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python.pdf (Native + Footer)...
+2026-01-27 10:22:02,851 - NoteApp - INFO - [exporter.py:442] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python1.pdf (Native + Footer)...
+2026-01-27 10:25:32,851 - NoteApp - INFO - [exporter.py:428] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python.pdf (Native + Footer)...
+2026-01-27 10:32:27,078 - NoteApp - INFO - [exporter.py:428] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python.pdf (Native + Footer)...
+2026-01-27 10:39:50,842 - NoteApp - INFO - [exporter.py:429] - Exporting note 'Variables in python' to C:/Users/IMAM/Desktop/Variables in python2.pdf (Native + Footer)...
+2026-01-29 21:05:54,773 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:05:54,778 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:05:54,782 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:05:54,783 - NoteApp - DEBUG - [editor.py:2260] - Pre-selecting file: C:/Users/IMAM/Pictures/Screenshots\Screenshot 2026-01-29 210352.png
+2026-01-29 21:06:38,423 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:06:38,428 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:06:38,431 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:06:38,432 - NoteApp - DEBUG - [editor.py:2260] - Pre-selecting file: C:/Users/IMAM/Pictures/Screenshots\Screenshot 2026-01-29 210352.png
+2026-01-29 21:10:29,596 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:10:29,600 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:10:29,603 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:10:29,660 - NoteApp - DEBUG - [editor.py:2263] - Pre-selecting file: C:/Users/IMAM/Pictures/Screenshots/Screenshot 2026-01-29 210352.png
+2026-01-29 21:10:29,807 - NoteApp - ERROR - [editor.py:2290] - Failed to force sort order: cannot import name 'QFileSystemModel' from 'PyQt6.QtWidgets' (C:\Users\IMAM\AppData\Roaming\Python\Python313\site-packages\PyQt6\QtWidgets.pyd)
+2026-01-29 21:12:12,328 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:12:12,331 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:12:12,334 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:12:12,335 - NoteApp - DEBUG - [editor.py:2261] - Pre-selecting file: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 210352.png
+2026-01-29 21:12:36,762 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:12:36,765 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:12:36,768 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:12:36,769 - NoteApp - DEBUG - [editor.py:2261] - Pre-selecting file: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 210352.png
+2026-01-29 21:20:15,890 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:20:15,895 - NoteApp - DEBUG - [editor.py:2232] - Found 154 images in directory.
+2026-01-29 21:20:15,898 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 210352.png (2026-01-29 21:03:52.770586)
+2026-01-29 21:20:15,899 - NoteApp - DEBUG - [editor.py:2262] - Pre-selecting file: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 210352.png
+2026-01-29 21:21:50,015 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 21:21:50,020 - NoteApp - DEBUG - [editor.py:2232] - Found 155 images in directory.
+2026-01-29 21:21:50,024 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 212021.png (2026-01-29 21:20:21.655963)
+2026-01-29 21:21:50,080 - NoteApp - DEBUG - [editor.py:2272] - Pre-selecting file: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 212021.png
+2026-01-29 22:57:51,033 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 22:57:51,041 - NoteApp - DEBUG - [editor.py:2232] - Found 156 images in directory.
+2026-01-29 22:57:51,044 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 212159.png (2026-01-29 21:21:59.668820)
+2026-01-29 22:58:56,670 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 22:58:56,674 - NoteApp - DEBUG - [editor.py:2232] - Found 156 images in directory.
+2026-01-29 22:58:56,677 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 212159.png (2026-01-29 21:21:59.668820)
+2026-01-29 22:58:56,677 - NoteApp - DEBUG - [editor.py:2257] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 212159.png
+2026-01-29 22:58:59,612 - NoteApp - DEBUG - [editor.py:2265] - User selected: C:/Users/IMAM/Pictures/Screenshots/Screenshot 2026-01-24 152447.png
+2026-01-29 22:59:08,964 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 22:59:08,968 - NoteApp - DEBUG - [editor.py:2232] - Found 156 images in directory.
+2026-01-29 22:59:08,971 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 212159.png (2026-01-29 21:21:59.668820)
+2026-01-29 22:59:08,971 - NoteApp - DEBUG - [editor.py:2257] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 212159.png
+2026-01-29 23:01:02,080 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 23:01:02,084 - NoteApp - DEBUG - [editor.py:2232] - Found 157 images in directory.
+2026-01-29 23:01:02,088 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 225923.png (2026-01-29 22:59:24.064501)
+2026-01-29 23:01:02,088 - NoteApp - DEBUG - [editor.py:2258] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 225923.png
+2026-01-29 23:20:06,463 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 23:20:06,467 - NoteApp - DEBUG - [editor.py:2232] - Found 157 images in directory.
+2026-01-29 23:20:06,471 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 225923.png (2026-01-29 22:59:24.064501)
+2026-01-29 23:20:06,471 - NoteApp - DEBUG - [editor.py:2258] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 225923.png
+2026-01-29 23:20:08,415 - NoteApp - DEBUG - [editor.py:2267] - User selected: C:/Users/IMAM/Pictures/Screenshots/Screenshot 2026-01-24 135339.png
+2026-01-29 23:26:40,240 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 23:26:40,245 - NoteApp - DEBUG - [editor.py:2232] - Found 157 images in directory.
+2026-01-29 23:26:40,249 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 225923.png (2026-01-29 22:59:24.064501)
+2026-01-29 23:26:40,306 - NoteApp - DEBUG - [editor.py:2266] - Could not sort view: 'QListView' object has no attribute 'sortByColumn'
+2026-01-29 23:26:40,307 - NoteApp - DEBUG - [editor.py:2266] - Could not sort view: 'QListView' object has no attribute 'sortByColumn'
+2026-01-29 23:26:40,307 - NoteApp - DEBUG - [editor.py:2266] - Could not sort view: 'QListView' object has no attribute 'sortByColumn'
+2026-01-29 23:26:40,307 - NoteApp - DEBUG - [editor.py:2266] - Could not sort view: 'QListView' object has no attribute 'sortByColumn'
+2026-01-29 23:30:23,803 - NoteApp - DEBUG - [editor.py:2291] - Created temp folder with 158 recent images
+2026-01-29 23:31:01,480 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots
+2026-01-29 23:31:01,484 - NoteApp - DEBUG - [editor.py:2232] - Found 158 images in directory.
+2026-01-29 23:31:01,487 - NoteApp - DEBUG - [editor.py:2243] - Latest Image Identified: Screenshot 2026-01-29 232645.png (2026-01-29 23:26:45.370488)
+2026-01-29 23:31:01,487 - NoteApp - DEBUG - [editor.py:2258] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots\Screenshot 2026-01-29 232645.png
+2026-01-29 23:31:05,344 - NoteApp - DEBUG - [editor.py:2267] - User selected: C:/Users/IMAM/Pictures/Screenshots/Screenshot 2026-01-24 135339.png
+2026-02-04 05:42:42,334 - NoteApp - DEBUG - [editor.py:2222] - Import Image - Target Dir: C:\Users\IMAM/Pictures
+2026-02-04 05:42:42,344 - NoteApp - DEBUG - [editor.py:2232] - Found 0 images in directory.
+2026-02-04 05:42:42,344 - NoteApp - DEBUG - [editor.py:2245] - No images found to pre-select.
+2026-02-04 05:42:49,290 - NoteApp - DEBUG - [editor.py:2267] - User selected: C:/Users/IMAM/Pictures/Screenshots1/chat-preview.png
+2026-02-04 05:43:23,031 - NoteApp - INFO - [exporter.py:429] - Exporting note '#Baiscs To know Before learning Quran' to C:/Users/IMAM/Desktop/Baiscs To know Before learning Quran.pdf (Native + Footer)...
+2026-02-06 16:39:47,874 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 48, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 117, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 774, in __init__
+    self.setup_toolbar()
+    ^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'setup_toolbar'
+2026-02-06 16:50:15,443 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 49, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 118, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 776, in __init__
+    self.setup_toolbar()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1122, in setup_toolbar
+    self._update_custom_hl_icon(self.custom_highlight_color)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 4074, in _update_custom_hl_icon
+    self.btn_custom_hl.setIcon(QIcon(pixmap))
+                               ^^^^^
+NameError: name 'QIcon' is not defined
+2026-02-06 16:53:01,055 - NoteApp - DEBUG - [editor.py:2208] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots1
+2026-02-06 16:53:01,057 - NoteApp - DEBUG - [editor.py:2218] - Found 1 images in directory.
+2026-02-06 16:53:01,057 - NoteApp - DEBUG - [editor.py:2229] - Latest Image Identified: chat-preview.png (2026-02-04 05:42:33.369004)
+2026-02-06 16:53:01,057 - NoteApp - DEBUG - [editor.py:2244] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots1\chat-preview.png
+2026-02-06 18:20:14,631 - NoteApp - INFO - [exporter.py:838] - Exporting folder 'ScrollTestFolder' to C:/Users/IMAM/Desktop/ScrollTestFolderFullExport.pdf (Native + Footer)...
+2026-02-07 20:36:43,963 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:44,962 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:51,127 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:53,304 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:54,311 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:55,339 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:36:56,193 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:37:11,115 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:12,359 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:14,539 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:29,935 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:31,150 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:44,624 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:46,210 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:37:47,524 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:37:48,583 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 2bfe3e03-5995-4ef4-9611-ddcb6807d872
+2026-02-07 20:42:22,899 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:42:23,661 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:43:06,795 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:43:08,574 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:43:11,679 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:43:24,677 - NoteApp - DEBUG - [main_window.py:626] - Request to open note: 8adedd06-a1d0-4698-9e6c-63ac7a76cb23
+2026-02-07 20:44:46,930 - NoteApp - DEBUG - [editor.py:2723] - INSERTING LINK HTML: &nbsp;<table border="0" cellpadding="4" cellspacing="0" style="background-color: #FFEB3B; margin: 2px;"><tr><td><a href="note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23" style="text-decoration: none; color: black; font-weight: bold; font-family: Segoe UI; font-size: 13px;">Why the Circus Name it as Monty Python why they used the Term Python</a></td></tr></table>&nbsp;
+2026-02-07 20:44:48,058 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:44:48,145 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:44:48,145 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:44:48,145 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:44:48,859 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:44:48,859 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:44:48,859 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:44:48,859 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:44:49,287 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:44:49,287 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:44:49,287 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:44:49,287 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:10,976 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:10,984 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:52:10,984 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:52:10,985 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:12,150 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:12,151 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:52:12,151 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:52:12,151 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:14,107 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:14,107 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', Path='', Query=''
+2026-02-07 20:52:14,107 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23', is_overlay=False
+2026-02-07 20:52:14,107 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='8adedd06-a1d0-4698-9e6c-63ac7a76cb23'
+2026-02-07 20:52:30,310 - NoteApp - DEBUG - [editor.py:2723] - INSERTING LINK HTML: &nbsp;<table border="0" cellpadding="4" cellspacing="0" style="background-color: #FFEB3B; margin: 2px;"><tr><td><a href="note://4399e31c-ffa3-4920-bb26-dacd2cbba7eb" style="text-decoration: none; color: black; font-weight: bold; font-family: Segoe UI; font-size: 13px;">string</a></td></tr></table>&nbsp;
+2026-02-07 20:52:31,889 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://4399e31c-ffa3-4920-bb26-dacd2cbba7eb'
+2026-02-07 20:52:31,889 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='4399e31c-ffa3-4920-bb26-dacd2cbba7eb', Path='', Query=''
+2026-02-07 20:52:31,889 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='4399e31c-ffa3-4920-bb26-dacd2cbba7eb', is_overlay=False
+2026-02-07 20:52:31,889 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='4399e31c-ffa3-4920-bb26-dacd2cbba7eb'
+2026-02-07 20:52:33,186 - NoteApp - DEBUG - [editor.py:580] - LINK CLICK DETECTED: Raw URL='note://4399e31c-ffa3-4920-bb26-dacd2cbba7eb'
+2026-02-07 20:52:33,194 - NoteApp - DEBUG - [editor.py:583] - PARSED URL: Scheme='note', Host='4399e31c-ffa3-4920-bb26-dacd2cbba7eb', Path='', Query=''
+2026-02-07 20:52:33,194 - NoteApp - DEBUG - [editor.py:589] - NOTE LINK ACTION: note_id='4399e31c-ffa3-4920-bb26-dacd2cbba7eb', is_overlay=False
+2026-02-07 20:52:33,194 - NoteApp - DEBUG - [main_window.py:626] - MainWindow.open_note_by_id CALLED: note_id='4399e31c-ffa3-4920-bb26-dacd2cbba7eb'
+2026-02-07 21:17:17,322 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 21:17:21,342 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 52, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 168, in setup_ui
+    self.sidebar.set_wrap_mode(wrap_enabled)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'set_wrap_mode'
+2026-02-07 21:18:19,294 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_menu()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 191, in setup_menu
+    self.action_new_folder.triggered.connect(self.sidebar.prompt_new_folder)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'prompt_new_folder'. Did you mean: 'prompt_new_item'?
+2026-02-07 21:22:09,765 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 21:22:37,298 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_menu()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 193, in setup_menu
+    self.action_new_folder.triggered.connect(self.sidebar.prompt_new_folder)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'prompt_new_folder'. Did you mean: 'prompt_new_item'?
+2026-02-07 21:55:30,394 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 21:55:32,785 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_menu()
+    ~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 193, in setup_menu
+    self.action_new_folder.triggered.connect(self.sidebar.prompt_new_folder)
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'prompt_new_folder'. Did you mean: 'prompt_new_item'?
+2026-02-07 21:56:09,334 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 21:57:05,589 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 21:58:29,542 - NoteApp - INFO - [data_manager.py:98] - MIGRATION: Moving legacy folders into 'General' Notebook...
+2026-02-07 22:30:51,936 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 52, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 80, in setup_ui
+    self.sidebar.reorderFolder.connect(self.reorder_folder)
+                                       ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MainWindow' object has no attribute 'reorder_folder'. Did you mean: 'rename_folder'?
+2026-02-07 22:45:18,682 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 52, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 72, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 38, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 62, in _setup_header
+    self.nb_selector = QComboBox()
+                       ^^^^^^^^^
+NameError: name 'QComboBox' is not defined
+2026-02-07 23:15:25,189 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 91, in setup_ui
+    self.note_list = NoteList()
+                     ~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\note_list.py", line 33, in __init__
+    self._setup_top_controls()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\note_list.py", line 51, in _setup_top_controls
+    btn_layout = QHBoxLayout()
+                 ^^^^^^^^^^^
+NameError: name 'QHBoxLayout' is not defined. Did you mean: 'QVBoxLayout'?

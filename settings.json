@@ -1,0 +1,588 @@
+{
+    "theme_mode": "dark",
+    "whiteboard_split_view": true,
+    "notebooks": [
+        {
+            "id": "f3224e2f-0dc4-46c7-aefa-36288364907e",
+            "name": "Python Notebook",
+            "folder_ids": [
+                "dfd",
+                "dferesfdfsert45",
+                "dfsdf",
+                "fxiing",
+                "hello",
+                "hello_6",
+                "hesl",
+                "sdfd"
+            ],
+            "is_expanded": true
+        },
+        {
+            "id": "95a634f7-7ed2-4139-b35d-593a8d8189ff",
+            "name": "Java",
+            "folder_ids": [
+                "Things"
+            ],
+            "is_expanded": true
+        }
+    ],
+    "folders_meta": {
+        "starting": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "Python Internal working": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "hellow": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "Python Internal": {
+            "is_pinned": true,
+            "priority": 1
+        },
+        "python internal working": {
+            "last_note_id": "3174c86f-f8a7-4008-b2aa-40686a8e4683",
+            "is_pinned": false,
+            "priority": 1
+        },
+        "hi": {
+            "last_note_id": "c418d8fb-02d9-4cb0-a872-6296d1947840"
+        },
+        "hel": {
+            "last_note_id": "644dcb26-d62f-4bb7-a38e-0f6ad4c56686"
+        },
+        "nes": {
+            "last_note_id": "a89e1e63-de26-4549-8b42-5b96fac88d4a"
+        },
+        "hes": {
+            "last_note_id": "2f554847-d7eb-4d7d-8b7f-06b094fff5eb"
+        },
+        "sd": {
+            "last_note_id": "a8c63f02-c0c1-4aa0-b6f4-21493e59bee0"
+        },
+        "harshitha": {
+            "last_note_id": "ab9b39fb-8374-40c9-8d62-76e6553d41cf"
+        },
+        "ds": {
+            "last_note_id": "3febfb7e-871a-40db-8147-053b2c1f70c0"
+        },
+        "hars": {
+            "last_note_id": "1a0a9417-a399-48e8-a3e6-53975e1d36e8"
+        },
+        "sdf": {
+            "last_note_id": "c3bc1af7-f7c0-4c29-bbae-8157bcd44b1c"
+        },
+        "yes": {
+            "last_note_id": "ddf30e35-481a-4eaa-9801-de23f55dce91"
+        },
+        "few things": {
+            "last_note_id": "4b813ecb-30b3-4f18-9d84-717654f0fcb2"
+        },
+        "his": {
+            "last_note_id": "61450b60-1be1-43e9-9977-48fe919754d5"
+        },
+        "hello": {
+            "last_note_id": "e9f2c327-aecc-4b40-b0c7-a6bfcdcce358",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false
+        },
+        "python learning": {
+            "last_note_id": "2e9d2fe6-b206-459c-9d9c-bb2243aaa5db"
+        },
+        "learning internals of python": {
+            "last_note_id": "616c0504-ea16-463a-8d5a-d13368643a73"
+        },
+        "yess": {
+            "last_note_id": "ab6bfaff-61fd-4449-979e-b509eded2c68"
+        },
+        "Powerbi": {
+            "last_note_id": "4eed20f1-ca7a-4f30-af7b-f0d43fc5a2fb"
+        },
+        "dfd": {
+            "last_note_id": "87fc4812-7645-4def-81ef-732ecdc6dda0"
+        },
+        "ses": {
+            "last_note_id": "eb5512eb-61bd-4be9-9507-5c118c27a7b4"
+        },
+        "sdf4": {
+            "last_note_id": "0492b439-12e5-45cc-9768-0ef933d280c5"
+        },
+        "we want": {
+            "last_note_id": "c8bd90a4-bbd9-4390-87be-28495d04bfcc"
+        },
+        "internal working of python": {
+            "last_note_id": "84f3228f-8c95-4329-a92a-5216e20243be"
+        },
+        "hesl": {
+            "last_note_id": "a22e1e58-db63-486c-8bfc-5f2853bd8a55"
+        },
+        "powerbi learning": {
+            "last_note_id": "2cfaf813-0b6e-4231-9483-746391b53e15"
+        },
+        "dsdf": {
+            "last_note_id": "119f31f8-ed00-4c17-ad00-405c1232b4bf"
+        },
+        "dsfdf": {
+            "last_note_id": "92b35481-c7a9-438a-b993-d509a3f71b39"
+        },
+        "python internals": {
+            "last_note_id": "e5dfb34e-1cc4-48df-bcd3-68786c3b6555"
+        },
+        "TestOrg_Pinned_1768111774": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "TestOrg_Prio1_1768111774": {
+            "is_pinned": false,
+            "priority": 1
+        },
+        "TestOrg_Prio3_1768111774": {
+            "is_pinned": false,
+            "priority": 3
+        },
+        "TestOrg_Pinned_1768112217": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "TestOrg_Prio1_1768112217": {
+            "is_pinned": false,
+            "priority": 1
+        },
+        "TestOrg_Prio3_1768112217": {
+            "is_pinned": false,
+            "priority": 3
+        },
+        "TestOrg_Pinned_1768112241": {
+            "is_pinned": true,
+            "priority": 0
+        },
+        "TestOrg_Prio1_1768112241": {
+            "is_pinned": false,
+            "priority": 1
+        },
+        "TestOrg_Prio3_1768112241": {
+            "is_pinned": false,
+            "priority": 3
+        },
+        "python Internal": {
+            "last_note_id": "c91e1133-8425-403a-a92b-a134d99294da"
+        },
+        "ned": {
+            "last_note_id": "4a908e63-33ae-4ce2-950a-b02959e30a4b"
+        },
+        "folder3": {
+            "last_note_id": "011c6cd3-40bd-4051-8167-c80fe5e98ff6"
+        },
+        "folder4": {
+            "last_note_id": "2f92863a-ff6a-4a23-92fb-649306687891"
+        },
+        "folder5": {
+            "last_note_id": "0f6e7365-f245-48a7-b8e3-86b87035e96f"
+        },
+        "sdfdfd": {
+            "last_note_id": "4416f458-741b-4e21-82ec-b17372ebeff7"
+        },
+        "New folder": {
+            "last_note_id": "fd7ac40d-0431-4cf2-9251-f64e9247be03"
+        },
+        "df": {
+            "last_note_id": "07ab4489-367d-40d3-b30e-4f91d118f123"
+        },
+        "new folder": {
+            "last_note_id": "242c6164-9f82-4f8e-be01-22934cb11094"
+        },
+        "dfdf": {
+            "last_note_id": "a85e33ae-6efb-462f-ad2e-cf14f24bfc5d",
+            "is_pinned": false,
+            "priority": 1
+        },
+        "folder1": {
+            "last_note_id": "8c3eb4a6-a8cb-4a70-b061-0d629a823bfc"
+        },
+        "with working": {
+            "last_note_id": "0ebd166e-7947-4f79-a14e-2e955ecf1cb1"
+        },
+        "rammohan rav": {
+            "last_note_id": "dba89e5d-a9bc-4781-8d1e-e65f0ce03074"
+        },
+        "d": {
+            "last_note_id": "34d29e0d-e4af-497d-8183-e024f79c4ea4"
+        },
+        "Python-Internal": {
+            "last_note_id": "7e28269e-594d-44cd-acea-68691d57d8f6"
+        },
+        "PythonInternal": {
+            "last_note_id": "a958c874-9322-42eb-bdcf-7ad1df223ad8"
+        },
+        "Flipkart": {
+            "last_note_id": "459130eb-b968-4e26-bcc1-827fef68740c"
+        },
+        "Amazon": {
+            "last_note_id": "fc58bb82-c196-4ec3-97ab-250d0c1c7db3"
+        },
+        "meesho": {
+            "last_note_id": "769aa655-80c1-4815-9aec-ffa9abaecf79"
+        },
+        "new1": {
+            "last_note_id": "821c9209-7f65-4a4b-8d5c-016bc62a491c"
+        },
+        "new2": {
+            "last_note_id": "b7aef013-52ab-4442-bf36-f72899f99425"
+        },
+        "ness": {
+            "last_note_id": "56c94d9c-cd52-4e41-88bc-bdf1d957596a"
+        },
+        "backbone": {
+            "last_note_id": "be2d7dfc-976c-49d9-80f9-37e35691a139"
+        },
+        "here": {
+            "last_note_id": "96a52b83-244f-4e38-97bd-4f467ddb00e2"
+        },
+        "hight": {
+            "last_note_id": "87d175f2-2a89-491e-8113-8f403aaa77a1"
+        },
+        "newss": {
+            "last_note_id": "6340375d-80df-4ab0-9ec4-09d9995f3b76"
+        },
+        "fgftg": {
+            "last_note_id": "0776416e-07e8-4968-929e-7c9f85c979ce"
+        },
+        "new3": {
+            "last_note_id": "788a1a43-db22-473f-b1c6-58b83f95b044"
+        },
+        "working": {
+            "last_note_id": "a6d93af5-95b4-4665-9fb7-bc108dee7d60",
+            "is_pinned": false,
+            "priority": 3
+        },
+        "nese": {
+            "is_pinned": false,
+            "priority": 3,
+            "last_note_id": "031da5ef-ca1a-4713-a1c6-1d6e1373bd4a"
+        },
+        "newfolder1": {
+            "last_note_id": "9e2760a3-91d9-42e2-9d65-0b4bdd44808b",
+            "is_pinned": false,
+            "priority": 1
+        },
+        "newfolder2": {
+            "last_note_id": "83afd2af-69fc-45bd-aa8c-e41b43a7e18a"
+        },
+        "Yellow": {
+            "last_note_id": "2538b16d-da06-4b02-92db-6c6500e68f50"
+        },
+        "IranWebiste blocked": {
+            "last_note_id": "b4f3901c-6299-4cf9-994c-e2e9f011f6f9"
+        },
+        "fndf": {
+            "last_note_id": "55e4541a-72e3-4d62-bec8-fcf46d4e1062"
+        },
+        "Python internals": {
+            "last_note_id": "67265243-49c1-48ee-bef4-aef296237ff8",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": "#00ff7f",
+            "is_locked": false
+        },
+        "new folder2": {
+            "last_note_id": "29a93ed0-7381-49be-a617-22ada3f33d49"
+        },
+        "welocme working testing": {
+            "last_note_id": "ef8adf70-4684-4aff-94a4-e3d61ec570de"
+        },
+        "Python internal": {
+            "last_note_id": "5b80aa84-01e1-4982-a532-2f0f93e56f15"
+        },
+        "python new internals": {
+            "last_note_id": "3d21761a-8239-44c4-8394-a1d5d3b6c8ee"
+        },
+        "Unlock the secrest of python": {
+            "last_note_id": "c1f9fbfc-b485-4d68-ab41-0cb9b2fe6484",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "order": 6
+        },
+        "Python Programming": {
+            "is_pinned": false,
+            "priority": 1,
+            "last_note_id": "74f89bd9-3430-4abd-89ec-9c9e9065d55c",
+            "is_archived": true,
+            "order": 3
+        },
+        "DataStructures Lists Set Tuples Dictionary": {
+            "last_note_id": "ad7b10b7-8194-4030-b658-8e73c2b444b2",
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "SQL": {
+            "last_note_id": "7dd458b9-6cb0-42a1-a8ba-1b8f835cbcce",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "order": 7
+        },
+        "Douts": {
+            "last_note_id": "15418e6b-128d-4c46-b751-85fb6d47a262"
+        },
+        "Everything is an object": {
+            "last_note_id": "8ef6861a-038a-459d-9ac2-70ca29b81a1b",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "order": 12
+        },
+        "Spoken English": {
+            "is_pinned": false,
+            "priority": 2,
+            "last_note_id": "910e64ba-6f7e-459c-af3a-7b530dd9b4d4",
+            "is_archived": true,
+            "order": 4
+        },
+        "Object": {
+            "last_note_id": "64da4fa6-5bcb-44e6-9155-1a64b92b8467",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "order": 9
+        },
+        "Python Internal-2": {
+            "last_note_id": "c2815606-c34a-4cc9-8ca6-202aea8b0361",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "Data Types": {
+            "last_note_id": "d0ffdf07-3fd3-432c-b892-4feee4eb26fe",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "\u27a1\ufe0fEverything is an object in python": {
+            "last_note_id": "233fb4b8-e0e5-43f3-b366-5bf138105293",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": true,
+            "order": 5
+        },
+        "list": {
+            "last_note_id": "11751ea1-99c2-423d-807d-7b2929413a6b"
+        },
+        "\u27a1\ufe0fExecution of the python  code and Internals": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": "#00ffff",
+            "is_locked": false
+        },
+        "needi": {
+            "last_note_id": "0ebbde6a-76da-4b63-954a-bdcf435cc84f",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "order": 10
+        },
+        "Quran": {
+            "is_pinned": true,
+            "priority": 1,
+            "is_archived": true,
+            "color": "#00ff7f",
+            "is_locked": true,
+            "last_note_id": "a4a867f2-fd68-4812-ab25-7ec1ce4ff25d",
+            "order": 2
+        },
+        "Hadiths": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "last_note_id": "67271bd7-1e77-4a8c-ac79-bf2f1c4e5123",
+            "order": 11
+        },
+        "Muslim Related": {
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": true,
+            "last_note_id": "fe1ba826-13e1-49ad-91cc-86b041dcf185",
+            "order": 1
+        },
+        "NAMAZ Doing": {
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": true,
+            "last_note_id": "25252f96-0dba-4e27-a5b7-cf5bb8a38705",
+            "order": 0
+        },
+        "ScrollTestFolder": {
+            "last_note_id": "e9e92f7d-bbb7-424f-aec0-1afc57649d0e"
+        },
+        "Make 1 Lakh Consistently": {
+            "is_pinned": true,
+            "priority": 1,
+            "is_archived": false,
+            "color": "#00ffff",
+            "is_locked": false,
+            "order": 1
+        },
+        "Doubts": {
+            "last_note_id": "15418e6b-128d-4c46-b751-85fb6d47a262",
+            "order": 5
+        },
+        "Python Core-1": {
+            "last_note_id": "e9416dcf-a117-4418-ae0e-19469f70eb1d"
+        },
+        "Python Basic Information Related Topics": {
+            "last_note_id": "67265243-49c1-48ee-bef4-aef296237ff8",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "order": 8
+        },
+        "Some Details To know about Python Before Starting": {
+            "last_note_id": "8adedd06-a1d0-4698-9e6c-63ac7a76cb23",
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "\u27a1\ufe0fDunder Methods": {
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "\u2764\ufe0fSome Details To know about Python Before Starting": {
+            "last_note_id": "8adedd06-a1d0-4698-9e6c-63ac7a76cb23",
+            "order": 7
+        },
+        "\u2764\ufe0fWhy Everything is An Obect": {
+            "last_note_id": "2bfe3e03-5995-4ef4-9611-ddcb6807d872",
+            "order": 6
+        },
+        "\u2764\ufe0fSome Other Explantion Related to Python": {
+            "order": 4
+        },
+        "\u2764\ufe0fDunder Methods": {
+            "order": 2
+        },
+        "\u2764\ufe0fDataStructures Lists Set Tuples Dictionary": {
+            "order": 3,
+            "last_note_id": "4399e31c-ffa3-4920-bb26-dacd2cbba7eb"
+        },
+        "narendra": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "last_note_id": "f41b11ac-162b-4924-82f2-5a6711e701c7"
+        },
+        "hello_6": {
+            "last_note_id": "94b13458-adc3-48b2-a244-780eab0b17a4"
+        },
+        "sdfd": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": "#55ff00",
+            "is_locked": false
+        },
+        "dfsdf": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": true,
+            "color": null,
+            "is_locked": false,
+            "last_note_id": "b498ae5f-8d7e-4486-8415-07c971e6265f"
+        },
+        "Things": {
+            "is_pinned": true,
+            "priority": 1,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "last_note_id": "2c3a40f8-bbe5-4677-99b9-1f0d5641960b"
+        },
+        "fxiing": {
+            "last_note_id": "fb8f84e8-4191-4662-b13c-4349f5f8e60f"
+        }
+    },
+    "last_selected_folder_id": "fxiing",
+    "last_image_dir": "C:/Users/IMAM/Desktop",
+    "wrap_mode": true,
+    "whiteboard_settings": {
+        "pen_type": "Std",
+        "bg_mode": "Rule",
+        "bg_color": "#ffffff",
+        "pen_size": 2,
+        "pen_color": "#000000",
+        "orientation": "Landscape",
+        "pattern_color": "#5555ff",
+        "eraser_size": 2
+    },
+    "hr_thickness": 1,
+    "hr_color": "#00aaff",
+    "last_export_dir": "C:/Users/IMAM/Desktop",
+    "custom_highlight_color": "#ffaa00",
+    "shortcuts": {
+        "global_new_note": "Ctrl+N",
+        "global_new_folder": "Ctrl+Shift+N",
+        "global_save": "Ctrl+S",
+        "editor_undo": "Ctrl+Z",
+        "editor_redo": "Ctrl+Y",
+        "editor_bold": "Ctrl+B",
+        "editor_italic": "Ctrl+I",
+        "editor_underline": "Ctrl+U",
+        "editor_highlight": "Ctrl+H",
+        "editor_custom_highlight": "Ctrl+J",
+        "editor_font_inc": "Ctrl++",
+        "editor_font_dec": "Ctrl+-",
+        "editor_smart_copy": "Ctrl+C",
+        "editor_insert_note_box": "Ctrl+E",
+        "editor_insert_drawing": "Ctrl+Q",
+        "editor_import_image": "Ctrl+Shift+I",
+        "editor_insert_hr": "Ctrl+L",
+        "global_toggle_theme": "Ctrl+T",
+        "global_highlight_preview": "Ctrl+Shift+H",
+        "global_pdf_preview": "Ctrl+Shift+P"
+    },
+    "heading_colors": {
+        "1": "#0055ff",
+        "2": "#ffaa00"
+    },
+    "level1_color": "#00ff7f",
+    "level2_color": "#00007f",
+    "show_toc": "true",
+    "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots1"
+}
