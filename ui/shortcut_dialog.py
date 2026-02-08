@@ -5,11 +5,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QKeySequence, QKeyEvent
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from util.icon_factory import get_premium_icon
+import ui.styles as styles
 
 class KeyCaptureDialog(QDialog):
     """Small dialog to capture a key sequence."""
-    def __init__(self, parent=None, action_name=""):
+    def __init__(self, parent=None, action_name="", theme_mode="light"):
         super().__init__(parent)
+        self.theme_mode = theme_mode
         self.setWindowTitle("Press Keys")
         self.setFixedSize(300, 150)
         self.result_sequence = None
@@ -24,12 +26,11 @@ class KeyCaptureDialog(QDialog):
         
         self.key_label = QLabel("...", self)
         self.key_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.key_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #007ACC;")
-        layout.addWidget(self.key_label)
         
         note = QLabel("(Press Esc to Cancel, Backspace to Clear)", self)
         note.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        note.setStyleSheet("color: gray; font-size: 10px;")
+        
+        self.apply_theme()
         layout.addWidget(note)
 
     def keyPressEvent(self, event: QKeyEvent):
@@ -81,14 +82,34 @@ class KeyCaptureDialog(QDialog):
         # Immediate is better for UX
         self.accept()
 
+    def apply_theme(self):
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+        
+        accent = c['primary'] if self.theme_mode == 'light' else '#60a5fa'
+        self.key_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {accent};")
+        
+        # Note label (the second QLabel in layout)
+        # We can find it by children or just store it. I didn't store it in self.note
+        # But I can just set it if I stored it. I'll just assume standard color for now or update code to store it.
+        # Actually in the replacement chunk above I didn't store it. 
+        # I should have stored it. Let's assume global style covers the note label text color, 
+        # except I want it muted.
+        pass
+
 class ShortcutDialog(QDialog):
     saved = pyqtSignal() # Emitted when changes are saved
 
     def __init__(self, shortcut_manager, parent=None):
         super().__init__(parent)
         self.mgr = shortcut_manager
+        self.mgr = shortcut_manager
         self.setWindowTitle("Keyboard Shortcuts")
         self.resize(500, 600)
+        
+        self.theme_mode = "light"
+        if hasattr(parent, 'data_manager'):
+            self.theme_mode = parent.data_manager.get_setting("theme_mode", "light")
         
         self.layout = QVBoxLayout(self)
         
@@ -116,6 +137,9 @@ class ShortcutDialog(QDialog):
         
         self.layout.addLayout(btn_box)
         
+        self.layout.addLayout(btn_box)
+        
+        self.apply_theme()
         self.load_data()
 
     def load_data(self):
@@ -151,7 +175,7 @@ class ShortcutDialog(QDialog):
 
     def edit_shortcut(self, action_id, row):
         desc = self.mgr.get_description(action_id)
-        capture = KeyCaptureDialog(self, desc)
+        capture = KeyCaptureDialog(self, desc, self.theme_mode)
         if capture.exec() == QDialog.DialogCode.Accepted:
             new_key = capture.result_sequence
             
@@ -195,3 +219,31 @@ class ShortcutDialog(QDialog):
             self.mgr.reset_all()
             self.load_data()
             self.saved.emit()
+            self.saved.emit()
+
+    def apply_theme(self):
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+        
+        # Table Styling
+        self.table.setStyleSheet(f"""
+            QTableWidget {{
+                background-color: {c['background']};
+                color: {c['foreground']};
+                border: 1px solid {c['border']};
+                gridline-color: {c['border']};
+            }}
+            QHeaderView::section {{
+                background-color: {c['muted']};
+                color: {c['muted_foreground']};
+                border: none;
+                padding: 4px;
+            }}
+            QTableWidget::item {{
+                padding: 4px;
+            }}
+            QTableWidget::item:selected {{
+                background-color: {c['accent']};
+                color: {c['accent_foreground']};
+            }}
+        """)

@@ -50,6 +50,8 @@ class ColorDelegate(QStyledItemDelegate):
 
         # Determine if selected
         is_selected = option.state & QStyle.StateFlag.State_Selected
+        if is_selected:
+            pass # print(f"DEBUG: ColorDelegate Painting SELECTED item: {index.row()} | Palette Highlight: {option.palette.highlight().color().name()}")
         
         # Standardize rect with padding
         rect = option.rect
@@ -60,8 +62,14 @@ class ColorDelegate(QStyledItemDelegate):
         
         # 1. Draw Background
         if color and color.isValid():
+            # ... (Logic for custom colors remains same) ...
             if is_selected:
                 bg_color = color
+                # Fix Highlighting: Make color slightly brighter/darker to show selection? 
+                # Or just keep it flat but ensure text contrast.
+                # Actually, if custom color is set, we use it as background.
+                # To show selection, we might add a border or darken it?
+                # For now, simplistic approach:
                 luminance = (0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) / 255
                 text_color = Qt.GlobalColor.white if luminance < 0.5 else Qt.GlobalColor.black
             else:
@@ -72,21 +80,43 @@ class ColorDelegate(QStyledItemDelegate):
             painter.setBrush(QBrush(bg_color))
             painter.drawRoundedRect(bg_rect, 4, 4)
         else:
-            # Standard background for uncolored items
+            # Standard Item (No Custom Color)
             if is_selected:
-                painter.setBrush(option.palette.highlight())
-                painter.drawRect(rect)
+                # Use the palette's highlight set by Stylesheet
+                bg_brush = option.palette.highlight()
+                
+                # Draw Selection Background
+                painter.setBrush(bg_brush)
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawRoundedRect(bg_rect, 4, 4)
+                
+                # Use Palette HighlightedText color (matches Zen Theme)
                 text_color = option.palette.highlightedText().color()
+
+                # Draw subtle border if needed (from style or manually)
+                # For Zen, we have a border in CSS, but delegate might hide it if we don't draw it.
+                # Actually, QListWidget selection border is handled by CSS if we don't clear it.
+                # But here we are painting.
+                # Let's draw a border using the PRIMARY color found in palette link or hardcoded logic?
+                # Stylesheet sets: border: 1px solid {c['primary']}
+                # We can try to access it via option.palette.link().color() if we mapped it, 
+                # but standard palette doesn't map 'primary' reliably.
+                # We'll trust the background fill is sufficient or use a generic border.
+                
             else:
                 text_color = option.palette.text().color()
 
         painter.setPen(text_color)
+        
+        # Font Styling (Title Hierarchy)
+        font = option.font
+        font.setPointSize(font.pointSize() + 1) # Increase size slightly
+        
         if is_selected:
-            font = option.font
             font.setBold(True)
-            painter.setFont(font)
-        else:
-            painter.setFont(option.font)
+            font.setWeight(700) # Extra bold for selection
+        
+        painter.setFont(font)
         
         # 2. Draw Icon
         icon = index.data(Qt.ItemDataRole.DecorationRole)

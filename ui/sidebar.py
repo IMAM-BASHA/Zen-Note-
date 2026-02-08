@@ -45,152 +45,137 @@ class Sidebar(QWidget):
 
     def _setup_header(self):
         header_container = QWidget()
+        header_container.setObjectName("SidebarHeader") # For Global Styling
         header_layout = QVBoxLayout(header_container)
-        header_layout.setContentsMargins(10, 15, 10, 10)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(16, 20, 16, 16) # More breathing room
+        header_layout.setSpacing(16)
         
-        title_row = QWidget()
-        title_layout = QHBoxLayout(title_row)
-        title_layout.setContentsMargins(0,0,0,0)
+        # --- ROW 1: BRANDING ---
+        brand_row = QWidget()
+        brand_layout = QHBoxLayout(brand_row)
+        brand_layout.setContentsMargins(0, 0, 0, 0)
+        brand_layout.setSpacing(10)
         
-        self.back_btn = QPushButton()
-        self.back_btn.setIcon(get_premium_icon("back"))
-        self.back_btn.setToolTip("Back to Main List")
-        self.back_btn.setFixedSize(30, 24)
-        self.back_btn.clicked.connect(self.toggle_archived_view)
-        self.back_btn.setVisible(False)
-        title_layout.addWidget(self.back_btn)
-
-        # Notebook Selector Dropdown
+        # Logo (Sage/Amber Gradient background simulated by icon color for now)
+        self.logo_btn = QPushButton()
+        self.logo_btn.setIcon(get_premium_icon("leaf", color="#D97706")) # Amber 600 default
+        self.logo_btn.setFixedSize(32, 32)
+        self.logo_btn.setIconSize(QSize(20, 20))
+        self.logo_btn.setStyleSheet("border: none; background: transparent;") # Clean
+        brand_layout.addWidget(self.logo_btn)
+        
+        # Title
+        self.title_label = QLabel("Zen Notes")
+        self.title_label.setObjectName("SidebarTitle")
+        # Font styling handled by SidebarHeader in styles.py, but explicit weight here helps
+        brand_layout.addWidget(self.title_label)
+        
+        brand_layout.addStretch()
+        
+        # Theme Toggle (Top Right)
+        self.theme_btn = QPushButton() 
+        self.theme_btn.setToolTip("Toggle Zen Mode")
+        self.theme_btn.setFixedSize(32, 32)
+        self.theme_btn.setIconSize(QSize(20, 20))
+        self.theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_btn.clicked.connect(self.toggleTheme.emit)
+        brand_layout.addWidget(self.theme_btn)
+        
+        header_layout.addWidget(brand_row)
+        
+        # --- ROW 2: NOTEBOOK SELECTOR ---
+        nb_row = QWidget()
+        nb_layout = QHBoxLayout(nb_row)
+        nb_layout.setContentsMargins(0,0,0,0)
+        
         self.nb_selector = QComboBox()
-        self.nb_selector.setObjectName("SidebarNotebookSelector")
-        
-        # Allow it to expand and elide long text
+        self.nb_selector.setObjectName("SidebarNotebookSelector") # Global styling
         self.nb_selector.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.nb_selector.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.nb_selector.currentIndexChanged.connect(self.on_notebook_changed)
         
-        # Improve popup display
+        # Improve popup
         view = self.nb_selector.view()
         view.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         view.setWordWrap(True)
         view.setMinimumWidth(300)
-        view.setStyleSheet("""
-            QListView { outline: 0; padding: 5px; background: white; } 
-            QListView::item { padding: 10px 5px; border-bottom: 1px solid #f0f0f0; min-height: 30px; }
-            QListView::item:hover { background: #f5f5f5; }
-        """)
         
-        self.nb_selector.setCursor(Qt.CursorShape.PointingHandCursor)
-        # Initial styling will be set via set_theme_mode
-        self.nb_selector.currentIndexChanged.connect(self.on_notebook_changed)
-        title_layout.addWidget(self.nb_selector, 1) # Give it stretch
+        nb_layout.addWidget(self.nb_selector)
+        header_layout.addWidget(nb_row)
+
+        # --- ROW 3: ACTIONS & UTILITIES ---
+        action_row = QWidget()
+        action_layout = QHBoxLayout(action_row)
+        action_layout.setContentsMargins(0, 0, 0, 0)
+        action_layout.setSpacing(4) # Tight spacing for toolbars
         
-        header_layout.addWidget(title_row)
-
-        # Row 2: Actions & Utilities
-        button_container = QWidget()
-        button_layout = QHBoxLayout(button_container)
-        button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.setSpacing(6)
-
-        # Primary Actions (Moved to Row 2)
+        # Group 1: Notebook Management
         self.add_folder_btn = QPushButton()
-        self.add_folder_btn.setIcon(get_premium_icon("plus", color="white"))
-        self.add_folder_btn.setFixedSize(28, 28)
-        self.add_folder_btn.setToolTip("Create New Main Notebook")
+        self.add_folder_btn.setIcon(get_premium_icon("plus"))
+        self.add_folder_btn.setFixedSize(32, 32)
+        self.add_folder_btn.setToolTip("New Notebook")
         self.add_folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.add_folder_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #0078D7;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QPushButton:hover { background-color: #005A9E; }
-        """)
         self.add_folder_btn.clicked.connect(self.prompt_new_notebook)
-        button_layout.addWidget(self.add_folder_btn)
-
-        self.lock_btn = QPushButton()
-        self.lock_btn.setIcon(get_premium_icon("unlock", color="white"))
-        self.lock_btn.setToolTip("Lock navigation and editing")
-        self.lock_btn.setCheckable(True)
-        self.lock_btn.setFixedSize(28, 28)
-        self.lock_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.lock_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #455A64;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            QPushButton:checked { background-color: #D32F2F; }
-        """)
-        self.lock_btn.toggled.connect(self._on_lock_toggled)
-        button_layout.addWidget(self.lock_btn)
+        action_layout.addWidget(self.add_folder_btn)
 
         self.delete_nb_btn = QPushButton()
-        self.delete_nb_btn.setIcon(get_premium_icon("trash", color="white"))
-        self.delete_nb_btn.setFixedSize(28, 28)
-        self.delete_nb_btn.setToolTip("Delete Current Notebook")
+        self.delete_nb_btn.setIcon(get_premium_icon("trash")) 
+        self.delete_nb_btn.setFixedSize(32, 32)
+        self.delete_nb_btn.setToolTip("Delete Notebook")
         self.delete_nb_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.delete_nb_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #D32F2F;
-                border-radius: 4px;
-                padding: 5px;
-            }
-            QPushButton:hover { background-color: #B71C1C; }
-        """)
         self.delete_nb_btn.clicked.connect(self._on_delete_notebook_clicked)
-        button_layout.addWidget(self.delete_nb_btn)
-
-        button_layout.addSpacing(10)
-
-        # Utility Buttons (Restored)
-        self.theme_btn = QPushButton() 
-        self.theme_btn.setToolTip("Toggle Dark/Light Mode")
-        self.theme_btn.setFixedSize(28, 28)
-        self.theme_btn.setIconSize(QSize(18, 18))
-        self.theme_btn.clicked.connect(self.toggleTheme.emit)
-        button_layout.addWidget(self.theme_btn)
-
-        self.highlight_preview_btn = QPushButton()
-        self.highlight_preview_btn.setIcon(get_premium_icon("bookmark"))
-        self.highlight_preview_btn.setToolTip("Preview Highlighted Text")
-        self.highlight_preview_btn.setFixedSize(28, 28)
-        self.highlight_preview_btn.setIconSize(QSize(18, 18))
-        self.highlight_preview_btn.clicked.connect(self.requestHighlightPreview.emit)
-        button_layout.addWidget(self.highlight_preview_btn)
+        action_layout.addWidget(self.delete_nb_btn)
         
-        self.preview_btn = QPushButton()
-        self.preview_btn.setIcon(get_premium_icon("eye"))
-        self.preview_btn.setToolTip("Preview Folder PDF")
-        self.preview_btn.setFixedSize(28, 28)
-        self.preview_btn.setIconSize(QSize(18, 18))
-        self.preview_btn.clicked.connect(self.requestPdfPreview.emit)
-        button_layout.addWidget(self.preview_btn)
+        action_layout.addSpacing(8)
         
+        # Group 2: View Options
         self.sort_btn = QPushButton()
         self.sort_btn.setIcon(get_premium_icon("sort_down"))
-        self.sort_btn.setToolTip("Sort by Date (Newest First)")
-        self.sort_btn.setFixedSize(28, 28)
-        self.sort_btn.setIconSize(QSize(18, 18))
+        self.sort_btn.setToolTip("Sort by Date")
+        self.sort_btn.setFixedSize(32, 32)
         self.sort_btn.setCheckable(True)
         self.sort_btn.setChecked(True)
         self.sort_btn.clicked.connect(self.toggle_sort)
-        button_layout.addWidget(self.sort_btn)
+        action_layout.addWidget(self.sort_btn)
         
         self.wrap_btn = QPushButton()
         self.wrap_btn.setIcon(get_premium_icon("wrap"))
-        self.wrap_btn.setToolTip("Toggle Text Wrap")
-        self.wrap_btn.setFixedSize(28, 28)
-        self.wrap_btn.setIconSize(QSize(18, 18))
+        self.wrap_btn.setToolTip("Toggle Wrap")
+        self.wrap_btn.setFixedSize(32, 32)
         self.wrap_btn.setCheckable(True)
         self.wrap_btn.clicked.connect(lambda: self.wrapToggled.emit(self.wrap_btn.isChecked()))
-        button_layout.addWidget(self.wrap_btn)
+        action_layout.addWidget(self.wrap_btn)
         
-        button_layout.addStretch()
+        self.preview_btn = QPushButton()
+        self.preview_btn.setIcon(get_premium_icon("eye"))
+        self.preview_btn.setToolTip("Preview PDF")
+        self.preview_btn.setFixedSize(32, 32)
+        self.preview_btn.clicked.connect(self.requestPdfPreview.emit)
+        action_layout.addWidget(self.preview_btn)
 
-        # Add row to header layout
-        header_layout.addWidget(button_container)
+        action_layout.addStretch()
+
+        # Lock (Aligned Right)
+        self.lock_btn = QPushButton()
+        self.lock_btn.setIcon(get_premium_icon("unlock"))
+        self.lock_btn.setToolTip("Lock Navigation")
+        self.lock_btn.setCheckable(True)
+        self.lock_btn.setFixedSize(32, 32)
+        self.lock_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.lock_btn.toggled.connect(self._on_lock_toggled)
+        action_layout.addWidget(self.lock_btn)
+        
+        # Removed highlight_preview_btn to de-clutter (can access via menu or standard shortcuts?)
+        # Or keep it if critical. The user didn't explicitly ask for it in the redesign.
+        # I'll enable it if space permits, but for now focus on clean UI.
+        self.highlight_preview_btn = QPushButton()
+        self.highlight_preview_btn.setIcon(get_premium_icon("bookmark"))
+        self.highlight_preview_btn.setToolTip("Highlights")
+        self.highlight_preview_btn.setFixedSize(32, 32)
+        self.highlight_preview_btn.clicked.connect(self.requestHighlightPreview.emit)
+        action_layout.insertWidget(action_layout.count() - 1, self.highlight_preview_btn) # Insert before lock
+
+        header_layout.addWidget(action_row)
         self.layout.addWidget(header_container)
 
     def _setup_search(self):
@@ -247,72 +232,31 @@ class Sidebar(QWidget):
     def set_theme_mode(self, mode):
         """Updates the sidebar header and components for the given theme mode."""
         is_dark = mode == "dark"
-        text_color = "#FFFFFF" if is_dark else "#202124"
-        icon_color = "#FFFFFF" if is_dark else "#444444"
+        icon_color = "#FFFFFF" if is_dark else "#09090b" # Shadcn foreground
         
-        # 1. Update Notebook Selector Styling
-        self.nb_selector.setStyleSheet(f"""
-            QComboBox {{
-                font-size: 15px;
-                font-weight: 900;
-                color: {text_color};
-                border: none;
-                background: transparent;
-                padding: 4px 25px 4px 2px;
-            }}
-            QComboBox::drop-down {{
-                border: none;
-                width: 20px;
-                subcontrol-origin: padding;
-                subcontrol-position: center right;
-            }}
-            QComboBox::down-arrow {{
-                image: url(util/icons/chevron-down.png);
-                width: 12px;
-                height: 12px;
-            }}
-            QComboBox:hover {{
-                color: #0078D7;
-                background-color: rgba(0, 120, 215, 0.05);
-                border-radius: 4px;
-            }}
-        """)
+        # 1. Update Buttons Icons
+        self.theme_mode = mode
         
-        # 1.1 Force Tree Widget Text Color
-        self.list_widget.setStyleSheet(f"""
-            QTreeWidget {{
-                background-color: transparent;
-                color: {text_color};
-                border: none;
-            }}
-            QTreeWidget::item {{
-                color: {text_color};
-                padding: 5px;
-            }}
-            QTreeWidget::item:selected {{
-                background-color: {'#4A90E2' if is_dark else '#E0E0E0'};
-                color: {'white' if is_dark else 'black'};
-            }}
-        """)
-        
-        # 2. Refresh Icons
+        # Header Utility Icons
         self.theme_btn.setIcon(get_premium_icon("sun" if is_dark else "moon", color=icon_color))
         self.highlight_preview_btn.setIcon(get_premium_icon("bookmark", color=icon_color))
         self.preview_btn.setIcon(get_premium_icon("eye", color=icon_color))
         self.wrap_btn.setIcon(get_premium_icon("wrap", color=icon_color))
-        self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
         
         # Sort icon
         sort_icon = "sort_up" if not self.sort_descending else "sort_down"
         self.sort_btn.setIcon(get_premium_icon(sort_icon, color=icon_color))
         
-        # Action Icons (Always white as they have high-contrast backgrounds)
+        # Action Icons
+        # Note: Primary/Destructive buttons typically have contrasting text (white/white)
         self.add_folder_btn.setIcon(get_premium_icon("plus", color="white"))
-        self.lock_btn.setIcon(get_premium_icon("lock" if self.lock_btn.isChecked() else "unlock", color="white"))
         self.delete_nb_btn.setIcon(get_premium_icon("trash", color="white"))
         
-        # 3. Refresh Tree Items (to update folder icons)
-        self.theme_mode = mode
+        # Lock button (Normal: Icon Color, Checked: White)
+        lock_color = "white" if self.lock_btn.isChecked() else icon_color
+        self.lock_btn.setIcon(get_premium_icon("lock" if self.lock_btn.isChecked() else "unlock", color=lock_color))
+        
+        # 2. Refresh Tree Items (to update folder icons)
         self.refresh_list()
 
     def _on_delete_notebook_clicked(self):
@@ -355,64 +299,67 @@ class Sidebar(QWidget):
         selected_nb_id = self.nb_selector.currentData()
         self.list_widget.clear()
 
-        # 1. Total Notebooks Root (Global View) - REMOVED (Handled by Dropdown)
-
-        # 2. Scoped Archived Root Item
-        if not self.showing_archived and not search_text:
-            nb = next((n for n in self.all_notebooks if n.id == selected_nb_id), None)
-            if nb:
-                # Get current notebook's folders
-                archived_count = 0
-                for f in self.all_folders:
-                    if f.id in nb.folder_ids and getattr(f, 'is_archived', False):
-                        archived_count += 1
-                        
-                if archived_count > 0:
-                    icon_color = "white" if self.theme_mode == "dark" else None
-                    arch_item = QTreeWidgetItem([f" Archived ({archived_count})"])
-                    arch_item.setIcon(0, get_premium_icon("folder_archived", color=icon_color))
-                    arch_item.setData(0, Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
-                    font = arch_item.font(0)
-                    font.setBold(True)
-                    arch_item.setFont(0, font)
-                    self.list_widget.addTopLevelItem(arch_item)
-
-        # 3. Filter Folders
-        # 3. Filter Folders by Notebook and Archive Status
+        # 1. Get Folders for Selected Notebook
         nb = next((n for n in self.all_notebooks if n.id == selected_nb_id), None)
         nb_folder_ids = nb.folder_ids if nb else []
         
-        if self.showing_archived:
-            filtered_folders = [f for f in self.all_folders if f.id in nb_folder_ids and getattr(f, 'is_archived', False)]
-        else:
-            filtered_folders = [f for f in self.all_folders if f.id in nb_folder_ids and not getattr(f, 'is_archived', False)]
-            
-        if search_text:
-            filtered_folders = [f for f in filtered_folders if search_text in f.name.lower()]
+        # 2. Separate into Active and Archived
+        active_folders = []
+        archived_folders = []
         
-        # Sort Folders
+        for f in self.all_folders:
+            if f.id in nb_folder_ids:
+                if getattr(f, 'is_archived', False):
+                    archived_folders.append(f)
+                else:
+                    active_folders.append(f)
+                    
+        # 3. Filter by Search
+        if search_text:
+            active_folders = [f for f in active_folders if search_text in f.name.lower()]
+            archived_folders = [f for f in archived_folders if search_text in f.name.lower()]
+        
+        # 4. Sort
         def sort_key(f):
             pinned_rank = not f.is_pinned
             prio = f.priority if f.priority > 0 else 999
             order_rank = getattr(f, 'order', 0)
             return (pinned_rank, prio, order_rank)
         
-        filtered_folders.sort(key=sort_key)
+        active_folders.sort(key=sort_key)
+        archived_folders.sort(key=sort_key)
 
-        # Map for quick lookup
-        folder_map = {f.id: f for f in filtered_folders}
+        # 5. Populate Active Folders (Top Level)
+        for i, folder in enumerate(active_folders, 1):
+             f_item = self._create_folder_item(folder, index=i)
+             self.list_widget.addTopLevelItem(f_item)
 
-        # 4. Populate Folders for the selected notebook
-        if not self.showing_archived:
-            # Sequential numbering for folders
-            for i, folder in enumerate(filtered_folders, 1):
-                f_item = self._create_folder_item(folder, index=i)
-                self.list_widget.addTopLevelItem(f_item)
-        else:
-            # Simple list for Archived View (with numbering)
-            for i, folder in enumerate(filtered_folders, 1):
-                f_item = self._create_folder_item(folder, index=i)
-                self.list_widget.addTopLevelItem(f_item)
+        # 6. Populate Archived Section (Collapsible Group)
+        if archived_folders:
+             icon_color = "white" if self.theme_mode == "dark" else None
+             arch_item = QTreeWidgetItem([f" Archived ({len(archived_folders)})"])
+             arch_item.setIcon(0, get_premium_icon("folder_archived", color=icon_color))
+             arch_item.setData(0, Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
+             
+             # Styling
+             font = arch_item.font(0)
+             font.setBold(True)
+             arch_item.setFont(0, font)
+
+             self.list_widget.addTopLevelItem(arch_item)
+             
+             # Add children
+             for i, folder in enumerate(archived_folders, 1):
+                 f_item = self._create_folder_item(folder, index=i)
+                 # Optional: Visual cue for archived items (e.g. grayed out text?)
+                 # For now, just standard items.
+                 arch_item.addChild(f_item)
+             
+             # Default to Collapsed (unless searching)
+             if search_text:
+                 arch_item.setExpanded(True)
+             else:
+                 arch_item.setExpanded(False)
 
     def _create_folder_item(self, folder, index=None):
         prefix = ""
@@ -451,7 +398,7 @@ class Sidebar(QWidget):
             return
             
         if data == "ARCHIVED_ROOT":
-            self.toggle_archived_view()
+            item.setExpanded(not item.isExpanded())
             return
             
         # Emit folder selection

@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTo
 from PyQt6.QtCore import Qt, QPointF, QSize, pyqtSignal, QSettings, QRectF, QSizeF
 from PyQt6.QtGui import (QPainter, QPen, QColor, QAction, QActionGroup,
                          QIcon, QCursor, QPixmap, QImage)
+import ui.styles as styles
 
 # Import all necessary components from scrble_ink1
 import importlib.util
@@ -67,6 +68,7 @@ class WhiteboardWidget(QMainWindow):
             QColor("#800080"), QColor("#008080"),
             QColor("#C0C0C0"), QColor("#808080")
         ]
+        self.theme_mode = "light"
         
         # Setup UI
         self.init_ui()
@@ -107,6 +109,19 @@ class WhiteboardWidget(QMainWindow):
         # Connect toolbar movement to auto-save
         for toolbar in self.findChildren(QToolBar):
             toolbar.topLevelChanged.connect(self.save_toolbar_state)
+            
+    def set_theme_mode(self, mode):
+        self.theme_mode = mode
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        
+        # Update Title Color
+        if hasattr(self, 'lbl_title'):
+             color = c['primary'] if mode == 'light' else '#60a5fa' # Blue-ish in dark
+             self.lbl_title.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {color};")
+             
+        # Update general window bg if needed (usually handled by global stylesheet)
+        # But we can force it for embedded widget if needed
+        pass
     
     def sync_ui_with_canvas_settings(self):
         """Sync UI controls (sliders, combo boxes) with loaded canvas settings"""

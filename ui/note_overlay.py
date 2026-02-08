@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QHBoxLayout, QWid
 from PyQt6.QtCore import Qt, QSize
 from ui.editor import TextEditor
 from util.icon_factory import get_premium_icon
+import ui.styles as styles
 
 class NoteOverlayDialog(QDialog):
     def __init__(self, note_id, note_title, note_content, data_manager, parent=None):
@@ -20,14 +21,14 @@ class NoteOverlayDialog(QDialog):
         layout.setSpacing(0)
         
         # Header
-        header = QWidget()
-        header.setStyleSheet("background-color: #f5f5f5; border-bottom: 1px solid #ddd;")
+        self.header = header # Store ref
+        # Style set via apply_theme
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 5, 10, 5)
         
-        title_lbl = QLabel(note_title)
-        title_lbl.setStyleSheet("font-weight: bold; font-size: 14px; color: #333;")
-        header_layout.addWidget(title_lbl)
+        self.title_lbl = QLabel(note_title)
+        # Style set via apply_theme
+        header_layout.addWidget(self.title_lbl)
         header_layout.addStretch()
         
         # Close Button
@@ -42,8 +43,9 @@ class NoteOverlayDialog(QDialog):
         self.editor.editor.setHtml(note_content)
         
         # Apply Theme (Detect from parent or data_manager)
+        # Apply Theme (Detect from parent or data_manager)
         current_theme = self.data_manager.get_setting("theme_mode", "light")
-        self.editor.set_theme_mode(current_theme)
+        self.apply_theme(current_theme)
         
         # Handle links inside overlay
         if self.parent() and hasattr(self.parent(), 'open_note_by_id'):
@@ -53,6 +55,14 @@ class NoteOverlayDialog(QDialog):
              self.editor.request_open_note_overlay.connect(self.parent().open_note_overlay)
         
         layout.addWidget(self.editor)
+        
+    def apply_theme(self, mode):
+        self.editor.set_theme_mode(mode)
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        
+        self.header.setStyleSheet(f"background-color: {c['background']}; border-bottom: 1px solid {c['border']};")
+        self.title_lbl.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {c['foreground']};")
+        self.setStyleSheet(f"background-color: {c['background']};")
         
     def closeEvent(self, event):
         # Save on close?

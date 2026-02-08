@@ -1,27 +1,12 @@
 {
-    "theme_mode": "dark",
+    "theme_mode": "light",
     "whiteboard_split_view": true,
     "notebooks": [
         {
-            "id": "f3224e2f-0dc4-46c7-aefa-36288364907e",
-            "name": "Python Notebook",
+            "id": "6fd53f1d-c562-4263-bdea-c3beb82205f8",
+            "name": "Personal Notebook",
             "folder_ids": [
-                "dfd",
-                "dferesfdfsert45",
-                "dfsdf",
-                "fxiing",
-                "hello",
-                "hello_6",
-                "hesl",
-                "sdfd"
-            ],
-            "is_expanded": true
-        },
-        {
-            "id": "95a634f7-7ed2-4139-b35d-593a8d8189ff",
-            "name": "Java",
-            "folder_ids": [
-                "Things"
+                "yelllow this fix it"
             ],
             "is_expanded": true
         }
@@ -535,10 +520,18 @@
             "last_note_id": "2c3a40f8-bbe5-4677-99b9-1f0d5641960b"
         },
         "fxiing": {
-            "last_note_id": "fb8f84e8-4191-4662-b13c-4349f5f8e60f"
+            "last_note_id": "91d2aa6b-640f-483b-935d-70a325b12223",
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false
+        },
+        "yelllow this fix it": {
+            "last_note_id": "4c43f8a0-e6ca-40ce-82b5-7fc957b88e0f"
         }
     },
-    "last_selected_folder_id": "fxiing",
+    "last_selected_folder_id": "yelllow this fix it",
     "last_image_dir": "C:/Users/IMAM/Desktop",
     "wrap_mode": true,
     "whiteboard_settings": {

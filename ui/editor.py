@@ -9,6 +9,7 @@ from PyQt6.QtGui import (
     QPixmap, QPolygonF, QPen, QBrush, QIcon, QClipboard, QTextFormat
 )
 from util.icon_factory import get_premium_icon
+import ui.styles as styles
 from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent
 import time
 # Monkey Patch for libraries using deprecated time.clock (Python 3.8+)
@@ -45,38 +46,10 @@ class FindBar(QWidget):
         # Floating Card Style
         self.setFixedWidth(320)
         # Shadow effect via stylesheet is limited in Qt without QGraphicsEffect, using border for now
-        self.setStyleSheet("""
-            QWidget { 
-                background-color: #f8f9fa; 
-                border: 1px solid #d1d5db; 
-                border-radius: 6px; 
-            }
-            QLineEdit { 
-                border: 1px solid #ccc; 
-                border-radius: 4px; 
-                padding: 4px; 
-                background: white; 
-                color: black; 
-                selection-background-color: #0078d4;
-                selection-color: white;
-            }
-            QPushButton { 
-                border: none; 
-                padding: 4px; 
-                border-radius: 4px; 
-                color: #333; 
-                background: transparent;
-            }
-            QPushButton:hover { background-color: #e5e7eb; }
-            QPushButton:hover { background-color: #e5e7eb; }
-            QLabel#MatchCount {
-                color: #666; 
-                font-size: 11px; 
-                border: none; 
-                background: transparent;
-                padding: 0 4px;
-            }
-        """)
+        # Floating Card Style initialized with default; updated via set_theme_mode
+        self.set_theme_mode("light")
+        
+        # Components
         
         # Components
         self.lbl_icon = QLabel("🔍")
@@ -155,6 +128,48 @@ class FindBar(QWidget):
             self.close_bar()
         else:
             super().keyPressEvent(event)
+
+    def set_theme_mode(self, mode):
+        """Update FindBar styling based on theme."""
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        self.setStyleSheet(f"""
+            QWidget {{ 
+                background-color: {c['popover']}; 
+                border: 1px solid {c['border']}; 
+                border-radius: 12px; 
+                color: {c['foreground']};
+            }}
+            QLineEdit {{ 
+                border: 1px solid {c['input']}; 
+                border-radius: 4px; 
+                padding: 4px; 
+                background: {c['background']}; 
+                color: {c['foreground']}; 
+                selection-background-color: {c['secondary']};
+                selection-color: {c['secondary_foreground']};
+            }}
+            QLineEdit:focus {{ border: 1px solid {c['ring']}; }}
+            
+            QPushButton {{ 
+                border: 1px solid transparent; 
+                padding: 4px; 
+                border-radius: 4px; 
+                color: {c['foreground']}; 
+                background: transparent;
+            }}
+            QPushButton:hover {{ 
+                background-color: {c['accent']}; 
+                color: {c['accent_foreground']};
+            }}
+            
+            QLabel {{
+                color: {c['muted_foreground']}; 
+                font-size: 11px; 
+                border: none; 
+                background: transparent;
+                padding: 0 4px;
+            }}
+        """)
 
 class ImageProcessor(QObject):
     """Async image processing worker to prevent UI blocking."""
@@ -459,19 +474,29 @@ class MarkdownTextEdit(QTextEdit):
             html = source.html()
             
             # DARK MODE FIX: Prevent "Black-on-Dark" invisibility
-            editor_widget = self.parent()
-            theme = getattr(editor_widget, 'theme_mode', 'light')
+            # Find TextEditor parent (could be nested in Splitter)
+            p = self.parent()
+            theme = 'light'
+            while p:
+                if hasattr(p, 'theme_mode'):
+                    theme = p.theme_mode
+                    break
+                p = p.parent()
             
             if theme == 'dark':
                 import re
                 # SUPER NUCLEAR RESET: Strip ALL hardcoded color/background styles
-                # We target both inline styles and legacy attributes.
-                html = re.sub(r'color\s*[:=]\s*[^"\'\s>;]+', '', html, flags=re.IGNORECASE)
-                html = re.sub(r'background(?:-color)?\s*[:=]\s*[^"\'\s>;]+', '', html, flags=re.IGNORECASE)
+                # Robust regex to catch rgb(...), hex, named colors
+                html = re.sub(r'color\s*:[^;>]+(?:;)?', '', html, flags=re.IGNORECASE)
+                html = re.sub(r'background(?:-color)?\s*:[^;>]+(?:;)?', '', html, flags=re.IGNORECASE)
                 html = re.sub(r'bgcolor\s*=\s*["\']?[^"\'>\s]+["\']?', '', html, flags=re.IGNORECASE)
                 
-                # Force a high-contrast wrapper
-                html = f'<div style="color: #ececec; background-color: #1e1e1e;">{html}</div>'
+                # Strip class attributes which might carry Stylesheet colors
+                html = re.sub(r'class\s*=\s*["\'][^"\']*["\']', '', html, flags=re.IGNORECASE)
+
+                # Get colors from Shadcn palette
+                c = styles.ZEN_THEME["dark"]
+                html = f'<div style="color: {c["foreground"]}; background-color: {c["background"]};">{html}</div>'
 
             # CORE FIX: Check for nested block insertion
             if self.textCursor().currentTable():
@@ -689,51 +714,23 @@ class TextEditor(QWidget):
     request_open_note = pyqtSignal(str) # Note ID
     request_open_note_overlay = pyqtSignal(str) # Note ID for overlay
 
+    request_open_link_dialog = pyqtSignal()
     requestShortcutDialog = pyqtSignal()
-    
+
     def __init__(self, parent=None, data_manager=None, shortcut_manager=None):
         super().__init__(parent)
         self.data_manager = data_manager
         self.shortcut_manager = shortcut_manager
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
-
-        # Toolbar
-        self.toolbar = QToolBar()
-        self.toolbar.setIconSize(QSize(13, 13)) # Optimized for visibility and fit
-        # Compact Stylesheet
-        self.toolbar.setStyleSheet("""
-            QToolBar {
-                spacing: 0px; /* Absolute minimal spacing */
-                padding: 1px;
-                border-bottom: 1px solid #ddd;
-            }
-            QToolButton {
-                padding: 1px;
-                border-radius: 2px;
-            }
-            QToolButton:hover {
-                background-color: rgba(0, 0, 0, 0.1);
-            }
-            QComboBox {
-                padding: 0px 2px; 
-                height: 18px;
-                font-size: 10px;
-                background: #fdfdfd;
-            }
-            QSpinBox {
-                padding: 0px;
-                height: 18px;
-                font-size: 10px;
-            }
-        """)
-        self.layout.addWidget(self.toolbar)
-
+        
+        # Toolbar Actions (Initialized here, but not added to a local toolbar)
+        self._init_actions()
+        
         # Find Bar (Floating Overlay - Not in Layout)
         self.find_bar = FindBar(self)
         self.find_bar.search_next.connect(lambda t: self.find_text(t, forward=True))
         self.find_bar.search_prev.connect(lambda t: self.find_text(t, forward=False))
-        # self.layout.addWidget(self.find_bar) # REMOVED: Managed manually via move()
         
         # Connect Ctrl+F
         self.find_action = QAction(self)
@@ -757,198 +754,399 @@ class TextEditor(QWidget):
             Qt.TextInteractionFlag.TextEditorInteraction | 
             Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
+        self.layout.addWidget(self.editor)
         # Override mousePressEvent to handle anchor clicks - MOVED TO MarkdownTextEdit.mousePressEvent
         # self.editor.mousePressEvent = self._editor_mouse_press
+        
         # Override keyPressEvent to handle custom auto-lists (Checkboxes, Symbols)
         self.editor.keyPressEvent = self._editor_key_press
         
-# Override paste event to handle image pasting - handled by class methods
+        # Override paste event to handle image pasting - handled by class methods
         
         # Track current folder for image storage
         self.current_folder = None
         
         # FIX: Track files we're actively refreshing to prevent watcher loop
-        self._refreshing_files = set()  # Set of file paths currently being refreshed
+        self._refreshing_files = set()
         
-        # Load custom highlight color from settings (Before setup_toolbar so icon can use it)
+        # Load custom highlight color from settings
         saved_color = "cyan"
         if self.data_manager:
             saved_color = self.data_manager.get_setting("custom_highlight_color", "cyan")
         self.custom_highlight_color = QColor(saved_color)
         
-        # Local image data storage for persistence {res_name: b64_data}
+        # Local image data storage for persistence
         self.whiteboard_images = {}
-        
-        # Performance: Cache last resize width to avoid redundant operations
         self._last_resize_width = -1
+        self._image_dimensions_cache = {}
         
-        # Performance enhancements
-        self._image_dimensions_cache = {}  # Cache image dimensions to avoid repeated decoding
         # Debounce Timer for Highlights
         self.highlight_debounce_timer = QTimer()
         self.highlight_debounce_timer.setSingleShot(True)
-        self.highlight_debounce_timer.setInterval(200) # 200ms debounce
+        self.highlight_debounce_timer.setInterval(200)
         
-        # Debounce Timer for Autosave (Typing)
+        # Debounce Timer for Autosave
         self.debounce_timer = QTimer()
         self.debounce_timer.setSingleShot(True)
         self.debounce_timer.setInterval(2000)
+        
         self._resize_debounce_timer = QTimer()
         self._resize_debounce_timer.setSingleShot(True)
         self._resize_debounce_timer.timeout.connect(self._resize_images_to_fit)
+        
         self._thread_pool = QThreadPool()
-        self._thread_pool.setMaxThreadCount(2)  # Limit threads to prevent resource exhaustion
-        
-        
-        # Performance enhancements
-        self._image_dimensions_cache = {}  # Cache image dimensions to avoid repeated decoding
-
+        self._thread_pool.setMaxThreadCount(2)
         
         # --- Auto-Refresh Watcher ---
         from PyQt6.QtCore import QFileSystemWatcher
         self.file_watcher = QFileSystemWatcher(self)
         self.file_watcher.fileChanged.connect(self._handle_file_change)
-        self.watched_images = {} # path -> list of res_names (1-to-many potentially)
+        self.watched_images = {}
         
         # Level Numbering Support
-        self.base_note_index = 0  # Will be set by MainWindow based on note position
-        # Load level colors from settings
+        self.base_note_index = 0
         if self.data_manager:
-            self.level1_color = QColor(self.data_manager.get_setting("level1_color", "#FFEB3B"))  # Yellow
-            self.level2_color = QColor(self.data_manager.get_setting("level2_color", "#00FF00"))  # Bright Green
+            self.level1_color = QColor(self.data_manager.get_setting("level1_color", "#FFEB3B"))
+            self.level2_color = QColor(self.data_manager.get_setting("level2_color", "#00FF00"))
         else:
             self.level1_color = QColor("#FFEB3B")
             self.level2_color = QColor("#00FF00")
         
         # --- TOC & Editor Layout ---
-        # --- TOC & Editor Layout ---
         from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QWidget, QSplitter, QLabel, QPushButton
         
-        # Main Splitter
         self.editor_splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.editor_splitter.setHandleWidth(4) # Thicker divider for easier grabbing
-        # Style set via _update_toc_style
-        
-        # Add Editor (Left)
-        # Note: Editor is strictly the MarkdownTextEdit.
+        self.editor_splitter.setHandleWidth(4)
         self.editor_splitter.addWidget(self.editor)
         
-        # Table of Contents Panel (Right)
         self.toc_panel = QWidget()
-        # Remove Fixed Width to allow Splitter resizing
-        self.toc_panel.setMinimumWidth(100) # Minimum constraint
+        self.toc_panel.setMinimumWidth(100)
         
         toc_layout = QVBoxLayout(self.toc_panel)
         toc_layout.setContentsMargins(0, 0, 0, 0)
         toc_layout.setSpacing(0)
         
-        # TOC Header
         self.toc_header = QWidget()
-        # Style set via _update_toc_style based on theme
         header_layout = QHBoxLayout(self.toc_header)
         header_layout.setContentsMargins(10, 5, 5, 5)
         
         self.lbl_toc = QLabel("Table of Contents")
-        # Style set via _update_toc_style
         header_layout.addWidget(self.lbl_toc)
         header_layout.addStretch()
         
         self.btn_close_toc = QPushButton("×")
         self.btn_close_toc.setFixedSize(20, 20)
-        self.btn_close_toc.setToolTip("Close Sidebar")
         self.btn_close_toc.clicked.connect(self.toggle_toc)
         header_layout.addWidget(self.btn_close_toc)
         
         toc_layout.addWidget(self.toc_header)
         
-        # TOC List
         self.toc_list = QListWidget()
         self.toc_list.setFrameShape(QListWidget.Shape.NoFrame)
-        self.toc_list.setWordWrap(True) # Wrap long text
+        self.toc_list.setWordWrap(True)
         self.toc_list.setTextElideMode(Qt.TextElideMode.ElideNone)
-        self.toc_list.setResizeMode(QListWidget.ResizeMode.Adjust) # Enhance wrapping on resize
-        
-        # Initial Style Update
-        # self.theme_mode is set below, so we call update style there
-        
+        self.toc_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.toc_list.itemClicked.connect(self._on_toc_item_clicked)
         toc_layout.addWidget(self.toc_list)
         
         self.editor_splitter.addWidget(self.toc_panel)
-        # Set Initial Sizes (PROPORTIONAL)
-        self.editor_splitter.setStretchFactor(0, 4) # Editor takes more space
-        self.editor_splitter.setStretchFactor(1, 1) # TOC takes less
+        self.editor_splitter.setStretchFactor(0, 4)
+        self.editor_splitter.setStretchFactor(1, 1)
         self.layout.addWidget(self.editor_splitter)
         
-        # Navigation Back Button (Floating on the Editor)
-        self.origin_note_id = None
+        # Navigation Back Button
         self.btn_back = QPushButton(self.editor)
         self.btn_back.hide()
         self.btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_back.setStyleSheet("""
-            QPushButton {
-                background-color: #ECEFF1;
-                color: #455A64;
-                border: 1px solid #B0BEC5;
-                border-radius: 18px;
-                padding: 8px 20px;
-                font-weight: bold;
-                font-family: 'Segoe UI';
-                font-size: 13px;
-                /* Subtle elevation effect */
-                border-bottom: 2px solid #90A4AE;
-            }
-            QPushButton:hover {
-                background-color: #CFD8DC;
-                color: #263238;
-                border-color: #78909C;
-            }
-            QPushButton:pressed {
-                border-bottom: 1px solid #78909C;
-                padding-top: 9px;
-                padding-bottom: 7px;
-            }
-        """)
         self.btn_back.clicked.connect(self._on_back_clicked)
         
         # Load Persistence
         show_toc = False
         if self.data_manager:
-            # "true" string -> bool
             show_toc = self.data_manager.get_setting("show_toc", "false") == "true"
-            
         self.toc_panel.setVisible(show_toc)
-        if show_toc: # Initial refresh if open
-             # We can't refresh immediately if document is empty? 
-             # But init happens once.
-             # We rely on textChanged signal connection below.
-             pass
-
-        self.setup_toolbar()
         
-        # Level Numbering: Prevent editing of number cells
         self.editor.cursorPositionChanged.connect(self._enforce_readonly_numbers)
-        # Auto-refresh TOC if visible
         self.editor.textChanged.connect(lambda: self.refresh_toc() if self.toc_list.isVisible() else None)
         
         self.theme_mode = "light"
-        
-        # Initial TOC Style Apply
         self._update_toc_style()    
 
-        
+    def _init_actions(self):
+        """Initialize all actions so they can be retrieved by external TitleBar."""
+        # --- Row 1 Logic ---
+        # 1. Font Family
+        self.combo_font = QComboBox()
+        self.combo_font.addItems(["Segoe UI", "Arial", "Times New Roman", "Courier New", "Verdana", "Georgia", "Tahoma", "Trebuchet MS"])
+        self.combo_font.setCurrentText("Segoe UI")
+        self.combo_font.currentTextChanged.connect(self.set_font_family)
+        self.combo_font.setFixedWidth(120)
+        self.combo_font.setToolTip("Font Family")
 
+        # 2. Font Size
+        self.spin_size = QSpinBox()
+        self.spin_size.setRange(8, 72)
+        self.spin_size.setValue(12)
+        self.spin_size.valueChanged.connect(self.text_size)
+        self.spin_size.setFixedWidth(42) # Optimized width
+        self.spin_size.setToolTip("Font Size")
+
+        self.action_font_inc = QAction(get_premium_icon("plus_circle"), "", self)
+        self.action_font_inc.setToolTip(f"Increase Font Size ({self._get_shortcut('editor_font_inc', 'Ctrl++')})")
+        self.action_font_inc.triggered.connect(self.font_size_step_up)
+
+        self.action_font_dec = QAction(get_premium_icon("minus_circle"), "", self)
+        self.action_font_dec.setToolTip(f"Decrease Font Size ({self._get_shortcut('editor_font_dec', 'Ctrl+-')})")
+        self.action_font_dec.triggered.connect(self.font_size_step_down)
+        
+        # 3. Text Formatting Actions
+        self.action_bold = QAction(get_premium_icon("bold"), "Bold", self)
+        self.action_bold.setShortcut("Ctrl+B")
+        self.action_bold.setCheckable(True)
+        self.action_bold.triggered.connect(self.text_bold)
+        
+        self.action_italic = QAction(get_premium_icon("italic"), "Italic", self)
+        self.action_italic.setShortcut("Ctrl+I")
+        self.action_italic.setCheckable(True)
+        self.action_italic.triggered.connect(self.text_italic)
+        
+        self.action_underline = QAction(get_premium_icon("underline"), "Underline", self)
+        self.action_underline.setShortcut("Ctrl+U")
+        self.action_underline.setCheckable(True)
+        self.action_underline.triggered.connect(self.text_underline)
+        
+        self.action_strike = QAction(get_premium_icon("strike"), "Strikethrough", self)
+        self.action_strike.setCheckable(True)
+        self.action_strike.triggered.connect(self.text_strike)
+
+        # Super/Sub Script
+        self.action_super = QAction("x²", self)
+        self.action_super.setToolTip("Superscript")
+        self.action_super.triggered.connect(self.text_super)
+
+        self.action_sub = QAction("x₂", self)
+        self.action_sub.setToolTip("Subscript")
+        self.action_sub.triggered.connect(self.text_sub)
+        
+        # 4. Highlighter & Colors
+        self.action_highlight = QAction(get_premium_icon("highlight"), "Highlight", self)
+        self.action_highlight.setToolTip("Highlight Text (Ctrl+H)")
+        self.action_highlight.setShortcut("Ctrl+H")
+        self.action_highlight.triggered.connect(self.text_highlight)
+        
+        # Custom Highlighter (Ctrl+J)
+        self.btn_custom_hl = QToolButton()
+        if hasattr(self, 'custom_highlight_color'):
+             self._update_custom_hl_icon(self.custom_highlight_color)
+        else:
+             self.btn_custom_hl.setText("🌈") 
+        self.btn_custom_hl.setToolTip("Custom Highlight (Ctrl+J)")
+        
+        custom_hl_action = QAction(self.btn_custom_hl.icon(), "", self)
+        custom_hl_action.setShortcut(self._get_shortcut("editor_custom_highlight", "Ctrl+J"))
+        custom_hl_action.triggered.connect(self.apply_custom_highlight)
+        self.btn_custom_hl.setDefaultAction(custom_hl_action)
+        self.btn_custom_hl.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        
+        custom_hl_menu = QMenu(self.btn_custom_hl)
+        pick_color_action = QAction("Choose Color...", self)
+        pick_color_action.triggered.connect(self.pick_custom_highlight_color)
+        custom_hl_menu.addAction(pick_color_action)
+        self.btn_custom_hl.setMenu(custom_hl_menu)
+
+        self.action_color = QAction(get_premium_icon("color"), "Text Color", self)
+        self.action_color.triggered.connect(self.text_color)
+        self.action_color.setToolTip("Text Color")
+
+        # 5. Headings & Lists
+        self.combo_header = QComboBox()
+        self.combo_header.addItems(["Par", "H1", "H2", "H3", "L1", "L2"])
+        self.combo_header.currentIndexChanged.connect(self.text_heading)
+        self.combo_header.setFixedWidth(50)
+        self.combo_header.setToolTip("Text Style")
+
+        self.combo_list = QComboBox()
+        self.combo_list.addItems(["List", "•", "1.", "A.", "I.", "☑", "Ω"])
+        self.combo_list.setFixedWidth(55)
+        self.combo_list.setToolTip("List Style")
+        self.combo_list.currentIndexChanged.connect(self.change_list_style)
+        
+        self.action_check = QAction(get_premium_icon("check"), "Checklist", self)
+        self.action_check.setShortcut("Ctrl+Shift+C")
+        self.action_check.triggered.connect(self.insert_checklist)
+        
+        self.action_indent = QAction(get_premium_icon("indent"), "Indent", self)
+        self.action_indent.setShortcut("Tab")
+        self.action_indent.triggered.connect(self.text_indent)
+        
+        self.action_outdent = QAction(get_premium_icon("outdent"), "Outdent", self)
+        self.action_outdent.setShortcut("Shift+Tab")
+        self.action_outdent.triggered.connect(self.text_outdent)
+        
+        # 6. Navigation
+        self.action_scroll_top = QAction(get_premium_icon("top"), "Scroll to Top", self)
+        self.action_scroll_top.triggered.connect(self.scroll_to_top)
+
+        self.action_scroll_bottom = QAction(get_premium_icon("bottom"), "Scroll to Bottom", self)
+        self.action_scroll_bottom.triggered.connect(self.scroll_to_bottom)
+
+        # 7. Structure & Inserts (Row 2 equivalent)
+        # Level 1 Button
+        self.lvl1_btn = QToolButton()
+        self.lvl1_btn.setIcon(get_premium_icon("level1"))
+        self.lvl1_btn.setToolTip("Level 1 Box")
+        self.lvl1_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.lvl1_btn.setFixedWidth(40)
+        self.lvl1_btn.clicked.connect(self.apply_level_1)
+        
+        lvl1_menu = QMenu(self.lvl1_btn)
+        lvl1_color_action = QAction("Choose Color...", self)
+        lvl1_color_action.triggered.connect(self._pick_level1_color)
+        lvl1_menu.addAction(lvl1_color_action)
+        self.lvl1_btn.setMenu(lvl1_menu)
+
+        # Level 2 Button
+        self.lvl2_btn = QToolButton()
+        self.lvl2_btn.setIcon(get_premium_icon("level2"))
+        self.lvl2_btn.setToolTip("Level 2 Box")
+        self.lvl2_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.lvl2_btn.setFixedWidth(40)
+        self.lvl2_btn.clicked.connect(self.apply_level_2)
+        
+        lvl2_menu = QMenu(self.lvl2_btn)
+        lvl2_color_action = QAction("Choose Color...", self)
+        lvl2_color_action.triggered.connect(self._pick_level2_color)
+        lvl2_menu.addAction(lvl2_color_action)
+        self.lvl2_btn.setMenu(lvl2_menu)
+
+        self.action_code_block = QAction(get_premium_icon("square"), "Rectangular Box", self)
+        self.action_code_block.triggered.connect(self.insert_code_block)
+        self.action_code_block.setToolTip("Rectangular Box")
+
+        self.action_note_box = QAction(get_premium_icon("bookmark"), "Insert Note Box", self)
+        self.action_note_box.triggered.connect(self.insert_note_box)
+        self.action_note_box.setToolTip("Insert Note Box")
+
+        self.btn_hr = QToolButton()
+        self.btn_hr.setIcon(get_premium_icon("hr"))
+        self.action_hr = QAction(get_premium_icon("hr"), "", self)
+        self.action_hr.setShortcut(self._get_shortcut("editor_insert_hr", "Ctrl+L"))
+        self.action_hr.triggered.connect(self.insert_hr)
+        self.btn_hr.setToolTip(f"Horizontal Line ({self._get_shortcut('editor_insert_hr', 'Ctrl+L')})")
+        self.btn_hr.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.btn_hr.setDefaultAction(self.action_hr)
+        
+        hr_menu = QMenu(self.btn_hr)
+        thick_menu = hr_menu.addMenu("Thickness")
+        for t in [1, 2, 3, 4, 5, 8, 10]:
+            a = QAction(f"{t}px", self)
+            a.triggered.connect(lambda checked, val=t: self.set_hr_thickness(val))
+            thick_menu.addAction(a)
+        col_action = QAction("Color...", self)
+        col_action.triggered.connect(self.set_hr_color)
+        hr_menu.addAction(col_action)
+        self.btn_hr.setMenu(hr_menu)
+
+        self.action_draw = QAction(get_premium_icon("palette"), "Drawing (Whiteboard)", self)
+        self.action_draw.triggered.connect(self.insert_drawing)
+        self.action_draw.setToolTip("Drawing (Whiteboard)")
+
+        self.action_import_wb = QAction(get_premium_icon("image"), "Import Image", self)
+        self.action_import_wb.setShortcut(self._get_shortcut("editor_import_image", "Ctrl+Shift+I"))
+        self.action_import_wb.triggered.connect(self.import_whiteboard_image)
+        self.action_import_wb.setToolTip(f"Import Image ({self._get_shortcut('editor_import_image', 'Ctrl+Shift+I')})")
+
+        self.action_link = QAction(get_premium_icon("link"), "Link Note", self)
+        self.action_link.setShortcut("Ctrl+K")
+        self.action_link.triggered.connect(self.insert_link)
+        self.action_link.setToolTip(f"Insert Link to Note ({self._get_shortcut('editor_insert_link', 'Ctrl+K')})")
+
+        self.action_clear = QAction(get_premium_icon("trash"), "Clear All", self)
+        self.action_clear.triggered.connect(self.clear)
+        self.action_clear.setToolTip("Clear All Content")
+
+        self.action_shortcuts = QAction(get_premium_icon("keyboard"), "Shortcuts", self)
+        self.action_shortcuts.triggered.connect(self.requestShortcutDialog.emit)
+        self.action_shortcuts.setToolTip("Keyboard Shortcuts")
+
+        self.toc_action = QAction(get_premium_icon("list"), "TOC", self)
+        self.toc_action.triggered.connect(self.toggle_toc)
+        self.toc_action.setToolTip("Toggle Table of Contents")
+
+        self.action_export = QAction(get_premium_icon("export"), "Export PDF", self)
+        self.action_export.triggered.connect(self.exportNoteRequest.emit)
+        self.action_export.setToolTip("Export Note as PDF")
+
+    def get_toolbar_actions(self):
+        """Returns ordered list of widgets/actions for the Main Window Title Bar."""
+        return [
+            self.combo_font,
+            self.spin_size,
+            self.action_font_inc,
+            self.action_font_dec,
+            "SEPARATOR",
+            self.action_bold,
+            self.action_italic,
+            self.action_underline,
+            self.action_strike,
+            self.action_super,
+            self.action_sub,
+            "SEPARATOR",
+            self.action_highlight,
+            self.btn_custom_hl,
+            self.action_color,
+            "SEPARATOR",
+            self.combo_header,
+            self.combo_list,
+            self.action_check,
+            "SEPARATOR",
+            self.action_indent,
+            self.action_outdent,
+            "SEPARATOR",
+            self.lvl1_btn,
+            self.lvl2_btn,
+            self.action_code_block,
+            self.action_note_box,
+            self.btn_hr,
+            "SEPARATOR",
+            self.action_draw,
+            self.action_import_wb,
+            self.action_link, 
+            "SEPARATOR",
+            self.action_scroll_top,
+            self.action_scroll_bottom,
+            "SEPARATOR",
+            self.action_clear,
+            self.action_shortcuts,
+            self.toc_action,
+            "SEPARATOR",
+            self.action_export
+        ]
+
+    def request_link_dialog(self):
+        """Emit signal for opening link dialog."""
+        self.request_open_link_dialog.emit()
+
+    def insert_internal_link(self):
+         self.request_open_link_dialog.emit()
 
     def set_theme_mode(self, mode):
         """Set the current theme mode (light/dark) to adjust highlighter colors."""
         old_mode = self.theme_mode
         self.theme_mode = mode
         
-        # Refresh Toolbar Icons
+        # Refresh Toolbar Icons and Style
         self._refresh_toolbar_icons(mode)
+        self._update_toolbar_style(mode)
+        
+        # Update FindBar Style
+        self.find_bar.set_theme_mode(mode)
         
         # Update TOC Style
         self._update_toc_style()
+        
+        # Update Back Button Style
+        self._update_back_btn_style(mode)
         
         # Sync Default Highlight Color (Theme Aware)
         try:
@@ -959,8 +1157,14 @@ class TextEditor(QWidget):
             # Auto-Refresh Level Boxes to ensure contrast is correct in new theme (though boxes rely on levelX_color, refreshing ensures consistency)
             self.renumber_all_levels()
             # Fallback to hardcoded known defaults if styles dict is missing specific keys to prevent crash
-            old_def_hex = styles.THEME_COLORS.get(old_mode, {}).get('highlight_bg_base', '#FFF176')
-            new_def_hex = styles.THEME_COLORS.get(mode, {}).get('highlight_bg_base', '#FFF176') # Fallback yellow
+            # Fallback Highlight Colors (Yellow for light, darker Gold for dark)
+            HIGHLIGHT_DEFAULTS = {
+                "light": "#FFF176", 
+                "dark": "#FACC15" # Yellow-400 (Shadcn/Tailwind friendly)
+            }
+            
+            old_def_hex = HIGHLIGHT_DEFAULTS.get(old_mode, '#FFF176')
+            new_def_hex = HIGHLIGHT_DEFAULTS.get(mode, '#FFF176')
             
             old_default = QColor(old_def_hex)
             new_default = QColor(new_def_hex)
@@ -986,8 +1190,14 @@ class TextEditor(QWidget):
 
     def _refresh_toolbar_icons(self, mode):
         """Updates toolbar icons based on the current theme."""
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
         is_dark = mode == "dark"
-        color = "#FFFFFF" if is_dark else "#444444"
+        color = c['primary'] # Use Primary color for branding, or Foreground? 
+        # Zen Design: Icons are usually branded or dark grey.
+        # Let's use Foreground for general icons, Primary for specific ones if we wanted.
+        # But 'color' arg in get_premium_icon sets the stroke.
+        # Light: #3D3A38, Dark: #E7E5E4.
+        color = c['foreground']
         
         def set_icon(action_attr, icon_name):
             if hasattr(self, action_attr):
@@ -1009,6 +1219,9 @@ class TextEditor(QWidget):
         set_icon('action_font_dec', 'minus_circle')
         set_icon('action_indent', 'indent')
         set_icon('action_outdent', 'outdent')
+        set_icon('action_bullet', 'list')
+        set_icon('action_number', 'list')
+        set_icon('action_check', 'check')
         
         # Scroll
         set_icon('action_scroll_top', 'top')
@@ -1028,43 +1241,87 @@ class TextEditor(QWidget):
         set_icon('action_clear', 'trash')
         set_icon('action_shortcuts', 'keyboard')
         set_icon('toc_action', 'list')
+        set_icon('action_export', 'export')
         
         # Tool Buttons
         if hasattr(self, 'lvl1_btn'):
             self.lvl1_btn.setIcon(get_premium_icon("level1", color=color))
         if hasattr(self, 'lvl2_btn'):
             self.lvl2_btn.setIcon(get_premium_icon("level2", color=color))
+        
+        if hasattr(self, 'btn_custom_hl'):
+             # Custom update for highlight icon to keep the rainbow bar if we want,
+             # but standard set_icon will overwrite it. 
+             # Let's use the rainbow icon check
+             self._update_custom_hl_icon(self.custom_highlight_color)
+
+    def _update_back_btn_style(self, mode):
+        """Dynamic styling for the floating back button."""
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        is_dark = mode == "dark"
+        
+        bg = "#ECEFF1" if not is_dark else "#1F2937"
+        fg = "#455A64" if not is_dark else "#E5E7EB"
+        border = "#B0BEC5" if not is_dark else "#374151"
+        hover_bg = "#CFD8DC" if not is_dark else "#374151"
+        hover_fg = "#263238" if not is_dark else "#FFFFFF"
+        
+        # Or use Shadcn tokens for better consistency
+        bg = c['secondary']
+        fg = c['secondary_foreground']
+        border = c['border']
+        hover_bg = c['accent']
+        hover_fg = c['accent_foreground']
+
+        self.btn_back.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid {border};
+                border-radius: 18px;
+                padding: 8px 20px;
+                font-weight: bold;
+                font-family: 'Segoe UI';
+                font-size: 13px;
+                /* Subtle elevation effect */
+                border-bottom: 2px solid {border};
+            }}
+            QPushButton:hover {{
+                background-color: {hover_bg};
+                color: {hover_fg};
+                border-color: {c['ring']};
+            }}
+            QPushButton:pressed {{
+                border-bottom: 1px solid {border};
+                padding-top: 9px;
+                padding-bottom: 7px;
+            }}
+        """)
+
+    def _update_toolbar_style(self, mode):
+        """Toolbar is now in the TitleBar, which handles its own styling."""
+        pass
 
     def _update_toc_style(self):
         """Update TOC sidebar styling based on current theme mode."""
         if not hasattr(self, 'toc_list'): return
         
-        if self.theme_mode == "dark":
-            # Dark Theme Colors
-            panel_bg = "#2F3437"
-            header_bg = "#25282A"
-            header_border = "#444"
-            text_color = "#E0E0E0"
-            label_color = "#AAA"
-            item_border = "#3A3F42"
-            selected_bg = "#4A90E2"
-            hover_bg = "#3E4346"
-            handle_color = "#444"
-            btn_color = "#888"
-            btn_hover = "#FFF"
-        else:
-            # Light Theme Colors
-            panel_bg = "#F7F6F3"
-            header_bg = "#EBEBEB" 
-            header_border = "#D1D1D1"
-            text_color = "#37352F"
-            label_color = "#666"
-            item_border = "#E0E0E0"
-            selected_bg = "#2D9CDB"
-            hover_bg = "#E0E0E0"
-            handle_color = "#CCC"
-            btn_color = "#666"
-            btn_hover = "#000"
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        
+        # Map Zen specific colors to TOC components
+        panel_bg = c['background'] # Match editor background or slightly different?
+        # To distinguish TOC, maybe use 'muted' or 'sidebar_bg'?
+        panel_bg = c['sidebar_bg']
+        header_bg = c['background']
+        header_border = c['border']
+        text_color = c['foreground']
+        label_color = c['muted_foreground']
+        item_border = c['border']
+        selected_bg = c['active_item_bg']
+        hover_bg = c['accent']
+        handle_color = c['border']
+        btn_color = c['muted_foreground']
+        btn_hover = c['foreground']
 
         # Apply Styles
         self.editor_splitter.setStyleSheet(f"QSplitter::handle {{ background-color: {handle_color}; }}")
@@ -1111,11 +1368,11 @@ class TextEditor(QWidget):
         
     def _reposition_find_bar(self):
         if hasattr(self, 'find_bar') and self.find_bar and self.find_bar.isVisible():
-            # Position: Top-Right corner of the widget, below toolbar
-            # Adjust margins as needed
-            toolbar_height = self.toolbar.height() if self.toolbar.isVisible() else 0
+            # Position: Top-Right corner of the widget
+            # Toolbar is now in TitleBar, so we use 0 offset from top
+            toolbar_height = 0
             x = self.width() - self.find_bar.width() - 25 # 25px right margin
-            y = toolbar_height + 10 # 10px top margin below toolbar
+            y = toolbar_height + 10 # 10px top margin
             self.find_bar.move(x, y)
             self.find_bar.raise_() # Ensure on top
 
@@ -1247,304 +1504,6 @@ class TextEditor(QWidget):
             return self.shortcut_manager.get_shortcut(action_id)
         return default
 
-    def setup_toolbar(self):
-        # --- Toolbar 1 (Row 1): Logic & Formatting ---
-
-        # --- Search ---
-        self.action_search = QAction(get_premium_icon("search"), "", self)
-        self.action_search.setShortcut(self._get_shortcut("editor_search", "Ctrl+F"))
-        self.action_search.triggered.connect(self.toggle_find_bar)
-        self.action_search.setToolTip(f"Find in Note ({self._get_shortcut('editor_search', 'Ctrl+F')})")
-        self.toolbar.addAction(self.action_search)
-        
-        self.toolbar.addSeparator()
-
-        # --- Undo / Redo ---
-        self.action_undo = QAction(get_premium_icon("undo"), "", self)
-        self.action_undo.setShortcut(self._get_shortcut("editor_undo", "Ctrl+Z"))
-        self.action_undo.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self.action_undo.setToolTip("Undo")
-        self.action_undo.triggered.connect(self.editor.undo)
-        self.toolbar.addAction(self.action_undo)
-
-        self.action_redo = QAction(get_premium_icon("redo"), "", self)
-        self.action_redo.setShortcut(self._get_shortcut("editor_redo", "Ctrl+Y"))
-        self.action_redo.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self.action_redo.setToolTip("Redo")
-        self.action_redo.triggered.connect(self.editor.redo)
-        self.toolbar.addAction(self.action_redo)
-        
-        self.toolbar.addSeparator()
-
-        # --- Formatting ---
-        self.action_bold = QAction(get_premium_icon("bold"), "", self)
-        self.action_bold.setShortcut(self._get_shortcut("editor_bold", "Ctrl+B"))
-        self.action_bold.triggered.connect(self.text_bold)
-        self.action_bold.setToolTip(f"Bold ({self._get_shortcut('editor_bold', 'Ctrl+B')})")
-        self.toolbar.addAction(self.action_bold)
-
-        self.action_italic = QAction(get_premium_icon("italic"), "", self)
-        self.action_italic.setShortcut(self._get_shortcut("editor_italic", "Ctrl+I"))
-        self.action_italic.triggered.connect(self.text_italic)
-        self.action_italic.setToolTip(f"Italic ({self._get_shortcut('editor_italic', 'Ctrl+I')})")
-        self.toolbar.addAction(self.action_italic)
-
-        self.action_underline = QAction(get_premium_icon("underline"), "", self)
-        self.action_underline.setShortcut(self._get_shortcut("editor_underline", "Ctrl+U"))
-        self.action_underline.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self.action_underline.triggered.connect(self.text_underline)
-        self.action_underline.setToolTip(f"Underline ({self._get_shortcut('editor_underline', 'Ctrl+U')})")
-        self.toolbar.addAction(self.action_underline)
-        self.addAction(self.action_underline) # Explicitly add to widget
-        
-        self.action_strike = QAction(get_premium_icon("strike"), "", self) # Strikethrough
-        self.action_strike.setToolTip("Strikethrough")
-        self.action_strike.triggered.connect(self.text_strike)
-        self.toolbar.addAction(self.action_strike)
-        
-        # Use simpler names for non-icon actions or just ignore theme updates for text-only actions if any
-        # Super/Sub are text-only currently ("x2"), so no icon to update.
-        super_action = QAction("x²", self)
-        super_action.setToolTip("Superscript")
-        super_action.triggered.connect(self.text_super)
-        self.toolbar.addAction(super_action)
-
-        sub_action = QAction("x₂", self)
-        sub_action.setToolTip("Subscript")
-        sub_action.triggered.connect(self.text_sub)
-        self.toolbar.addAction(sub_action)
-
-        # Highlighter Action
-        self.action_highlight = QAction(get_premium_icon("highlight"), "", self)
-        self.action_highlight.setShortcut(self._get_shortcut("editor_highlight", "Ctrl+H"))
-        self.action_highlight.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        self.action_highlight.triggered.connect(self.text_highlight)
-        self.action_highlight.setToolTip(f"Highlight ({self._get_shortcut('editor_highlight', 'Ctrl+H')})")
-        self.toolbar.addAction(self.action_highlight)
-        self.addAction(self.action_highlight)
-
-        # Custom Highlighter (Ctrl+J)
-        self.btn_custom_hl = QToolButton()
-        if hasattr(self, 'custom_highlight_color'):
-             self._update_custom_hl_icon(self.custom_highlight_color)
-        else:
-             self.btn_custom_hl.setText("🌈") 
-        self.btn_custom_hl.setToolTip("Custom Highlight (Ctrl+J)")
-        
-        # We reuse the icon from the button itself for the action
-        custom_hl_action = QAction(self.btn_custom_hl.icon(), "", self)
-        custom_hl_action.setShortcut(self._get_shortcut("editor_custom_highlight", "Ctrl+J"))
-        custom_hl_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        custom_hl_action.triggered.connect(self.apply_custom_highlight)
-        self.addAction(custom_hl_action)
-        self.btn_custom_hl.setDefaultAction(custom_hl_action)
-        self.btn_custom_hl.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        
-        custom_hl_menu = QMenu(self.btn_custom_hl)
-        pick_color_action = QAction("Choose Color...", self)
-        pick_color_action.triggered.connect(self.pick_custom_highlight_color)
-        custom_hl_menu.addAction(pick_color_action)
-        self.btn_custom_hl.setMenu(custom_hl_menu)
-        self.toolbar.addWidget(self.btn_custom_hl)
-
-        # Text Color Action
-        self.action_color = QAction(get_premium_icon("color"), "", self)
-        self.action_color.setToolTip("Text Color")
-        self.action_color.triggered.connect(self.text_color)
-        self.toolbar.addAction(self.action_color)
-
-        self.toolbar.addSeparator()
-
-        # Headings ComboBox
-        self.combo_header = QComboBox()
-        self.combo_header.addItems(["Par", "H1", "H2", "H3", "L1", "L2"])
-        self.combo_header.currentIndexChanged.connect(self.text_heading)
-        self.combo_header.setFixedWidth(50) # Shrunk from 65
-        self.combo_header.setToolTip("Text Style")
-        self.toolbar.addWidget(self.combo_header)
-
-        # List Style ComboBox
-        self.combo_list = QComboBox()
-        self.combo_list.addItems(["List", "•", "1.", "A.", "I.", "☑", "Ω"]) # Shortened labels
-        self.combo_list.setFixedWidth(55) # Decisively shrunk from 100
-        self.combo_list.setToolTip("List Style")
-        self.combo_list.currentIndexChanged.connect(self.change_list_style)
-        self.toolbar.addWidget(self.combo_list)
-        
-        # Font Size & Steps
-        self.spin_size = QSpinBox()
-        self.spin_size.setRange(8, 72)
-        self.spin_size.setValue(12)
-        self.spin_size.setFixedWidth(38) # Shrunk
-        self.spin_size.setToolTip("Font Size")
-        self.spin_size.valueChanged.connect(self.text_size)
-        self.toolbar.addWidget(self.spin_size)
-
-        self.action_font_inc = QAction(get_premium_icon("plus_circle"), "", self)
-        self.action_font_inc.setToolTip(f"Increase Font Size ({self._get_shortcut('editor_font_inc', 'Ctrl++')})")
-        self.action_font_inc.setShortcut(self._get_shortcut("editor_font_inc", "Ctrl++"))
-        self.action_font_inc.triggered.connect(self.font_size_step_up)
-        self.toolbar.addAction(self.action_font_inc)
-
-        self.action_font_dec = QAction(get_premium_icon("minus_circle"), "", self)
-        self.action_font_dec.setToolTip(f"Decrease Font Size ({self._get_shortcut('editor_font_dec', 'Ctrl+-')})")
-        self.action_font_dec.setShortcut(self._get_shortcut("editor_font_dec", "Ctrl+-"))
-        self.action_font_dec.triggered.connect(self.font_size_step_down)
-        self.toolbar.addAction(self.action_font_dec)
-        
-        # Indent/Outdent (Moved from Row 2)
-        self.action_indent = QAction(get_premium_icon("indent"), "", self)
-        self.action_indent.setToolTip("Indent")
-        self.action_indent.triggered.connect(self.text_indent)
-        self.toolbar.addAction(self.action_indent)
-
-        self.action_outdent = QAction(get_premium_icon("outdent"), "", self)
-        self.action_outdent.setToolTip("Outdent")
-        self.action_outdent.triggered.connect(self.text_outdent)
-        self.toolbar.addAction(self.action_outdent)
-        
-        # Scroll Actions
-        self.action_scroll_top = QAction(get_premium_icon("top"), "", self)
-        self.action_scroll_top.setToolTip("Scroll to Top")
-        self.action_scroll_top.triggered.connect(self.scroll_to_top)
-        self.toolbar.addAction(self.action_scroll_top)
-
-        self.action_scroll_bottom = QAction(get_premium_icon("bottom"), "", self)
-        self.action_scroll_bottom.setToolTip("Scroll to Bottom")
-        self.action_scroll_bottom.triggered.connect(self.scroll_to_bottom)
-        self.toolbar.addAction(self.action_scroll_bottom)
-
-        # --- Toolbar 2 (Row 2): Structure & Inserts ---
-        self.toolbar.addSeparator() # Separator for the second row of tools
-        
-        # Level 1 Button with Color Picker
-        self.lvl1_btn = QToolButton()
-        self.lvl1_btn.setIcon(get_premium_icon("level1"))
-        self.lvl1_btn.setToolTip("Level 1 Box")
-        self.lvl1_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl1_btn.setFixedWidth(40)
-        self.lvl1_btn.clicked.connect(self.apply_level_1)
-        
-        lvl1_menu = QMenu(self.lvl1_btn)
-        lvl1_color_action = QAction("Choose Color...", self)
-        lvl1_color_action.triggered.connect(self._pick_level1_color)
-        lvl1_menu.addAction(lvl1_color_action)
-        self.lvl1_btn.setMenu(lvl1_menu)
-        self.toolbar.addWidget(self.lvl1_btn)
-        
-        # Level 2 Button
-        self.lvl2_btn = QToolButton()
-        self.lvl2_btn.setIcon(get_premium_icon("level2"))
-        self.lvl2_btn.setToolTip("Level 2 Box")
-        self.lvl2_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl2_btn.setFixedWidth(40)
-        self.lvl2_btn.clicked.connect(self.apply_level_2)
-        
-        lvl2_menu = QMenu(self.lvl2_btn)
-        lvl2_color_action = QAction("Choose Color...", self)
-        lvl2_color_action.triggered.connect(self._pick_level2_color)
-        lvl2_menu.addAction(lvl2_color_action)
-        self.lvl2_btn.setMenu(lvl2_menu)
-        self.toolbar.addWidget(self.lvl2_btn)
-
-        self.toolbar.addSeparator()
-
-        # Code Block Action (Rectangular Box)
-        self.action_code_block = QAction(get_premium_icon("square"), "", self)
-        self.action_code_block.setToolTip("Rectangular Box")
-        self.action_code_block.triggered.connect(self.insert_code_block)
-        self.toolbar.addAction(self.action_code_block)
-
-        # Note Box Action
-        self.action_note_box = QAction(get_premium_icon("bookmark"), "", self)
-        self.action_note_box.setToolTip("Insert Note Box")
-        self.action_note_box.triggered.connect(self.insert_note_box)
-        self.toolbar.addAction(self.action_note_box)
-
-        self.toolbar.addSeparator()
-
-        # Horizontal Line Action
-        self.btn_hr = QToolButton()
-        self.btn_hr.setIcon(get_premium_icon("hr"))
-        self.action_hr = QAction(get_premium_icon("hr"), "", self)
-        self.action_hr.setShortcut(self._get_shortcut("editor_insert_hr", "Ctrl+L"))
-        self.action_hr.triggered.connect(self.insert_hr)
-        self.addAction(self.action_hr)
-        self.btn_hr.setToolTip(f"Horizontal Line ({self._get_shortcut('editor_insert_hr', 'Ctrl+L')})")
-        self.btn_hr.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.btn_hr.clicked.connect(self.insert_hr)
-        
-        hr_menu = QMenu(self.btn_hr)
-        thick_menu = hr_menu.addMenu("Thickness")
-        for t in [1, 2, 3, 4, 5, 8, 10]:
-            a = QAction(f"{t}px", self)
-            a.triggered.connect(lambda checked, val=t: self.set_hr_thickness(val))
-            thick_menu.addAction(a)
-        col_action = QAction("Color...", self)
-        col_action.triggered.connect(self.set_hr_color)
-        hr_menu.addAction(col_action)
-        self.btn_hr.setMenu(hr_menu)
-        self.toolbar.addWidget(self.btn_hr)
-
-        self.toolbar.addSeparator()
-
-        # Draw Action
-        self.action_draw = QAction(get_premium_icon("palette"), "", self)
-        self.action_draw.setToolTip("Drawing (Whiteboard)")
-        self.action_draw.triggered.connect(self.insert_drawing)
-        self.toolbar.addAction(self.action_draw)
-
-        # Import Whiteboard Image Action
-        self.action_import_wb = QAction(get_premium_icon("image"), "", self)
-        self.action_import_wb.setShortcut(self._get_shortcut("editor_import_image", "Ctrl+Shift+I"))
-        self.action_import_wb.setToolTip(f"Import Image ({self._get_shortcut('editor_import_image', 'Ctrl+Shift+I')})")
-        self.action_import_wb.triggered.connect(self.import_whiteboard_image)
-        self.toolbar.addAction(self.action_import_wb)
-
-        self.toolbar.addSeparator()
-
-        # Link Action
-        self.action_link = QAction(get_premium_icon("link"), "", self)
-        self.action_link.setShortcut(self._get_shortcut("editor_insert_link", "Ctrl+K"))
-        self.action_link.setToolTip(f"Insert Link to Note ({self._get_shortcut('editor_insert_link', 'Ctrl+K')})")
-        self.action_link.triggered.connect(self.insert_link)
-        self.toolbar.addAction(self.action_link)
-
-        self.toolbar.addSeparator()
-
-        # Clear All Action
-        self.action_clear = QAction(get_premium_icon("trash"), "", self)
-        self.action_clear.setToolTip("Clear All Content")
-        self.action_clear.triggered.connect(self.clear)
-        self.toolbar.addAction(self.action_clear)
-
-        self.toolbar.addSeparator()
-
-        # Shortcuts Button
-        self.action_shortcuts = QAction(get_premium_icon("keyboard"), "", self)
-        self.action_shortcuts.setToolTip("Keyboard Shortcuts")
-        self.action_shortcuts.triggered.connect(self.requestShortcutDialog.emit)
-        self.toolbar.addAction(self.action_shortcuts)
-        
-        # Table of Contents Toggle
-        self.toolbar.addSeparator()
-        self.toc_action = QAction(get_premium_icon("list"), "", self)
-        self.toc_action.setToolTip("Toggle Table of Contents")
-        self.toc_action.triggered.connect(self.toggle_toc)
-        self.toolbar.addAction(self.toc_action)
-
-        # Invisible Shortcut Actions (Ctrl+1, Ctrl+2)
-        level1_shortcut = QAction(self)
-        level1_shortcut.setShortcut("Ctrl+1")
-        level1_shortcut.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        level1_shortcut.triggered.connect(self.apply_level_1)
-        self.addAction(level1_shortcut)
-        
-        level2_shortcut = QAction(self)
-        level2_shortcut.setShortcut("Ctrl+2")
-        level2_shortcut.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
-        level2_shortcut.triggered.connect(self.apply_level_2)
-        self.addAction(level2_shortcut)
 
 
 
@@ -1556,6 +1515,17 @@ class TextEditor(QWidget):
         target_weight = QFont.Weight.Bold if current_weight != QFont.Weight.Bold else QFont.Weight.Normal
         fmt.setFontWeight(target_weight)
         self.editor.mergeCurrentCharFormat(fmt)
+
+    def set_font_family(self, font_name):
+        """Apply font family to selection."""
+        fmt = QTextCharFormat()
+        fmt.setFontFamily(font_name)
+        self.editor.mergeCurrentCharFormat(fmt)
+        self.editor.setFocus()
+
+    def set_highlight_color(self, color_name):
+        """Quickly apply a specific highlight color."""
+        self.text_highlight(color=color_name)
 
     # --- New Formatting Handlers ---
 
@@ -3684,7 +3654,12 @@ class TextEditor(QWidget):
                 import ui.styles as styles
                 current_mode = self.theme_mode if hasattr(self, 'theme_mode') else 'light'
                 # Default to #FFF176 (Canary) if not found, to match base theme
-                theme_hex = styles.THEME_COLORS.get(current_mode, {}).get('highlight_bg_base', '#FFF176')
+                # Fallback to local defaults since THEME_COLORS is deprecated
+                HIGHLIGHT_DEFAULTS = {
+                    "light": "#FFF176", 
+                    "dark": "#FACC15" 
+                }
+                theme_hex = HIGHLIGHT_DEFAULTS.get(current_mode, '#FFF176')
                 from PyQt6.QtGui import QColor
                 target_bg = QColor(theme_hex)
             

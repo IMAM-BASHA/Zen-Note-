@@ -502,3 +502,99 @@ Traceback (most recent call last):
     btn_layout = QHBoxLayout()
                  ^^^^^^^^^^^
 NameError: name 'QHBoxLayout' is not defined. Did you mean: 'QVBoxLayout'?
+2026-02-08 12:30:04,533 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 128, in setup_ui
+    self.editor.set_theme_mode(current_theme)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 958, in set_theme_mode
+    self._update_back_btn_style(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1063, in _update_back_btn_style
+    set_icon('action_color', 'color')
+    ^^^^^^^^
+NameError: name 'set_icon' is not defined
+2026-02-08 13:53:58,498 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 102, in setup_ui
+    self.note_list = NoteList()
+                     ~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\note_list.py", line 35, in __init__
+    self._setup_list()
+    ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\note_list.py", line 82, in _setup_list
+    self.list_widget.setAnimated(True) # Enable smooth item animations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'QListWidget' object has no attribute 'setAnimated'
+2026-02-08 14:06:31,861 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 178, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 235, in set_theme_mode
+    self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
+    ^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'back_btn'. Did you mean: 'lock_btn'?
+2026-02-08 14:06:59,381 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 53, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 178, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 235, in set_theme_mode
+    self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
+    ^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'back_btn'. Did you mean: 'lock_btn'?
+2026-02-08 15:46:08,154 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 58, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 206, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 727, in __init__
+    self._init_actions()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 880, in _init_actions
+    self.combo_font.currentTextChanged.connect(self.set_font_family)
+                                               ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'set_font_family'
+2026-02-08 15:52:31,948 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 58, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 221, in setup_ui
+    self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CustomTitleBar' object has no attribute 'set_editor_toolbar_actions'

@@ -3,6 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QTe
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread, pyqtSlot
 from PyQt6.QtGui import QIcon, QTextCursor
 import threading
+import ui.styles as styles
 
 class PreviewWorker(QThread):
     """Background worker to generate PDF preview content without freezing UI."""
@@ -114,6 +115,9 @@ class PDFPreviewDialog(QDialog):
         self.setWindowTitle("PDF Preview")
         self.resize(900, 950)
         
+        c = styles.ZEN_THEME.get(current_theme_mode, styles.ZEN_THEME["light"])
+        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
@@ -121,16 +125,16 @@ class PDFPreviewDialog(QDialog):
         # Performance Header
         perf_layout = QHBoxLayout()
         self.status_label = QLabel("Initializing background worker...")
-        self.status_label.setStyleSheet("font-weight: bold; color: #007ACC;")
+        self.status_label.setStyleSheet(f"font-weight: bold; color: {c['primary']}; border: none;")
         perf_layout.addWidget(self.status_label)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setFixedHeight(12)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar { border: 1px solid #ddd; border-radius: 6px; background: #f0f0f0; }
-            QProgressBar::chunk { background-color: #007ACC; border-radius: 5px; }
+        self.progress_bar.setStyleSheet(f"""
+            QProgressBar {{ border: 1px solid {c['border']}; border-radius: 6px; background: {c['secondary']}; }}
+            QProgressBar::chunk {{ background-color: {c['primary']}; border-radius: 5px; }}
         """)
         perf_layout.addWidget(self.progress_bar, 1)
         layout.addLayout(perf_layout)
@@ -139,6 +143,7 @@ class PDFPreviewDialog(QDialog):
         self.preview_browser = QTextBrowser()
         self.preview_browser.setOpenExternalLinks(False)
         self.preview_browser.setObjectName("PdfPreviewBrowser")
+        self.preview_browser.setStyleSheet(f"border: 1px solid {c['border']}; background-color: {c['card']}; color: {c['card_foreground']};")
         layout.addWidget(self.preview_browser)
         
         # Footer Actions
@@ -154,10 +159,10 @@ class PDFPreviewDialog(QDialog):
         self.export_btn.setIcon(QIcon.fromTheme("document-save"))
         self.export_btn.setMinimumWidth(150)
         self.export_btn.clicked.connect(self.accept_export)
-        self.export_btn.setStyleSheet("""
-            QPushButton { background-color: #007ACC; color: white; font-weight: bold; padding: 8px 16px; border-radius: 5px; }
-            QPushButton:hover { background-color: #0062a3; }
-            QPushButton:disabled { background-color: #ccc; }
+        self.export_btn.setStyleSheet(f"""
+            QPushButton {{ background-color: {c['primary']}; color: {c['primary_foreground']}; font-weight: bold; padding: 8px 16px; border-radius: 5px; border: none; }}
+            QPushButton:hover {{ opacity: 0.9; }}
+            QPushButton:disabled {{ background-color: {c['muted']}; color: {c['muted_foreground']}; }}
         """)
         self.export_btn.setEnabled(False) # Enable only after loading
         btn_layout.addWidget(self.export_btn)

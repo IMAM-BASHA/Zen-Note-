@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QProgressDialog, QDialog, QFormLayout, QComboBox, QCheckBox, QSlider, QGroupBox, QSpinBox, QTextEdit, QTabWidget,
     QAbstractItemView, QStyleFactory, QListWidgetItem, QToolButton, QStyle, QButtonGroup, QRadioButton, QTextBrowser, QFrame
 )
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QPoint, QRectF, QPointF
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QPoint, QRectF, QPointF, QRect
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPainter, QPen, QColor, QPixmap, QImage, QMouseEvent, QPaintEvent, QTextCursor
 from util.icon_factory import get_premium_icon
 
@@ -25,11 +25,16 @@ import json
 import os
 import sys
 from ui.note_overlay import NoteOverlayDialog
+from ui.title_bar import CustomTitleBar
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Offline Notes App")
+        self.setWindowTitle("Zen Notes")
+        
+        # Frameless Window Setup
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Default Size & Positioning
         self.resize(1200, 800)
@@ -57,6 +62,16 @@ class MainWindow(QMainWindow):
         if hasattr(self.editor, 'requestShortcutDialog'):
              self.editor.requestShortcutDialog.connect(self.show_shortcut_dialog)
         
+        # Startup Animation
+        self.setWindowOpacity(0.0)
+        from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
+        self.animation = QPropertyAnimation(self, b"windowOpacity")
+        self.animation.setDuration(600)
+        self.animation.setStartValue(0.0)
+        self.animation.setEndValue(1.0)
+        self.animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.animation.start()
+        
         # Initial Load
         # Initial Load
         self.refresh_folders()
@@ -65,7 +80,72 @@ class MainWindow(QMainWindow):
         self.editing_image_id = None
         self.highlight_numbering_continuous = False # Default: Restart per note
 
+        # Window Resizing State
+        self._resize_margin = 8
+        self._is_resizing = False
+        self._resize_edges = Qt.Edge(0)
+        self.setMouseTracking(True) # Required for edge detection without clicking
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            edges = self._get_edges(event.pos())
+            if edges:
+                self._is_resizing = True
+                self._resize_edges = edges
+                self._drag_pos = event.globalPosition().toPoint()
+                self._start_geometry = self.geometry()
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        edges = self._get_edges(event.pos())
+        if not self._is_resizing:
+            if edges == (Qt.Edge.BottomEdge | Qt.Edge.RightEdge): self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+            elif edges == (Qt.Edge.TopEdge | Qt.Edge.LeftEdge): self.setCursor(Qt.CursorShape.SizeBDiagCursor)
+            elif edges == (Qt.Edge.TopEdge | Qt.Edge.RightEdge): self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif edges == (Qt.Edge.BottomEdge | Qt.Edge.LeftEdge): self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+            elif edges & (Qt.Edge.LeftEdge | Qt.Edge.RightEdge): self.setCursor(Qt.CursorShape.SizeHorCursor)
+            elif edges & (Qt.Edge.TopEdge | Qt.Edge.BottomEdge): self.setCursor(Qt.CursorShape.SizeVerCursor)
+            else: self.setCursor(Qt.CursorShape.ArrowCursor)
+        else:
+            new_pos = event.globalPosition().toPoint()
+            diff = new_pos - self._drag_pos
+            new_geom = QRect(self._start_geometry)
+            
+            if self._resize_edges & Qt.Edge.LeftEdge:
+                new_geom.setLeft(self._start_geometry.left() + diff.x())
+            if self._resize_edges & Qt.Edge.RightEdge:
+                new_geom.setRight(self._start_geometry.right() + diff.x())
+            if self._resize_edges & Qt.Edge.TopEdge:
+                new_geom.setTop(self._start_geometry.top() + diff.y())
+            if self._resize_edges & Qt.Edge.BottomEdge:
+                new_geom.setBottom(self._start_geometry.bottom() + diff.y())
+            
+            # Constraints
+            if new_geom.width() >= self.minimumWidth() and new_geom.height() >= self.minimumHeight():
+                self.setGeometry(new_geom)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._is_resizing = False
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().mouseReleaseEvent(event)
+
+    def _get_edges(self, pos):
+        edges = Qt.Edge(0)
+        if pos.x() <= self._resize_margin: edges |= Qt.Edge.LeftEdge
+        if pos.x() >= self.width() - self._resize_margin: edges |= Qt.Edge.RightEdge
+        if pos.y() <= self._resize_margin: edges |= Qt.Edge.TopEdge
+        if pos.y() >= self.height() - self._resize_margin: edges |= Qt.Edge.BottomEdge
+        return edges
+
     def setup_ui(self):
+        # 0. Initialize Title Bar Early
+        self.title_bar = CustomTitleBar(self)
+        
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setObjectName("MainContainer")
 
@@ -137,6 +217,9 @@ class MainWindow(QMainWindow):
         self.editor.request_open_note_overlay.connect(self.open_note_overlay)
         self.content_splitter.addWidget(self.editor)
         
+        # Connect Editor Toolbar to Custom Title Bar
+        self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
+        
         # Add nested splitter to main splitter
         splitter.addWidget(self.content_splitter)
 
@@ -146,7 +229,17 @@ class MainWindow(QMainWindow):
         # Connect splitter signal to resize images when sidebar is resized
         splitter.splitterMoved.connect(self._handle_splitter_resize)
         
-        self.setCentralWidget(splitter)
+        # 4. Final Setup: Title Bar + Content
+        self.main_container = QWidget()
+        self.main_container.setObjectName("MainWindowContainer")
+        self.main_layout = QVBoxLayout(self.main_container)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+        
+        self.main_layout.addWidget(self.title_bar)
+        self.main_layout.addWidget(splitter)
+        
+        self.setCentralWidget(self.main_container)
         
         # Autosave Timer for Whiteboard (Debouncing)
         self.wb_autosave_timer = QTimer()
@@ -260,6 +353,20 @@ class MainWindow(QMainWindow):
         # Propagate theme to editor for highlighting logic
         if hasattr(self, 'editor'):
             self.editor.set_theme_mode(mode)
+
+        if hasattr(self, 'whiteboard_widget'):
+            self.whiteboard_widget.set_theme_mode(mode)
+        
+        if hasattr(self, 'title_bar'):
+            self.title_bar.set_theme_mode(mode)
+            
+        # Update open overlays
+        if hasattr(self, '_overlays'):
+            for overlay in self._overlays:
+                try:
+                    overlay.apply_theme(mode)
+                except Exception as e:
+                    logger.error(f"Error updating overlay theme: {e}")
 
     def toggle_wrap(self, enabled):
         """Handle wrap mode toggle from sidebar."""
@@ -867,7 +974,8 @@ class MainWindow(QMainWindow):
                 # Live Update Highlight Preview
                 self.refresh_highlight_preview_if_visible()
                 
-                # Optional: Visual indicator like "Saved" in status bar (flicker)
+                # Visual Indicator (Requested UX)
+                self.statusBar().showMessage("Saved", 1000)
         except Exception as e:
             logger.error(f"Error in _perform_save", exc_info=True)
         finally:

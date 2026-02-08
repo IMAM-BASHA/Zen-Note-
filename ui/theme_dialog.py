@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
+import ui.styles as styles
 
 class ThemeExportDialog(QDialog):
     def __init__(self, parent=None, current_theme_mode="light"):
@@ -18,6 +19,11 @@ class ThemeExportDialog(QDialog):
         
         # 1. Title Label
         title = QLabel("Choose PDF Theme:")
+        # Style set in update_preview to match dialog theme? 
+        # Actually this dialog seems to be about CHOOSING a theme for export, 
+        # but the dialog ITSELF should match the app theme.
+        # However, the code doesn't seem to have a set_theme_mode.
+        # I'll rely on global stylesheet for the dialog itself, but specific widgets needing color should use styles.
         title.setStyleSheet("font-weight: bold; font-size: 11pt;")
         layout.addWidget(title)
         
@@ -52,28 +58,37 @@ class ThemeExportDialog(QDialog):
         
         self.cancel_btn = QPushButton("Cancel")
         self.cancel_btn.setHeight = 35
-        self.cancel_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f0f0f0; 
-                border: 1px solid #d0d0d0; 
+        # We can leave this if we want specific styling for this dialog, or update to use Shadcn variables
+        # But this dialog might not receive theme updates dynamically. 
+        # Let's assume it should match the app's current theme which is passed as `current_theme_mode`?
+        # unique logic: current_theme_mode is 0 or 1? No, it's string in other places but here it says "light".
+        # Let's check init arg: `current_theme_mode="light"`.
+        
+        c = styles.ZEN_THEME.get(current_theme_mode, styles.ZEN_THEME["light"])
+        
+        self.cancel_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['background']}; 
+                color: {c['foreground']};
+                border: 1px solid {c['input']}; 
                 border-radius: 4px; 
                 padding: 6px 15px;
-            }
-            QPushButton:hover { background-color: #e0e0e0; }
+            }}
+            QPushButton:hover {{ background-color: {c['muted']}; }}
         """)
         
         self.export_btn = QPushButton("Export")
         self.export_btn.setHeight = 35
-        self.export_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007ACC; 
-                color: white; 
+        self.export_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['primary']}; 
+                color: {c['primary_foreground']}; 
                 border: none; 
                 border-radius: 4px; 
                 padding: 6px 15px; 
                 font-weight: bold;
-            }
-            QPushButton:hover { background-color: #006bb3; }
+            }}
+            QPushButton:hover {{ opacity: 0.9; }}
         """)
         
         self.cancel_btn.clicked.connect(self.reject)

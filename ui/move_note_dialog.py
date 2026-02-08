@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QFont
+import ui.styles as styles
 
 class MoveNoteDialog(QDialog):
     def __init__(self, parent, notes, all_folders, current_folder_id):
@@ -17,7 +18,15 @@ class MoveNoteDialog(QDialog):
         self.current_folder_id = current_folder_id
         self.target_folder_id = None
         
+        self.target_folder_id = None
+        
+        # Get theme from parent or default
+        self.theme_mode = "light"
+        if hasattr(parent, 'data_manager'):
+            self.theme_mode = parent.data_manager.get_setting("theme_mode", "light")
+            
         self.setup_ui()
+        self.apply_theme()
         
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -38,41 +47,18 @@ class MoveNoteDialog(QDialog):
         else:
             desc_text = f"Select a destination for <b>{len(self.notes)} notes</b>"
             
-        desc = QLabel(desc_text)
-        desc.setWordWrap(True)
-        desc.setStyleSheet("color: #666; font-size: 14px;")
-        desc.setTextFormat(Qt.TextFormat.RichText)
-        header_layout.addWidget(desc)
+        self.desc = QLabel(desc_text)
+        self.desc.setWordWrap(True)
+        # Style set in apply_theme
+        self.desc.setTextFormat(Qt.TextFormat.RichText)
+        header_layout.addWidget(self.desc)
         
         layout.addLayout(header_layout)
         
         # 2. Folder List
         self.folder_list = QListWidget()
         self.folder_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-        self.folder_list.setStyleSheet("""
-            QListWidget {
-                border: 1px solid #ddd;
-                border-radius: 6px;
-                padding: 5px;
-                font-size: 14px;
-            }
-            QListWidget::item {
-                padding: 8px;
-                border-radius: 4px;
-            }
-            QListWidget::item:selected {
-                background-color: #007ACC;
-                color: white;
-            }
-            QListWidget::item:disabled {
-                background-color: transparent;
-                color: #888;
-                font-weight: bold;
-                padding-top: 15px;
-                padding-bottom: 5px;
-                border-bottom: 1px solid #eee;
-            }
-        """)
+        # Style set in apply_theme
         
         self.populate_folders()
         self.folder_list.itemDoubleClicked.connect(self.accept_selection)
@@ -91,21 +77,7 @@ class MoveNoteDialog(QDialog):
         self.move_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.move_btn.setFixedSize(120, 36)
         self.move_btn.setDefault(True)
-        self.move_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007ACC;
-                color: white;
-                border-radius: 4px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #008AD8;
-            }
-            QPushButton:msgbox-default { /* Default styling */
-                padding: 6px 12px;
-            }
-        """)
+        # Style set in apply_theme
         self.move_btn.clicked.connect(self.accept_selection)
         
         btn_layout.addWidget(self.cancel_btn)
@@ -177,3 +149,64 @@ class MoveNoteDialog(QDialog):
         if folder_id:
             self.target_folder_id = folder_id
             self.accept()
+
+    def apply_theme(self):
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        
+        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+        
+        self.desc.setStyleSheet(f"color: {c['muted_foreground']}; font-size: 14px;")
+        
+        self.folder_list.setStyleSheet(f"""
+            QListWidget {{
+                border: 1px solid {c['border']};
+                border-radius: 6px;
+                padding: 5px;
+                font-size: 14px;
+                background-color: {c['background']};
+                color: {c['foreground']};
+            }}
+            QListWidget::item {{
+                padding: 8px;
+                border-radius: 4px;
+                color: {c['foreground']};
+            }}
+            QListWidget::item:selected {{
+                background-color: {c['primary']};
+                color: {c['primary_foreground']};
+            }}
+            QListWidget::item:disabled {{
+                background-color: transparent;
+                color: {c['muted_foreground']};
+                font-weight: bold;
+                padding-top: 15px;
+                padding-bottom: 5px;
+                border-bottom: 1px solid {c['border']};
+            }}
+        """)
+        
+        self.cancel_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {c['foreground']};
+                border: 1px solid {c['input']};
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: {c['muted']};
+            }}
+        """)
+        
+        self.move_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {c['primary']};
+                color: {c['primary_foreground']};
+                border-radius: 4px;
+                font-weight: bold;
+                font-size: 14px;
+                border: 1px solid {c['primary']};
+            }}
+            QPushButton:hover {{
+                opacity: 0.9;
+            }}
+        """)

@@ -198,28 +198,9 @@ class NoteList(QWidget):
         """Refreshes icons for theme changes."""
         self.theme_mode = mode
         is_dark = mode == "dark"
-        icon_color = "#FFFFFF" if is_dark else "#444444"
-        text_color = "#FFFFFF" if is_dark else "#333333"
+        icon_color = "#FFFFFF" if is_dark else "#09090b"
         
         self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
-        
-        # Force List Widget Text Color
-        self.list_widget.setStyleSheet(f"""
-            QListWidget {{
-                background-color: transparent;
-                color: {text_color};
-                border: none;
-            }}
-            QListWidget::item {{
-                color: {text_color};
-                padding: 5px;
-            }}
-            QListWidget::item:selected {{
-                background-color: {'#4A90E2' if is_dark else '#E0E0E0'};
-                color: {'white' if is_dark else 'black'};
-            }}
-        """)
-        
         self.filter_notes(self.search_input.text())
         
     def show_context_menu(self, pos):

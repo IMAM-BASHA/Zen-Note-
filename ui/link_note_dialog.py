@@ -7,6 +7,7 @@ from datetime import datetime
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon, QFont, QColor
 from util.icon_factory import get_premium_icon
+import ui.styles as styles
 
 class LinkNoteDialog(QDialog):
     """Dialog to search and select a note to link to, grouped by folder."""
@@ -237,55 +238,29 @@ class LinkNoteDialog(QDialog):
 
     def _apply_theme(self):
         """Apply styles based on theme."""
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
         is_dark = self.theme_mode == "dark"
-        
-        if is_dark:
-            bg_color = "#2F3437"
-            text_color = "#FFFFFF"
-            input_bg = "#3F4447"
-            input_border = "#555555"
-            tree_bg = "#25282A"
-            item_hover = "#3A3F42"
-            item_sel = "#4A90E2"
-            btn_bg = "#007ACC"
-            btn_hover = "#005A9E"
-            btn_cancel_bg = "#444444" 
-            tab_bg = "#2F3437"
-            tab_sel_bg = "#3F4447"
-        else:
-            bg_color = "#FFFFFF"
-            text_color = "#000000"
-            input_bg = "#FFFFFF"
-            input_border = "#CCCCCC"
-            tree_bg = "#F9F9F9"
-            item_hover = "#E5F3FF"
-            item_sel = "#CCE8FF" # Light blue selection
-            btn_bg = "#007ACC"
-            btn_hover = "#005A9E"
-            btn_cancel_bg = "#E0E0E0"
-            tab_bg = "#F0F0F0"
-            tab_sel_bg = "#FFFFFF"
             
         self.setStyleSheet(f"""
             QDialog {{
-                background-color: {bg_color};
-                color: {text_color};
+                background-color: {c['background']};
+                color: {c['foreground']};
             }}
             QLabel {{
-                color: {text_color};
+                color: {c['foreground']};
             }}
             QLineEdit {{
-                background-color: {input_bg};
-                color: {text_color};
-                border: 1px solid {input_border};
+                background-color: {c['background']};
+                color: {c['foreground']};
+                border: 1px solid {c['input']};
                 border-radius: 4px;
                 padding: 6px;
                 font-size: 14px;
             }}
             QTreeWidget {{
-                background-color: {tree_bg};
-                color: {text_color};
-                border: 1px solid {input_border};
+                background-color: {c['background']};
+                color: {c['foreground']};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 font-size: 14px;
                 outline: none;
@@ -294,11 +269,11 @@ class LinkNoteDialog(QDialog):
                 padding: 6px;
             }}
             QTreeWidget::item:hover {{
-                background-color: {item_hover};
+                background-color: {c['muted']};
             }}
             QTreeWidget::item:selected {{
-                background-color: {item_sel};
-                color: {text_color if not is_dark else 'white'}; 
+                background-color: {c['accent']};
+                color: {c['accent_foreground']}; 
             }}
             QTreeWidget::branch:has-children:!has-siblings:closed,
             QTreeWidget::branch:closed:has-children:has-siblings {{
@@ -306,22 +281,22 @@ class LinkNoteDialog(QDialog):
                 image: none; 
             }}
             QTabWidget::pane {{
-                border: 1px solid {input_border};
+                border: 1px solid {c['border']};
                 border-radius: 4px;
                 top: -1px; 
             }}
             QTabBar::tab {{
-                background: {tab_bg};
-                border: 1px solid {input_border};
+                background: {c['background']};
+                border: 1px solid {c['border']};
                 padding: 8px 12px;
                 margin-right: 2px;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
-                color: {text_color};
+                color: {c['foreground']};
             }}
             QTabBar::tab:selected {{
-                background: {tab_sel_bg};
-                border-bottom-color: {tab_sel_bg}; /* Blend with pane */
+                background: {c['background']};
+                border-bottom-color: {c['background']}; /* Blend with pane */
                 font-weight: bold;
             }}
             QPushButton {{
@@ -334,25 +309,26 @@ class LinkNoteDialog(QDialog):
         
         self.btn_link.setStyleSheet(f"""
             QPushButton {{
-                background-color: {btn_bg};
-                color: white;
+                background-color: {c['primary']};
+                color: {c['primary_foreground']};
                 border: none;
             }}
             QPushButton:hover {{
-                background-color: {btn_hover};
+                opacity: 0.9;
             }}
             QPushButton:disabled {{
-                background-color: #AAAAAA;
+                background-color: {c['muted']};
+                color: {c['muted_foreground']};
             }}
         """)
         
         self.btn_cancel.setStyleSheet(f"""
             QPushButton {{
-                background-color: {btn_cancel_bg};
-                color: {text_color};
-                border: none;
+                background-color: transparent;
+                color: {c['foreground']};
+                border: 1px solid {c['input']};
             }}
             QPushButton:hover {{
-                color: {text_color};
+                background-color: {c['muted']};
             }}
         """)
