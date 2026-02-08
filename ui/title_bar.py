@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import (
-    QWidget, QHBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QApplication
+    QWidget, QHBoxLayout, QLabel, QPushButton, QSpacerItem, QSizePolicy, QApplication,
+    QToolButton, QComboBox, QSpinBox
 )
 from PyQt6.QtCore import Qt, QSize, QPoint
 from PyQt6.QtGui import QIcon, QAction
@@ -20,21 +21,7 @@ class CustomTitleBar(QWidget):
         self.layout.setSpacing(8)
         self.setFixedHeight(40) # Standard sleek height
         
-        # 1. App Icon & Title
-        self.lbl_icon = QLabel()
-        self.lbl_icon.setPixmap(get_premium_icon("leaf", color="#7B9E87").pixmap(18, 18))
-        self.layout.addWidget(self.lbl_icon)
-        
-        self.lbl_title = QLabel("Zen Notes")
-        self.lbl_title.setObjectName("TitleBarTitle") # For styling
-        self.lbl_title.setStyleSheet("font-weight: 600; font-size: 13px; font-family: 'Segoe UI', sans-serif;")
-        self.layout.addWidget(self.lbl_title)
-        
-        # Spacer to separate title from toolbar
-        self.title_spacer = QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        self.layout.addItem(self.title_spacer)
-        
-        # 2. Toolbar Container (Where editor actions go)
+        # Editor Toolbar Container (Left aligned)
         self.toolbar_container = QWidget()
         self.toolbar_layout = QHBoxLayout(self.toolbar_container)
         self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
@@ -61,28 +48,8 @@ class CustomTitleBar(QWidget):
         btn.clicked.connect(callback)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         
-        # Base Style
-        base_style = """
-            QPushButton {
-                background: transparent;
-                border: none;
-                border-radius: 4px;
-                font-size: 14px;
-                color: #888;
-            }
-            QPushButton:hover {
-                background: #E0E0E0;
-                color: #000;
-            }
-        """
-        if is_close:
-            base_style += """
-                QPushButton:hover {
-                    background: #EF4444;
-                    color: white;
-                }
-            """
-        btn.setStyleSheet(base_style)
+        # Base Style (Will be updated in set_theme_mode)
+        btn.setProperty("is_close", is_close)
         self.layout.addWidget(btn)
         return btn
 
@@ -98,6 +65,11 @@ class CustomTitleBar(QWidget):
         for item in actions:
             if isinstance(item, QWidget):
                 self.toolbar_layout.addWidget(item)
+                # Apply appropriate style based on type
+                if isinstance(item, (QComboBox, QSpinBox)):
+                    item.setStyleSheet(self._get_input_style())
+                elif isinstance(item, QToolButton):
+                    item.setStyleSheet(self._get_toolbar_btn_style())
             elif isinstance(item, QAction):
                 # Create a button for the action
                 btn = QPushButton()
@@ -117,22 +89,9 @@ class CustomTitleBar(QWidget):
                     # Disconnect any old connections if necessary, but for now simple setup
                     item.toggled.connect(btn.setChecked)
                     
-                # Apply Style
-                btn.setProperty("class", "ToolbarBtn") # For external stylesheet
-                btn.setStyleSheet("""
-                    QPushButton {
-                        background: transparent;
-                        border: none;
-                        border-radius: 4px;
-                        padding: 4px;
-                    }
-                    QPushButton:hover {
-                        background: rgba(0,0,0,0.05);
-                    }
-                    QPushButton:checked {
-                        background: rgba(0,0,0,0.1);
-                    }
-                """)
+                # Apply Style (Theme-Aware)
+                btn.setProperty("class", "ToolbarBtn")
+                btn.setStyleSheet(self._get_toolbar_btn_style())
                 
                 self.toolbar_layout.addWidget(btn)
                 
@@ -141,7 +100,7 @@ class CustomTitleBar(QWidget):
                 line = QLabel()
                 line.setFixedWidth(1)
                 line.setFixedHeight(16)
-                line.setStyleSheet("background-color: #DDD;")
+                line.setProperty("class", "ToolbarSeparator")
                 self.toolbar_layout.addWidget(line)
 
     # Window Control Actions
@@ -179,19 +138,108 @@ class CustomTitleBar(QWidget):
         # Maximize on double click
         self.toggle_maximize()
 
+    def _get_toolbar_btn_style(self, mode="light"):
+        is_dark = mode == "dark"
+        hover_bg = "rgba(255,255,255,0.1)" if is_dark else "rgba(0,0,0,0.05)"
+        checked_bg = "rgba(255,255,255,0.15)" if is_dark else "rgba(0,0,0,0.1)"
+        
+        return f"""
+            QPushButton, QToolButton {{
+                background: transparent;
+                border: none;
+                border-radius: 4px;
+                padding: 4px;
+            }}
+            QPushButton:hover, QToolButton:hover {{
+                background: {hover_bg};
+            }}
+            QPushButton:checked, QToolButton:checked {{
+                background: {checked_bg};
+            }}
+            QToolButton::menu-button {{
+                border: none;
+                width: 12px;
+            }}
+        """
+
+    def _get_input_style(self, mode="light"):
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        is_dark = mode == "dark"
+        bg = c['secondary']
+        fg = c['foreground']
+        border = c['border']
+        
+        return f"""
+            QComboBox, QSpinBox {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid {border};
+                border-radius: 4px;
+                padding: 2px 4px;
+                font-size: 11px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+            }}
+            QSpinBox::up-button, QSpinBox::down-button {{
+                border: none;
+                background: transparent;
+            }}
+        """
+
     def set_theme_mode(self, mode):
         """Update styles based on theme."""
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        is_dark = mode == "dark"
         
-        # Background
+        # 1. Main Bar
         self.setStyleSheet(f"""
-            QWidget {{
+            CustomTitleBar {{
                 background-color: {c['background']}; 
                 border-bottom: 1px solid {c['border']};
             }}
-             QLabel#TitleBarTitle {{
-                color: {c['foreground']};
+            QLabel.ToolbarSeparator {{
+                background-color: {c['border']};
             }}
         """)
         
-        # Update Icons/buttons if needed
+        # 2. Window Control Buttons
+        btn_color = c['muted_foreground']
+        hover_bg = c['accent']
+        hover_fg = c['accent_foreground']
+        
+        win_btn_style = f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                border-radius: 4px;
+                font-size: 14px;
+                color: {btn_color};
+            }}
+            QPushButton:hover {{
+                background: {hover_bg};
+                color: {hover_fg};
+            }}
+        """
+        self.btn_min.setStyleSheet(win_btn_style)
+        self.btn_max.setStyleSheet(win_btn_style)
+        
+        # Close button has unique hover
+        close_style = win_btn_style + """
+            QPushButton:hover {
+                background: #EF4444;
+                color: white;
+            }
+        """
+        self.btn_close.setStyleSheet(close_style)
+
+        # 3. Toolbar Widgets (Update existing)
+        toolbar_style = self._get_toolbar_btn_style(mode)
+        input_style = self._get_input_style(mode)
+        
+        for i in range(self.toolbar_layout.count()):
+            widget = self.toolbar_layout.itemAt(i).widget()
+            if isinstance(widget, (QPushButton, QToolButton)):
+                widget.setStyleSheet(toolbar_style)
+            elif isinstance(widget, (QComboBox, QSpinBox)):
+                widget.setStyleSheet(input_style)

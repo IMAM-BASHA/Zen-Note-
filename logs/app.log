@@ -598,3 +598,20 @@ Traceback (most recent call last):
     self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'CustomTitleBar' object has no attribute 'set_editor_toolbar_actions'
+2026-02-08 16:08:39,404 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 58, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 206, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 728, in __init__
+    self._init_actions()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 920, in _init_actions
+    self.action_numbering.triggered.connect(self.text_numbering)
+                                            ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'text_numbering'. Did you mean: 'text_number_list'?

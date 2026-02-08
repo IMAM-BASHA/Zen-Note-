@@ -918,13 +918,17 @@ class TextEditor(QWidget):
         self.action_strike = QAction(get_premium_icon("strike"), "Strikethrough", self)
         self.action_strike.setCheckable(True)
         self.action_strike.triggered.connect(self.text_strike)
+        
+        self.action_numbering = QAction(get_premium_icon("list_ordered"), "Numbered List", self)
+        self.action_numbering.setCheckable(True)
+        self.action_numbering.triggered.connect(self.text_number_list)
 
         # Super/Sub Script
-        self.action_super = QAction("x²", self)
+        self.action_super = QAction(get_premium_icon("superscript"), "Superscript", self)
         self.action_super.setToolTip("Superscript")
         self.action_super.triggered.connect(self.text_super)
 
-        self.action_sub = QAction("x₂", self)
+        self.action_sub = QAction(get_premium_icon("subscript"), "Subscript", self)
         self.action_sub.setToolTip("Subscript")
         self.action_sub.triggered.connect(self.text_sub)
         
@@ -983,6 +987,10 @@ class TextEditor(QWidget):
         self.action_outdent.setShortcut("Shift+Tab")
         self.action_outdent.triggered.connect(self.text_outdent)
         
+        self.action_bullet = QAction(get_premium_icon("list"), "Bullet List", self)
+        self.action_bullet.setCheckable(True)
+        self.action_bullet.triggered.connect(self.text_bullet)
+
         # 6. Navigation
         self.action_scroll_top = QAction(get_premium_icon("top"), "Scroll to Top", self)
         self.action_scroll_top.triggered.connect(self.scroll_to_top)
@@ -1097,7 +1105,9 @@ class TextEditor(QWidget):
             self.action_color,
             "SEPARATOR",
             self.combo_header,
-            self.combo_list,
+            "SEPARATOR",
+            self.action_bullet,
+            self.action_numbering,
             self.action_check,
             "SEPARATOR",
             self.action_indent,
@@ -1213,6 +1223,8 @@ class TextEditor(QWidget):
         set_icon('action_italic', 'italic')
         set_icon('action_underline', 'underline')
         set_icon('action_strike', 'strike')
+        set_icon('action_super', 'superscript')
+        set_icon('action_sub', 'subscript')
         set_icon('action_highlight', 'highlight')
         set_icon('action_color', 'color')
         set_icon('action_font_inc', 'plus_circle')
@@ -1220,8 +1232,8 @@ class TextEditor(QWidget):
         set_icon('action_indent', 'indent')
         set_icon('action_outdent', 'outdent')
         set_icon('action_bullet', 'list')
-        set_icon('action_number', 'list')
-        set_icon('action_check', 'check')
+        set_icon('action_numbering', 'list_ordered')
+        set_icon('action_check', 'check_square')
         
         # Scroll
         set_icon('action_scroll_top', 'top')
@@ -3873,6 +3885,10 @@ class TextEditor(QWidget):
     def text_number_list(self):
         cursor = self.editor.textCursor()
         cursor.createList(QTextListFormat.Style.ListDecimal)
+
+    def text_bullet(self):
+        cursor = self.editor.textCursor()
+        cursor.createList(QTextListFormat.Style.ListDisc)
 
     def get_html(self):
         """Get HTML with data URIs embedded for persistence with error handling."""
