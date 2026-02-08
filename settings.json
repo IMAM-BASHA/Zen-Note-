@@ -6,7 +6,21 @@
             "id": "6fd53f1d-c562-4263-bdea-c3beb82205f8",
             "name": "Personal Notebook",
             "folder_ids": [
-                "yelllow this fix it"
+                "yelllow this fix it",
+                "new wroking",
+                "hello wrld",
+                "nes",
+                "yes_6",
+                "sd"
+            ],
+            "is_expanded": true
+        },
+        {
+            "id": "217f37ac-83d0-4c4b-904a-36c47855bfde",
+            "name": "yes",
+            "folder_ids": [
+                "yes",
+                "fixing"
             ],
             "is_expanded": true
         }
@@ -40,7 +54,7 @@
             "last_note_id": "644dcb26-d62f-4bb7-a38e-0f6ad4c56686"
         },
         "nes": {
-            "last_note_id": "a89e1e63-de26-4549-8b42-5b96fac88d4a"
+            "last_note_id": "26ef4795-ae8d-4428-ab2b-5f50ce8c4687"
         },
         "hes": {
             "last_note_id": "2f554847-d7eb-4d7d-8b7f-06b094fff5eb"
@@ -528,12 +542,42 @@
             "is_locked": false
         },
         "yelllow this fix it": {
-            "last_note_id": "4c43f8a0-e6ca-40ce-82b5-7fc957b88e0f"
+            "last_note_id": "4c43f8a0-e6ca-40ce-82b5-7fc957b88e0f",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list"
+        },
+        "new wroking": {
+            "last_note_id": "1d5e7112-c4c7-409b-9d59-ca2133df7d95",
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "grid"
+        },
+        "hello wrld": {
+            "last_note_id": "e69b20dd-abed-4598-a9ee-9b2170b9474e",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "grid"
         }
     },
-    "last_selected_folder_id": "yelllow this fix it",
+    "last_selected_folder_id": "hello wrld",
     "last_image_dir": "C:/Users/IMAM/Desktop",
-    "wrap_mode": true,
+    "wrap_mode": false,
     "whiteboard_settings": {
         "pen_type": "Std",
         "bg_mode": "Rule",
@@ -576,6 +620,15 @@
     },
     "level1_color": "#00ff7f",
     "level2_color": "#00007f",
-    "show_toc": "false",
-    "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots1"
+    "show_toc": "true",
+    "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots1",
+    "hidden_toolbar_actions": [
+        "action_check",
+        "action_super",
+        "action_sub",
+        "combo_font",
+        "spin_size",
+        "combo_header",
+        "action_strike"
+    ]
 }

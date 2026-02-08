@@ -28,6 +28,59 @@ class DataManager:
         self.load_data()     # Then load data (applying meta)
         self._sync_notebooks() # Ensure all folders are in a notebook
 
+    def get_recent_notes(self, limit=50):
+        """Return all notes across all folders, sorted by most recently modified (or created)."""
+        all_notes = []
+        for folder in self.folders:
+            # Skip archived folders? Maybe include them but mark them?
+            # For now, include everything that isn't explicitly in trash (folders are active/archived)
+            for note in folder.notes:
+                # Attach parent folder reference for context (runtime only)
+                note._parent_folder = folder
+                all_notes.append(note)
+            
+        # Sort by last match of date. Currently only created_at is strictly tracked on Note.
+        # Ideally we'd have modified_at. using created_at for now as proxy or if available.
+        # If created_at is string, strict sort might be tricky if formats vary, but ISO is sortable.
+        all_notes.sort(key=lambda n: n.created_at, reverse=True)
+        return all_notes[:limit]
+
+    def get_trash_notes(self):
+        """Parse notes from .trash directory."""
+        trash_notes = []
+        if not os.path.exists(TRASH_DIR):
+            return []
+            
+        # Scan .json files in trash
+        # Filename format: {note_id}_{timestamp}.json
+        import glob
+        files = glob.glob(os.path.join(TRASH_DIR, "*.json"))
+        for f_path in files:
+            try:
+                with open(f_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    note = Note.from_dict(data)
+                    # We might want to attach the deletion timestamp or original folder from context?
+                    # For now just returning the note object.
+                    trash_notes.append(note)
+            except Exception as e:
+                logger.error(f"Failed to load trash note {f_path}: {e}")
+                
+        # Sort by deletion time (inferred from filename) or Note date?
+        # Filename has timestamp.
+        # Let's sort by timestamp in filename descending.
+        def trash_sort(path):
+            try:
+                return int(path.rsplit('_', 1)[-1].split('.')[0])
+            except:
+                return 0
+        
+        # We need to sort the notes list based on the file modify time or filename timestamp
+        # But we already parsed them.
+        # Let's just sort by note.created_at for now to be simple, or keep scan order.
+        trash_notes.sort(key=lambda n: n.created_at, reverse=True) 
+        return trash_notes
+
     def _ensure_storage(self):
         os.makedirs(NOTES_DIR, exist_ok=True)
         os.makedirs(TRASH_DIR, exist_ok=True)

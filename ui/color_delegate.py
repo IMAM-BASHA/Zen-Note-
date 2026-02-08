@@ -110,7 +110,12 @@ class ColorDelegate(QStyledItemDelegate):
         
         # Font Styling (Title Hierarchy)
         font = option.font
-        font.setPointSize(font.pointSize() + 1) # Increase size slightly
+        # Fix: handle pointSize() returning -1 (if size is in pixels)
+        ps = font.pointSize()
+        if ps > 0:
+            font.setPointSize(ps + 1) 
+        elif font.pixelSize() > 0:
+            font.setPixelSize(font.pixelSize() + 1)
         
         if is_selected:
             font.setBold(True)

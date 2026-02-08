@@ -1,51 +1,28 @@
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QHBoxLayout, QWidget, QLabel
+from PyQt6.QtWidgets import QVBoxLayout, QPushButton, QHBoxLayout, QWidget, QLabel
 from PyQt6.QtCore import Qt, QSize
 from ui.editor import TextEditor
 from util.icon_factory import get_premium_icon
+from ui.zen_dialog import ZenDialog
 import ui.styles as styles
 
-class NoteOverlayDialog(QDialog):
+class NoteOverlayDialog(ZenDialog):
     def __init__(self, note_id, note_title, note_content, data_manager, parent=None):
-        super().__init__(parent)
+        # Auto-detect theme from parent or data_manager
+        theme_mode = "light"
+        if parent and hasattr(parent, 'theme_mode'):
+            theme_mode = parent.theme_mode
+        elif data_manager:
+            theme_mode = data_manager.get_setting("theme_mode", "light")
+            
+        super().__init__(parent, title=note_title, theme_mode=theme_mode)
         self.note_id = note_id
         self.data_manager = data_manager
-        self.setWindowTitle(note_title)
-        self.resize(600, 400)
-        
-        # Window Flags for Overlay feel (Always on top? Optional, maybe just a dialog)
-        # self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowFlags(Qt.WindowType.Window) # Independent window
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        
-        # Header
-        self.header = header # Store ref
-        # Style set via apply_theme
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(10, 5, 10, 5)
-        
-        self.title_lbl = QLabel(note_title)
-        # Style set via apply_theme
-        header_layout.addWidget(self.title_lbl)
-        header_layout.addStretch()
-        
-        # Close Button
-        btn_close = QPushButton("Close")
-        btn_close.clicked.connect(self.close)
-        header_layout.addWidget(btn_close)
-        
-        layout.addWidget(header)
+        self.resize(800, 600)
         
         # Editor
         self.editor = TextEditor(data_manager=self.data_manager)
         self.editor.editor.setHtml(note_content)
-        
-        # Apply Theme (Detect from parent or data_manager)
-        # Apply Theme (Detect from parent or data_manager)
-        current_theme = self.data_manager.get_setting("theme_mode", "light")
-        self.apply_theme(current_theme)
+        self.editor.set_theme_mode(theme_mode)
         
         # Handle links inside overlay
         if self.parent() and hasattr(self.parent(), 'open_note_by_id'):
@@ -54,17 +31,15 @@ class NoteOverlayDialog(QDialog):
         if self.parent() and hasattr(self.parent(), 'open_note_overlay'):
              self.editor.request_open_note_overlay.connect(self.parent().open_note_overlay)
         
-        layout.addWidget(self.editor)
+        self.content_layout.addWidget(self.editor)
         
     def apply_theme(self, mode):
-        self.editor.set_theme_mode(mode)
-        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-        
-        self.header.setStyleSheet(f"background-color: {c['background']}; border-bottom: 1px solid {c['border']};")
-        self.title_lbl.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {c['foreground']};")
-        self.setStyleSheet(f"background-color: {c['background']};")
-        
+        """Standard theme application (ZenDialog base handles most)."""
+        super().apply_theme(mode) # Updates header/container
+        if hasattr(self, 'editor'):
+            self.editor.set_theme_mode(mode)
+            
     def closeEvent(self, event):
         # Save on close?
         # For now, just close. If editable, we might want to save.
-        pass
+        super().closeEvent(event)

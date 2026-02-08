@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 class Note:
-    def __init__(self, title="New Note", content="", created_at=None, note_id=None, whiteboard_images=None, order=None, is_pinned=False, is_archived=False, priority=0, color=None, is_locked=False, last_scroll_position=0, content_splitter_sizes=None):
+    def __init__(self, title="New Note", content="", created_at=None, note_id=None, whiteboard_images=None, order=None, is_pinned=False, is_archived=False, priority=0, color=None, is_locked=False, last_scroll_position=0, content_splitter_sizes=None, cover_image=None, description=None, last_opened=None, closed_at=None):
         self.id = note_id if note_id else str(uuid.uuid4())
         self.title = title
         self.content = content  # HTML content
@@ -16,6 +16,10 @@ class Note:
         self.is_locked = is_locked
         self.last_scroll_position = last_scroll_position
         self.content_splitter_sizes = content_splitter_sizes # [int, int, int] for nested splitter
+        self.cover_image = cover_image
+        self.description = description
+        self.last_opened = last_opened
+        self.closed_at = closed_at
 
     def to_dict(self):
         return {
@@ -31,7 +35,11 @@ class Note:
             "color": self.color,
             "is_locked": self.is_locked,
             "last_scroll_position": self.last_scroll_position,
-            "content_splitter_sizes": self.content_splitter_sizes
+            "content_splitter_sizes": self.content_splitter_sizes,
+            "cover_image": self.cover_image,
+            "description": self.description,
+            "last_opened": self.last_opened,
+            "closed_at": self.closed_at
         }
 
     @classmethod
@@ -49,7 +57,11 @@ class Note:
             color=data.get("color", None),
             is_locked=data.get("is_locked", False),
             last_scroll_position=data.get("last_scroll_position", 0),
-            content_splitter_sizes=data.get("content_splitter_sizes")
+            content_splitter_sizes=data.get("content_splitter_sizes"),
+            cover_image=data.get("cover_image"),
+            description=data.get("description"),
+            last_opened=data.get("last_opened"),
+            closed_at=data.get("closed_at")
         )
     
     @staticmethod

@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton, QMessageBox, 
-    QSplitter, QFileDialog, QToolBar, QInputDialog, QApplication,
+    QSplitter, QFileDialog, QToolBar, QApplication,
     QMainWindow, QStatusBar, QMenu, QLineEdit, QListWidget, QListWidgetItem, QProgressBar, QPushButton,
     QProgressDialog, QDialog, QFormLayout, QComboBox, QCheckBox, QSlider, QGroupBox, QSpinBox, QTextEdit, QTabWidget,
-    QAbstractItemView, QStyleFactory, QListWidgetItem, QToolButton, QStyle, QButtonGroup, QRadioButton, QTextBrowser, QFrame
+    QAbstractItemView, QStyleFactory, QListWidgetItem, QToolButton, QStyle, QButtonGroup, QRadioButton, QTextBrowser, QFrame,
+    QStackedWidget
 )
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QProcess, QPoint, QRectF, QPointF, QRect
 from PyQt6.QtGui import QAction, QIcon, QKeySequence, QShortcut, QPainter, QPen, QColor, QPixmap, QImage, QMouseEvent, QPaintEvent, QTextCursor
@@ -12,9 +13,11 @@ from util.icon_factory import get_premium_icon
 from ui.sidebar import Sidebar
 from ui.note_list import NoteList
 from ui.editor import TextEditor
+from ui.widgets import EmptyStateWidget
 from ui.whiteboard_widget import WhiteboardWidget
 from storage.data_manager import DataManager
 from models.note import Note
+from models.folder import Folder
 from util.shortcut_manager import ShortcutManager
 from ui.shortcut_dialog import ShortcutDialog
 from ui.move_note_dialog import MoveNoteDialog
@@ -24,8 +27,46 @@ import ui.styles as styles
 import json
 import os
 import sys
+from datetime import datetime
 from ui.note_overlay import NoteOverlayDialog
 from ui.title_bar import CustomTitleBar
+from ui.zen_dialog import ZenInputDialog, ZenItemDialog
+
+class MetadataBar(QFrame):
+    """Subtle bar displaying note metadata with technical typography."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedHeight(28)
+        self.setObjectName("MetadataBar")
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 0, 15, 0)
+        layout.setSpacing(20)
+        
+        # IBM Plex Mono for that 'technical precision' feel
+        mono_style = 'font-family: "IBM Plex Mono", monospace; font-size: 11px; opacity: 0.7;'
+        
+        self.lbl_words = QLabel("0 WORDS")
+        self.lbl_words.setStyleSheet(mono_style)
+        
+        self.lbl_chars = QLabel("0 CHARS")
+        self.lbl_chars.setStyleSheet(mono_style)
+        
+        self.lbl_modified = QLabel("LAST MODIFIED: --")
+        self.lbl_modified.setStyleSheet(mono_style)
+        
+        layout.addWidget(self.lbl_words)
+        layout.addWidget(self.lbl_chars)
+        layout.addStretch()
+        layout.addWidget(self.lbl_modified)
+        
+    def update_stats(self, text, last_modified=None):
+        words = len(text.split())
+        chars = len(text)
+        self.lbl_words.setText(f"{words} WORDS")
+        self.lbl_chars.setText(f"{chars} CHARS")
+        if last_modified:
+            self.lbl_modified.setText(f"LAST MODIFIED: {last_modified.upper()}")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -58,9 +99,13 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.setup_menu()
         
-        # Connect to Editor's Request for Shortcut Dialog
         if hasattr(self.editor, 'requestShortcutDialog'):
              self.editor.requestShortcutDialog.connect(self.show_shortcut_dialog)
+             
+        # Sidebar Toggle Shortcut (Phase 46 Refinement)
+        from PyQt6.QtGui import QShortcut, QKeySequence
+        self.toggle_shortcut = QShortcut(QKeySequence("Ctrl+B"), self)
+        self.toggle_shortcut.activated.connect(self.toggle_note_panel)
         
         # Startup Animation
         self.setWindowOpacity(0.0)
@@ -146,8 +191,8 @@ class MainWindow(QMainWindow):
         # 0. Initialize Title Bar Early
         self.title_bar = CustomTitleBar(self)
         
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setObjectName("MainContainer")
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter.setObjectName("MainContainer")
 
         # 1. Sidebar
         self.sidebar = Sidebar()
@@ -166,10 +211,12 @@ class MainWindow(QMainWindow):
         self.sidebar.requestHighlightPreview.connect(self.show_highlight_preview)
         self.sidebar.requestPdfPreview.connect(self.show_pdf_preview)
         self.sidebar.lockToggled.connect(self.toggle_note_lock)
-        splitter.addWidget(self.sidebar)
+        self.sidebar.panelToggleRequest.connect(self.toggle_note_panel)
+        self.main_splitter.addWidget(self.sidebar)
 
         # 2. Note List
         self.note_list = NoteList()
+        self.note_list.setMinimumWidth(0)
         self.note_list.noteSelected.connect(self.select_note)
         self.note_list.createNoteRequest.connect(self.create_note)
         self.note_list.deleteNote.connect(self.delete_note)
@@ -177,14 +224,27 @@ class MainWindow(QMainWindow):
         self.note_list.reorderNote.connect(self.reorder_note)
         self.note_list.insertNoteAtPosition.connect(self.insert_note_at_position)
         self.note_list.updateNote.connect(self.update_note) # NEW
+        self.note_list.togglePanelRequest.connect(self.toggle_note_panel)
         self.note_list.moveNoteToFolder.connect(self.move_note_to_folder_with_dialog)
         self.note_list.exportNote.connect(self.export_note_by_id) # Connect Export
+        self.note_list.exportNote.connect(self.export_note_by_id) # Connect Export
         self.note_list.previewNote.connect(self.preview_note_by_id) # Connect Preview
-        splitter.addWidget(self.note_list)
+        self.note_list.clearNoteContentRequest.connect(self.clear_note_content) # NEW
+        self.note_list.viewModeChanged.connect(self.on_view_mode_changed) # NEW: Persist View Mode
+        self.main_splitter.addWidget(self.note_list)
 
         # 3. Editor Content Splitter (Nested)
         # Holds [HighlightView, WhiteboardPlaceholder, Editor]
         self.content_splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        # Right Side Container (Editor + Metadata + TitleBar)
+        self.editor_container = QWidget()
+        editor_layout = QVBoxLayout(self.editor_container)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(0)
+        
+        # Add Title Bar to editor area instead of global layout
+        editor_layout.addWidget(self.title_bar)
         
         # Highlight Preview View (Hidden by default, on the LEFT like whiteboard)
         self.highlight_view = QTextBrowser()
@@ -202,7 +262,7 @@ class MainWindow(QMainWindow):
         self.whiteboard_widget.insert_requested.connect(self.insert_image_to_note)
         self.content_splitter.addWidget(self.whiteboard_widget)
 
-        # Editor
+        # 4. Editor
         self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
         current_theme = self.data_manager.get_setting("theme_mode", "light")
         self.editor.set_theme_mode(current_theme)
@@ -215,29 +275,46 @@ class MainWindow(QMainWindow):
         self.editor.edit_whiteboard_requested.connect(self.jump_to_whiteboard)
         self.editor.request_open_note.connect(self.open_note_by_id)
         self.editor.request_open_note_overlay.connect(self.open_note_overlay)
-        self.content_splitter.addWidget(self.editor)
+        
+        # 5. Metadata Bar
+        self.metadata_bar = MetadataBar()
+        
+        editor_layout.addWidget(self.editor)
+        editor_layout.addWidget(self.metadata_bar)
+        
+        # 6. Stacked Widget for Empty State vs Editor
+        self.empty_state = EmptyStateWidget()
+        self.editor_stack = QStackedWidget()
+        self.editor_stack.addWidget(self.empty_state)
+        self.editor_stack.addWidget(self.editor_container)
+        
+        self.content_splitter.addWidget(self.editor_stack)
+        
+        # Connect editor text changes to metadata updates
+        self.editor.editor.textChanged.connect(self.refresh_metadata)
         
         # Connect Editor Toolbar to Custom Title Bar
         self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
         
         # Add nested splitter to main splitter
-        splitter.addWidget(self.content_splitter)
+        self.main_splitter.addWidget(self.content_splitter)
 
         # Set stretch factors for MAIN splitter
-        splitter.setSizes([150, 250, 800])
+        self.main_splitter.setSizes([200, 300, 700])
+        # Ensure the note list handle doesn't disappear when collapsed
+        self.main_splitter.setCollapsible(1, False)
 
         # Connect splitter signal to resize images when sidebar is resized
-        splitter.splitterMoved.connect(self._handle_splitter_resize)
+        self.main_splitter.splitterMoved.connect(self._handle_splitter_resize)
         
-        # 4. Final Setup: Title Bar + Content
+        # 4. Final Setup: Content only (Title Bar is nested)
         self.main_container = QWidget()
         self.main_container.setObjectName("MainWindowContainer")
         self.main_layout = QVBoxLayout(self.main_container)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
         
-        self.main_layout.addWidget(self.title_bar)
-        self.main_layout.addWidget(splitter)
+        self.main_layout.addWidget(self.main_splitter)
         
         self.setCentralWidget(self.main_container)
         
@@ -356,6 +433,9 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, 'whiteboard_widget'):
             self.whiteboard_widget.set_theme_mode(mode)
+
+        if hasattr(self, 'empty_state'):
+            self.empty_state.set_theme_mode(mode)
         
         if hasattr(self, 'title_bar'):
             self.title_bar.set_theme_mode(mode)
@@ -414,6 +494,12 @@ class MainWindow(QMainWindow):
                 folder.color = updates["color"]
             if "is_locked" in updates:
                 folder.is_locked = updates["is_locked"]
+            if "cover_image" in updates:
+                folder.cover_image = updates["cover_image"]
+            if "description" in updates:
+                folder.description = updates["description"]
+            if "view_mode" in updates:
+                folder.view_mode = updates["view_mode"]
             
             # Save Metadata to Settings
             folders_meta = self.data_manager.get_setting("folders_meta", {})
@@ -428,6 +514,9 @@ class MainWindow(QMainWindow):
             folders_meta[folder_id]["is_archived"] = folder.is_archived
             folders_meta[folder_id]["color"] = folder.color
             folders_meta[folder_id]["is_locked"] = folder.is_locked
+            folders_meta[folder_id]["cover_image"] = folder.cover_image
+            folders_meta[folder_id]["description"] = folder.description
+            folders_meta[folder_id]["view_mode"] = folder.view_mode
             
             self.data_manager.set_setting("folders_meta", folders_meta)
             self.refresh_folders()
@@ -467,6 +556,12 @@ class MainWindow(QMainWindow):
                 note.color = updates["color"]
             if "is_locked" in updates:
                 note.is_locked = updates["is_locked"]
+            if "cover_image" in updates:
+                note.cover_image = updates["cover_image"]
+            if "description" in updates:
+                note.description = updates["description"]
+            if "closed_at" in updates:
+                note.closed_at = updates["closed_at"]
                 
             # Save via Data Manager (using save_note to ensure persistence in FS mode)
             self.data_manager.save_note(self.current_folder, note)
@@ -477,6 +572,22 @@ class MainWindow(QMainWindow):
             
             # Restore selection
             self.note_list.select_note_by_id(note_id)
+
+    def toggle_note_panel(self):
+        """Toggles the visibility of the note list panel using a 'drawer' style (Phase 46.2)."""
+        sizes = self.main_splitter.sizes()
+        sidebar_w, list_w, editor_w = sizes
+        
+        if list_w > 0:
+            # Collapse
+            self._last_note_list_width = list_w
+            self.main_splitter.setSizes([sidebar_w, 0, editor_w + list_w])
+        else:
+            # Expand
+            target_w = getattr(self, '_last_note_list_width', 300)
+            # Ensure we don't reduce editor to nothing
+            new_editor_w = max(100, editor_w - target_w)
+            self.main_splitter.setSizes([sidebar_w, target_w, new_editor_w])
 
 
     def delete_folder(self, folder_id):
@@ -495,7 +606,10 @@ class MainWindow(QMainWindow):
             self.current_note = None
             self.note_list.load_notes([])
             self.editor.clear()
+            self.note_list.load_notes([])
+            self.editor.clear()
             self.editor.editor.setReadOnly(True)
+            self.editor_stack.setCurrentIndex(0) # Show Empty State
             self.whiteboard_widget.set_info(None, None) # Clear WB info
         
         # If deleted folder wasn't active, we don't need to do anything to the view
@@ -566,6 +680,60 @@ class MainWindow(QMainWindow):
             self.sidebar.select_folder_by_id("ALL_NOTEBOOKS_ROOT")
             return
 
+        if folder_id == "RECENT_ROOT":
+            # Smart View: Recent Notes
+            recent_notes = self.data_manager.get_recent_notes()
+            
+            # Create Dummy Folder for Context
+            self.current_folder = Folder("Recent", "RECENT_ROOT")
+            self.current_folder.notes = recent_notes
+            
+            self.note_list.load_notes(recent_notes)
+            self.current_note = None
+            self.editor.clear()
+            self.editor.editor.setReadOnly(True) # Keep ReadOnly until note selected
+            
+            self.whiteboard_widget.set_info("Recent Notes", None)
+            self.whiteboard_widget.clear()
+            return
+
+        if folder_id == "TRASH_ROOT":
+            # Smart View: Trash
+            trash_notes = self.data_manager.get_trash_notes()
+            
+            self.current_folder = Folder("Trash", "TRASH_ROOT")
+            self.current_folder.notes = trash_notes
+            
+            self.note_list.load_notes(trash_notes)
+            self.current_note = None
+            self.editor.clear()
+            self.editor.editor.setReadOnly(True)
+            
+            self.whiteboard_widget.set_info("Trash", None)
+            self.whiteboard_widget.clear()
+            return
+            
+        if folder_id == "ARCHIVED_ROOT":
+            # Show all archived notes? Or just expand sidebar (already done)?
+            # If clicked, let's show all archived notes across all notebooks logic?
+            # Or just ignore if sidebar handles expansion.
+            # Sidebar emits ARCHIVED_ROOT when header clicked?
+            # Let's show all archived notes for consistency.
+            all_archived = []
+            for f in self.data_manager.folders:
+                if getattr(f, 'is_archived', False):
+                    all_archived.extend(f.notes)
+            
+            self.current_folder = Folder("Archived", "ARCHIVED_ROOT")
+            self.current_folder.notes = all_archived
+            self.note_list.load_notes(all_archived)
+            self.current_note = None
+            self.editor.clear()
+            self.editor.editor.setReadOnly(True)
+            self.whiteboard_widget.set_info("Archived", None)
+            self.whiteboard_widget.clear()
+            return
+
         self.current_folder = self.data_manager.get_folder_by_id(folder_id)
         if self.current_folder:
             self.note_list.load_notes(self.current_folder.notes)
@@ -574,6 +742,11 @@ class MainWindow(QMainWindow):
             
             # Disable editor until a note is selected
             self.editor.editor.setReadOnly(True)
+            self.editor_stack.setCurrentIndex(0)
+
+            # Restore View Mode
+            view_mode = getattr(self.current_folder, 'view_mode', "list")
+            self.note_list.set_view_mode(view_mode)
             
             # Save Selection
             self.data_manager.set_setting("last_selected_folder_id", folder_id)
@@ -597,28 +770,68 @@ class MainWindow(QMainWindow):
                 self.whiteboard_widget.load_file(wb_path)
             except Exception as e:
                 logger.error(f"Error loading folder whiteboard: {e}")
-
     def delete_note(self, note_id):
+        """Move note to trash."""
+        if QMessageBox.question(self, "Delete", "Delete this note? This cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
+            return
+
         if not self.current_folder:
             return
 
-        # Check lock status (Note level)
+        # Check lock status
         note = self.current_folder.get_note_by_id(note_id)
         if note and getattr(note, 'is_locked', False):
-            self.show_message(QMessageBox.Icon.Warning, "Locked", "This note is locked and cannot be deleted.")
+            QMessageBox.warning(self, "Locked", "This note is locked and cannot be deleted.")
             return
             
+        # If the deleted note was open, clear editor and close it
+        if self.current_note and self.current_note.id == note_id:
+            self.current_note = None
+            self.editor.clear()
+            self.editor_stack.setCurrentWidget(self.empty_state)
+            self.metadata_bar.update_stats("", None)
+
         # Delete using DataManager
         self.data_manager.delete_note(self.current_folder, note_id)
         
         # Reload List
         self.note_list.load_notes(self.current_folder.notes)
+        self.refresh_metadata()
+
+    def clear_note_content(self, note_id):
+        """Wipes all text content from a note."""
+        # Find Note and its Folder
+        target_note = None
+        target_folder = None
         
-        # If the deleted note was open, clear editor
+        if self.current_folder:
+            target_note = self.current_folder.get_note_by_id(note_id)
+            target_folder = self.current_folder
+            
+        if not target_note:
+            for folder in self.data_manager.folders:
+                n = folder.get_note_by_id(note_id)
+                if n:
+                    target_note = n
+                    target_folder = folder
+                    break
+                    
+        if not target_note or not target_folder:
+            return
+
+        # Update note content
+        target_note.content = ""
+        # Save to disk
+        self.data_manager.save_note(target_folder, target_note)
+        
+        # If it's the currently open note, update the UI
         if self.current_note and self.current_note.id == note_id:
-            self.current_note = None
+            # Block auto-save temporarily to avoid saving the empty state back to itself redundantly
+            # but editor.clear() is fine.
             self.editor.clear()
-            self.editor.editor.setReadOnly(True) # Disable editing until new note selected
+            self.refresh_metadata()
+            
+        logger.debug(f"Cleared content for note_id={note_id}")
 
     def rename_note(self, note_id, new_title):
         """Handle note rename request from note list."""
@@ -688,6 +901,7 @@ class MainWindow(QMainWindow):
             if self.current_note and self.current_note.id == note_id:
                 self.current_note = None
                 self.editor.clear()
+                self.editor_stack.setCurrentIndex(0)
             
             # Refresh source folder note list
             self.note_list.load_notes(source_folder.notes)
@@ -712,13 +926,13 @@ class MainWindow(QMainWindow):
             
             # If in "All Notebooks" view, prompt for folder
             folder_names = [f.name for f in active_folders]
-            name, ok = QInputDialog.getItem(self, "Select Folder", "Choose folder for new note:", folder_names, 0, False)
+            name, ok = ZenItemDialog.getItem(self, "Select Folder", "Choose folder for new note:", folder_names, 0, False)
             if ok and name:
                 folder = next(f for f in active_folders if f.name == name)
             else:
                 return
 
-        title, ok = QInputDialog.getText(self, "New Note", "Note Title:")
+        title, ok = ZenInputDialog.getText(self, "New Note", "Note Title:")
         if ok and title:
             new_note = Note(title=title)
             folder.add_note(new_note)
@@ -900,10 +1114,38 @@ class MainWindow(QMainWindow):
             return
 
         self.current_note = target_note
+
+        # Update Last Opened
+        if self.current_note:
+            self.current_note.last_opened = datetime.now().isoformat()
+            # We should save this change, but maybe debounce it? 
+            # Or just save immediately effectively as it's metadata.
+            # However, _perform_save saves content. Let's use data_manager.save_note explicitly if needed,
+            # but _perform_save acts on current_note.
+            # To avoid saving content unnecessarily, we just update the object. 
+            # It will be saved on next content save OR we can trigger a metadata save.
+            # Let's trigger a save to ensure it persists even if no content edit.
+            if self.current_folder:
+                 self.data_manager.save_note(self.current_folder, self.current_note)
+
+        # Refine target_folder for Recent/Trash views (if they have parent ref)
+        if self.current_folder and self.current_folder.id in ["RECENT_ROOT", "TRASH_ROOT"] and hasattr(target_note, '_parent_folder'):
+             target_folder = target_note._parent_folder
+        
+        # Check folder context for ReadOnly
+        force_readonly = False
+        if self.current_folder:
+             # Check Special Roots
+             if self.current_folder.id in ["TRASH_ROOT", "ARCHIVED_ROOT"]:
+                 force_readonly = True
+             # Check Normal Archived Folders
+             elif getattr(self.current_folder, 'is_archived', False):
+                 force_readonly = True
         
         # Enable editor for typing ONLY if not locked
         is_locked = getattr(self.current_note, 'is_locked', False)
-        self.editor.editor.setReadOnly(is_locked)
+        self.editor.editor.setReadOnly(is_locked or force_readonly)
+        self.editor_stack.setCurrentIndex(1) # Show Editor
         
         # Update window title or status to indicate lock?
         if is_locked:
@@ -969,7 +1211,11 @@ class MainWindow(QMainWindow):
                 self.current_note.last_scroll_position = self.editor.editor.verticalScrollBar().value()
                 self.current_note.content_splitter_sizes = self.content_splitter.sizes()
                 
-                self.data_manager.save_note(self.current_folder, self.current_note)
+                target_folder = self.current_folder
+                if self.current_folder.id == "RECENT_ROOT" and hasattr(self.current_note, '_parent_folder'):
+                     target_folder = self.current_note._parent_folder
+                
+                self.data_manager.save_note(target_folder, self.current_note)
                 
                 # Live Update Highlight Preview
                 self.refresh_highlight_preview_if_visible()
@@ -982,10 +1228,18 @@ class MainWindow(QMainWindow):
             self._is_saving = False
     
     def _handle_splitter_resize(self, pos, index):
-        """Handle splitter resize event."""
-        # TextEditor's native resizeEvent handles image scaling efficiently.
-        # No need for manual intervention here.
-        pass
+        """Handle main splitter resize event to track drawer state."""
+        if not hasattr(self, 'main_splitter'): return
+        
+        sizes = self.main_splitter.sizes()
+        if len(sizes) >= 2:
+            list_w = sizes[1]
+            if list_w > 0:
+                self._last_note_list_width = list_w
+        
+        # Original scaling logic (if any)
+        if hasattr(self.editor, 'on_parent_resize'):
+            self.editor.on_parent_resize()
 
     def closeEvent(self, event):
         """Ensure data is saved before closing."""
@@ -2444,3 +2698,40 @@ class MainWindow(QMainWindow):
             msg.setDetailedText(details)
         msg.setWindowFlags(msg.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         return msg.exec()
+    def refresh_metadata(self):
+        """Update the metadata bar with current editor stats."""
+        if not self.current_note:
+            return
+            
+        text = self.editor.editor.toPlainText()
+        
+        # Format modified time
+        modified_time = "--"
+        from datetime import datetime
+        
+        raw_ts = getattr(self.current_note, 'modified_at', None) or getattr(self.current_note, 'created_at', None)
+        
+        if raw_ts:
+            try:
+                if isinstance(raw_ts, str):
+                    # Handle ISO format strings
+                    dt = datetime.fromisoformat(raw_ts)
+                else:
+                    # Handle numeric timestamps
+                    dt = datetime.fromtimestamp(raw_ts)
+                modified_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception as e:
+                logger.error(f"Error parsing timestamp {raw_ts}: {e}")
+             
+        self.metadata_bar.update_stats(text, modified_time)
+
+    def on_view_mode_changed(self, mode):
+        """Persist view mode preference for current folder."""
+        if self.current_folder and self.current_folder.id not in ["RECENT_ROOT", "TRASH_ROOT", "ARCHIVED_ROOT", "ALL_NOTEBOOKS_ROOT"]:
+            self.current_folder.view_mode = mode
+            # We update the folder metadata via Sidebar signal or DataManager directly?
+            # DataManager doesn't have granular update for arbitrary fields easily Exposed.
+            # But the Sidebar handles 'updateFolder' signal which calls MainWindow.update_folder.
+            # MainWindow.update_folder updates 'folders_meta'.
+            # Let's reuse that pipeline.
+            self.sidebar.updateFolder.emit(self.current_folder.id, {"view_mode": mode})

@@ -77,8 +77,14 @@ def get_stylesheet(mode="light"):
     
     # Common radius and font settings
     radius = "12px" # Rounded styling from reference
+    
+    # Premium Typography System
+    # 1. Inter: engineered for screens, neutral and efficient.
     font = 'font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", sans-serif;'
+    # 2. Playfair Display: academic, sophisticated, and traditional.
     display_font = 'font-family: "Playfair Display", "Constantia", "Sitka Heading", "Cambria", "Georgia", serif;'
+    # 3. IBM Plex Mono: technical precision and offline craftsmanship.
+    mono_font = 'font-family: "IBM Plex Mono", "JetBrains Mono", "Consolas", "Monaco", monospace;'
     
     return f"""
         /* GLOBAL RESET & TYPOGRAPHY */
@@ -106,8 +112,15 @@ def get_stylesheet(mode="light"):
             color: {c['sidebar_fg']};
             {display_font}
             font-weight: 700;
-            font-size: 20px; /* Slightly larger for brand impact */
-            letter-spacing: -0.5px;
+            font-size: 18px; 
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }}
+        
+        QFrame#SidebarLogoContainer {{
+            background-color: {c['active_item_bg']};
+            border: 1px solid {c['border']};
+            border-radius: 8px;
         }}
         
         /* Tree Widget (Sidebar Items) */
@@ -120,10 +133,12 @@ def get_stylesheet(mode="light"):
             selection-color: {c['primary'] if mode == 'light' else '#ffffff'};
         }}
         QTreeWidget::item {{
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: {radius};
             margin-bottom: 2px;
             color: {c['sidebar_fg']};
+            font-family: "Inter", sans-serif;
+            font-size: 14px;
         }}
         QTreeWidget::item:hover {{
             background-color: {c['accent']};
@@ -141,16 +156,19 @@ def get_stylesheet(mode="light"):
             border: none;
             color: {c['foreground']};
             padding: 8px;
-            selection-background-color: transparent; /* We draw card bg manually or via item style */
+            selection-background-color: transparent; 
             outline: none;
+            font-family: "Inter", sans-serif;
+            font-size: 13px;
         }}
         QListWidget::item {{
             background-color: {c['card']};
             border: 1px solid {c['border']};
             border-radius: {radius};
             padding: 12px;
-            margin-bottom: 8px; /* Spacing between cards */
+            margin-bottom: 8px;
             color: {c['foreground']};
+            font-family: "Inter", sans-serif;
         }}
         QListWidget::item:selected {{
             background-color: {c['active_item_bg']};
@@ -167,10 +185,10 @@ def get_stylesheet(mode="light"):
             background-color: {c['background']};
             color: {c['foreground']};
             border: none;
-            padding: 24px;
-            padding: 24px;
+            padding: 32px; /* More breathable workspace */
             selection-background-color: {c.get('selection_bg', c['secondary'])};
             selection-color: {c.get('selection_fg', c['secondary_foreground'])};
+            line-height: 1.7; /* Optical sizing */
         }}
 
         /* --- BUTTONS (Shadcn Variants) --- */
@@ -212,14 +230,27 @@ def get_stylesheet(mode="light"):
             color: {c['destructive_foreground']};
         }}
 
+        /* View Toggle Button (Phase 45) */
+        QPushButton#ViewToggleBtn {{
+            background-color: {c['secondary']};
+            border: 1px solid {c['border']};
+            border-radius: 8px;
+            padding: 4px;
+        }}
+        QPushButton#ViewToggleBtn:hover {{
+            background-color: {c['accent']};
+            border: 1px solid {c['primary']};
+        }}
+
         /* --- INPUTS & DROPDOWNS --- */
         QLineEdit {{
             background-color: {c['background']};
             color: {c['foreground']};
             border: 1px solid {c['input']};
             border-radius: {radius};
-            padding: 6px 10px;
+            padding: 6px 12px;
             height: 32px;
+            font-size: 13px;
         }}
         QLineEdit:focus {{
             border: 1px solid {c['ring']};

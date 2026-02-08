@@ -1,21 +1,33 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, QLabel, QPushButton, QLineEdit, QApplication, QColorDialog
 )
+from ui.zen_dialog import ZenInputDialog
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from ui.color_delegate import ColorDelegate, COLOR_ROLE
+from ui.color_delegate import ColorDelegate, COLOR_ROLE
 from util.icon_factory import get_premium_icon, get_combined_indicators
+from ui.note_card_delegate import NoteCardDelegate
+from PyQt6.QtWidgets import QFileDialog
+import os
+
+VIEW_MODE_LIST = "list"
+VIEW_MODE_GRID = "grid"
 
 class NoteList(QWidget):
     noteSelected = pyqtSignal(str)
     createNoteRequest = pyqtSignal()
     deleteNote = pyqtSignal(str)
+    clearNoteContentRequest = pyqtSignal(str)
     renameNote = pyqtSignal(str, str)
     updateNote = pyqtSignal(str, dict)  # Emit note_id, updates dict (e.g. {'is_pinned': True})
     insertNoteAtPosition = pyqtSignal(int)
     reorderNote = pyqtSignal(str, int)
     moveNoteToFolder = pyqtSignal(str)   # Emit note_id when user wants to move note
     exportNote = pyqtSignal(str)         # Emit note_id for export
+    exportNote = pyqtSignal(str)         # Emit note_id for export
     previewNote = pyqtSignal(str)        # Emit note_id for preview
+    viewModeChanged = pyqtSignal(str)    # Emit "list" or "grid"
+    togglePanelRequest = pyqtSignal()   # Phase 46
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -29,6 +41,7 @@ class NoteList(QWidget):
         self.showing_archived = False
         self.current_notes = []
         self.theme_mode = "light"
+        self.view_mode = VIEW_MODE_LIST
         
         self._setup_top_controls()
         self._setup_search()
@@ -47,12 +60,42 @@ class NoteList(QWidget):
         self.back_btn.setVisible(False)
         top_layout.addWidget(self.back_btn)
 
+        # HBox for controls
+        controls_layout = QHBoxLayout()
+        controls_layout.setSpacing(8)
+
+        self.view_toggle_btn = QPushButton()
+        self.view_toggle_btn.setObjectName("ViewToggleBtn")
+        self.view_toggle_btn.setIconSize(QSize(20, 20))
+        
+        # Initial color based on theme_mode
+        initial_color = "#FFFFFF" if self.theme_mode == "dark" else "#09090b"
+        self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=initial_color)) 
+        
+        self.view_toggle_btn.setToolTip("Switch to Grid View")
+        self.view_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.view_toggle_btn.setFixedSize(32, 32)
+        self.view_toggle_btn.clicked.connect(self.toggle_view_mode)
+        
+        self.panel_toggle_btn = QPushButton()
+        self.panel_toggle_btn.setObjectName("ViewToggleBtn") # Re-use same premium style
+        self.panel_toggle_btn.setIconSize(QSize(20, 20))
+        self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=initial_color))
+        self.panel_toggle_btn.setToolTip("Hide Note Panel")
+        self.panel_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.panel_toggle_btn.setFixedSize(32, 32)
+        self.panel_toggle_btn.clicked.connect(self.togglePanelRequest.emit)
+        
+        controls_layout.addWidget(self.panel_toggle_btn)
+        controls_layout.addWidget(self.view_toggle_btn)
+
         self.new_note_btn = QPushButton(" New Note")
         self.new_note_btn.setIcon(get_premium_icon("plus", color="white"))
         self.new_note_btn.setObjectName("NewNoteBtn")
         self.new_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.new_note_btn.clicked.connect(self.createNoteRequest.emit)
-        top_layout.addWidget(self.new_note_btn)
+        controls_layout.addWidget(self.new_note_btn)
+        top_layout.addLayout(controls_layout)
         
         self.layout.addWidget(top_container)
         
@@ -70,7 +113,12 @@ class NoteList(QWidget):
         self.list_widget.itemClicked.connect(self.on_item_clicked)
         self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_widget.customContextMenuRequested.connect(self.show_context_menu)
-        self.list_widget.setItemDelegate(ColorDelegate(self.list_widget))
+        
+        # Delegates
+        self.list_delegate = ColorDelegate(self.list_widget)
+        self.grid_delegate = NoteCardDelegate(self.list_widget)
+        
+        self.list_widget.setItemDelegate(self.list_delegate)
         
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         
@@ -169,13 +217,18 @@ class NoteList(QWidget):
                 item = QListWidgetItem(f"{idx}. {prefix}{note_title}")
                 icon_color = "white" if self.theme_mode == "dark" else None
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
+                item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setData(Qt.ItemDataRole.UserRole, note.id)
+                # Pass Note Object for Delegate
+                item.setData(Qt.ItemDataRole.UserRole + 1, note)
+                
                 if getattr(note, 'color', None):
                     item.setData(COLOR_ROLE, note.color)
                 self.list_widget.addItem(item)
             except Exception: continue
         
     def on_item_clicked(self, item):
+        if not item: return
         note_id = item.data(Qt.ItemDataRole.UserRole)
         print(f"DEBUG: NoteList.on_item_clicked: note_id='{note_id}'")
         if note_id == "ARCHIVED_ROOT":
@@ -201,12 +254,52 @@ class NoteList(QWidget):
         icon_color = "#FFFFFF" if is_dark else "#09090b"
         
         self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
+        
+        # Refresh View Toggle Icon (Phase 45)
+        icon_name = "layout_list" if self.view_mode == VIEW_MODE_GRID else "layout_grid"
+        self.view_toggle_btn.setIcon(get_premium_icon(icon_name, color=icon_color))
+        self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
+        
+        self.grid_delegate.set_theme_mode(mode)
         self.filter_notes(self.search_input.text())
+        
+    def toggle_view_mode(self):
+        new_mode = VIEW_MODE_GRID if self.view_mode == VIEW_MODE_LIST else VIEW_MODE_LIST
+        self.set_view_mode(new_mode)
+
+    def set_view_mode(self, mode):
+        if self.view_mode == mode: return
+        self.view_mode = mode
+        
+        self.list_widget.setItemDelegate(self.list_delegate)
+        self.list_widget.setSpacing(0)
+        
+        # Use theme-aware color for icons
+        icon_color = "#FFFFFF" if self.theme_mode == "dark" else "#09090b"
+        
+        if mode == VIEW_MODE_GRID:
+            self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
+            self.list_widget.setItemDelegate(self.grid_delegate)
+            self.list_widget.setSpacing(10)
+            self.view_toggle_btn.setIcon(get_premium_icon("layout_list", color=icon_color))
+            self.view_toggle_btn.setToolTip("Switch to List View")
+        else:
+            self.list_widget.setViewMode(QListWidget.ViewMode.ListMode)
+            self.list_widget.setItemDelegate(self.list_delegate)
+            self.list_widget.setSpacing(0)
+            self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=icon_color))
+            self.view_toggle_btn.setToolTip("Switch to Grid View")
+        
+        self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
+        
+        # Refresh to apply resizing
+        self.list_widget.doItemsLayout()
+        self.viewModeChanged.emit(mode)
         
     def show_context_menu(self, pos):
         item = self.list_widget.itemAt(pos)
         if not item: return
-        from PyQt6.QtWidgets import QMenu, QMessageBox, QInputDialog
+        from PyQt6.QtWidgets import QMenu, QMessageBox
         menu = QMenu()
         note_id = item.data(Qt.ItemDataRole.UserRole)
         note = next((n for n in self.current_notes if n.id == note_id), None)
@@ -231,11 +324,30 @@ class NoteList(QWidget):
         rename_action = menu.addAction("Rename Note")
         if getattr(note, 'is_locked', False):
             rename_action.setEnabled(False)
+            clear_action = menu.addAction("Clear All Content (Locked)"); clear_action.setEnabled(False)
             delete_action = menu.addAction("Delete Note (Locked)"); delete_action.setEnabled(False)
         else:
+            clear_action = menu.addAction("🗑 Clear All Content")
             delete_action = menu.addAction("Delete Note")
         
         move_action = menu.addAction("Move to Notebook")
+        
+        menu.addSeparator()
+        
+        # Cover Image Management (Phase 43)
+        current_cover = getattr(note, 'cover_image', None)
+        has_cover = current_cover and os.path.exists(current_cover)
+        
+        if has_cover:
+            set_cover_action = menu.addAction("Change Cover Image...")
+            remove_cover_action = menu.addAction("Remove Cover Image")
+        else:
+            set_cover_action = menu.addAction("Set Cover Image...")
+            remove_cover_action = None
+            
+        edit_desc_action = menu.addAction("Edit Description...")
+        
+        menu.addSeparator()
         preview_action = menu.addAction("Preview Note PDF")
         export_action = menu.addAction("Export to PDF")
         
@@ -259,10 +371,24 @@ class NoteList(QWidget):
         elif action == delete_action:
             if QMessageBox.question(self, "Delete", f"Delete '{note.title}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
                 self.deleteNote.emit(note_id)
+        elif action == clear_action:
+            if QMessageBox.question(self, "Clear Content", f"Are you sure you want to clear all content in '{note.title}'?\nThis action cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
+                self.clearNoteContentRequest.emit(note_id)
         elif action == rename_action:
-            name, ok = QInputDialog.getText(self, "Rename", "New title:", text=note.title)
+            name, ok = ZenInputDialog.getText(self, "Rename", "New title:", text=note.title)
             if ok and name.strip(): self.renameNote.emit(note_id, name.strip())
         elif action == move_action: self.moveNoteToFolder.emit(note_id)
+        elif action == set_cover_action:
+            file_path, _ = QFileDialog.getOpenFileName(self, "Select Cover Image", "", "Images (*.png *.jpg *.jpeg *.webp)")
+            if file_path:
+                self.updateNote.emit(note_id, {"cover_image": file_path})
+        elif remove_cover_action and action == remove_cover_action:
+             if QMessageBox.question(self, "Remove Cover", "Remove cover image?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
+                 self.updateNote.emit(note_id, {"cover_image": None})
+        elif action == edit_desc_action:
+            desc, ok = ZenInputDialog.getText(self, "Edit Description", "Description:", text=getattr(note, 'description', "") or "")
+            if ok:
+                self.updateNote.emit(note_id, {"description": desc})
         elif action == preview_action: self.previewNote.emit(note_id)
         elif action == export_action: self.exportNote.emit(note_id)
         elif action == archive_action: self.updateNote.emit(note_id, {"is_archived": not getattr(note, 'is_archived', False)})
@@ -283,3 +409,9 @@ class NoteList(QWidget):
         self.back_btn.setVisible(self.showing_archived)
         self.new_note_btn.setVisible(not self.showing_archived)
         self.filter_notes(self.search_input.text())
+
+    def resizeEvent(self, event):
+        """Phase 40: Trigger layout update on resize for responsive cards."""
+        super().resizeEvent(event)
+        if hasattr(self, 'list_widget') and self.view_mode == VIEW_MODE_GRID:
+            self.list_widget.scheduleDelayedItemsLayout()

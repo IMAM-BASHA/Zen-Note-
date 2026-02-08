@@ -615,3 +615,153 @@ Traceback (most recent call last):
     self.action_numbering.triggered.connect(self.text_numbering)
                                             ^^^^^^^^^^^^^^^^^^^
 AttributeError: 'TextEditor' object has no attribute 'text_numbering'. Did you mean: 'text_number_list'?
+2026-02-08 16:56:20,500 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 59, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 262, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 329, in apply_theme
+    css = styles.get_stylesheet(mode)
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\styles.py", line 112, in get_stylesheet
+    color: {c['sidebar_fg']};
+    ^^^^^
+NameError: name 'color' is not defined
+2026-02-08 16:57:33,333 - NoteApp - CRITICAL - [main.py:22] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 15, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 95, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 314, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 381, in apply_theme
+    css = styles.get_stylesheet(mode)
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\styles.py", line 112, in get_stylesheet
+    color: {c['sidebar_fg']};
+    ^^^^^
+NameError: name 'color' is not defined
+2026-02-08 17:09:40,674 - NoteApp - DEBUG - [editor.py:2396] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots1
+2026-02-08 17:09:40,683 - NoteApp - DEBUG - [editor.py:2406] - Found 5 images in directory.
+2026-02-08 17:09:40,683 - NoteApp - DEBUG - [editor.py:2417] - Latest Image Identified: Gemini_Generated_Image_786xz0786xz0786x.png (2026-02-08 15:14:28.105001)
+2026-02-08 17:09:40,683 - NoteApp - DEBUG - [editor.py:2432] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots1\Gemini_Generated_Image_786xz0786xz0786x.png
+2026-02-08 17:33:49,343 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 95, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 190, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 42, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 69, in _setup_header
+    self.logo_label.setPixmap(QIcon("logo_transparent.png").pixmap(24, 24))
+                              ^^^^^
+NameError: name 'QIcon' is not defined
+2026-02-08 19:12:29,596 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 98, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 323, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 411, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 269, in set_theme_mode
+    self.refresh_list()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 359, in refresh_list
+    self._add_header_item("FAVORITES")
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 441, in _add_header_item
+    font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.0)
+                          ^^^^^
+NameError: name 'QFont' is not defined. Did you mean: 'font'?
+2026-02-08 20:07:31,751 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 194, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 41, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 60, in _setup_header
+    self.logo_container = QFrame()
+                          ^^^^^^
+NameError: name 'QFrame' is not defined
+2026-02-08 20:08:11,318 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 194, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 42, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 99, in _setup_header
+    self.nb_selector = QComboBox()
+                       ^^^^^^^^^
+NameError: name 'QComboBox' is not defined
+2026-02-08 21:22:47,601 - NoteApp - ERROR - [data_manager.py:267] - Error saving note a9a86466-5afc-4039-afd8-d7086aa54e84: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\tmpv8cg0sq0.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\a9a86466-5afc-4039-afd8-d7086aa54e84.json'
+2026-02-08 21:47:40,486 - NoteApp - ERROR - [data_manager.py:267] - Error saving note b0d593a3-e0b7-4be9-b387-5ca904d046c6: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\tmpt9ss24iq.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\b0d593a3-e0b7-4be9-b387-5ca904d046c6.json'
+2026-02-08 21:56:36,801 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 194, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 43, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 158, in _setup_header
+    self.preview_btn.setFixedSize(32, 32)
+    ^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'preview_btn'
+2026-02-08 22:02:48,753 - NoteApp - ERROR - [data_manager.py:267] - Error saving note 5412a16e-8bf5-4f37-9dbd-9e5f0574ee5d: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\tmpm8tk87r5.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\new wroking\\5412a16e-8bf5-4f37-9dbd-9e5f0574ee5d.json'
+2026-02-08 23:00:01,726 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 265, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 789, in __init__
+    self.editor = MarkdownTextEdit()
+                  ~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 249, in __init__
+    self.highlighter = MarkdownHighlighter(self.document(), theme='light')
+                       ^^^^^^^^^^^^^^^^^^^
+NameError: name 'MarkdownHighlighter' is not defined
+2026-02-08 23:07:57,116 - NoteApp - ERROR - [data_manager.py:267] - Error saving note e69b20dd-abed-4598-a9ee-9b2170b9474e: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\tmphxv_3gb3.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\e69b20dd-abed-4598-a9ee-9b2170b9474e.json'
+2026-02-08 23:08:08,979 - NoteApp - DEBUG - [main_window.py:834] - Cleared content for note_id=e69b20dd-abed-4598-a9ee-9b2170b9474e
+2026-02-08 23:18:06,699 - NoteApp - ERROR - [data_manager.py:267] - Error saving note e69b20dd-abed-4598-a9ee-9b2170b9474e: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\tmpnfp94frv.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\e69b20dd-abed-4598-a9ee-9b2170b9474e.json'

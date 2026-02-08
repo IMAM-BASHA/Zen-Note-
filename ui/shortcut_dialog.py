@@ -1,65 +1,51 @@
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
-    QPushButton, QLabel, QHeaderView, QMessageBox, QDialogButtonBox, QWidget
+    QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, 
+    QPushButton, QLabel, QHeaderView, QMessageBox, QWidget
 )
 from PyQt6.QtGui import QKeySequence, QKeyEvent
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from util.icon_factory import get_premium_icon
 import ui.styles as styles
+from ui.zen_dialog import ZenDialog
 
-class KeyCaptureDialog(QDialog):
+class KeyCaptureDialog(ZenDialog):
     """Small dialog to capture a key sequence."""
     def __init__(self, parent=None, action_name="", theme_mode="light"):
-        super().__init__(parent)
-        self.theme_mode = theme_mode
-        self.setWindowTitle("Press Keys")
-        self.setFixedSize(300, 150)
+        super().__init__(parent, title="Press Keys", theme_mode=theme_mode)
+        self.setFixedSize(300, 180)
         self.result_sequence = None
         
-        layout = QVBoxLayout(self)
-        
-        label = QLabel(f"Press combination for:<br><b>{action_name}</b>", self)
+        label = QLabel(f"Press combination for:<br><b>{action_name}</b>")
         label.setTextFormat(Qt.TextFormat.RichText)
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
+        self.content_layout.addWidget(label)
         
-        self.key_label = QLabel("...", self)
+        self.key_label = QLabel("...")
         self.key_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.addWidget(self.key_label)
         
-        note = QLabel("(Press Esc to Cancel, Backspace to Clear)", self)
+        note = QLabel("(Press Esc to Cancel, Backspace to Clear)")
         note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        note.setStyleSheet("font-size: 11px; opacity: 0.7;")
+        self.content_layout.addWidget(note)
         
-        self.apply_theme()
-        layout.addWidget(note)
+        self._apply_theme_local()
 
     def keyPressEvent(self, event: QKeyEvent):
         key = event.key()
         modifiers = event.modifiers()
         
-        # Ignore standalone modifiers
         if key in (Qt.Key.Key_Control, Qt.Key.Key_Shift, Qt.Key.Key_Alt, Qt.Key.Key_Meta):
             return
 
-        # Handle Cancel
         if key == Qt.Key.Key_Escape:
             self.reject()
             return
             
-        # Handle Clear
         if key == Qt.Key.Key_Backspace or key == Qt.Key.Key_Delete:
             self.result_sequence = ""
             self.accept()
             return
-
-        # Create Sequence
-        # QKeySequence from key event is tricky to match exactly string rep.
-        # simpler way: use the int combination
-        
-        # Construct integer key
-        qt_key = key
-        # In PyQt6, combining Modifiers with Key for QKeySequence is specific
-        # We need to construct the integer value that QKeySequence expects
         
         mod_val = 0
         if modifiers & Qt.KeyboardModifier.ControlModifier:
@@ -71,47 +57,31 @@ class KeyCaptureDialog(QDialog):
         if modifiers & Qt.KeyboardModifier.MetaModifier:
             mod_val |= Qt.Modifier.META.value
         
-        # Combine key int with modifier int
-        final_key = qt_key | mod_val
-            
+        final_key = key | mod_val
         seq = QKeySequence(final_key)
         self.result_sequence = seq.toString()
         self.key_label.setText(self.result_sequence)
-        
-        # Auto-accept after small delay or immediately?
-        # Immediate is better for UX
         self.accept()
 
-    def apply_theme(self):
+    def _apply_theme_local(self):
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
-        
-        accent = c['primary'] if self.theme_mode == 'light' else '#60a5fa'
-        self.key_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {accent};")
-        
-        # Note label (the second QLabel in layout)
-        # We can find it by children or just store it. I didn't store it in self.note
-        # But I can just set it if I stored it. I'll just assume standard color for now or update code to store it.
-        # Actually in the replacement chunk above I didn't store it. 
-        # I should have stored it. Let's assume global style covers the note label text color, 
-        # except I want it muted.
-        pass
+        accent = c['primary']
+        self.key_label.setStyleSheet(f"font-size: 20px; font-weight: 800; color: {accent}; margin-top: 10px;")
 
-class ShortcutDialog(QDialog):
-    saved = pyqtSignal() # Emitted when changes are saved
+class ShortcutDialog(ZenDialog):
+    saved = pyqtSignal()
 
     def __init__(self, shortcut_manager, parent=None):
-        super().__init__(parent)
+        # Auto-detect theme
+        theme_mode = "light"
+        if parent and hasattr(parent, 'theme_mode'):
+            theme_mode = parent.theme_mode
+        elif parent and hasattr(parent, 'data_manager'):
+            theme_mode = parent.data_manager.get_setting("theme_mode", "light")
+            
+        super().__init__(parent, title="Keyboard Shortcuts", theme_mode=theme_mode)
         self.mgr = shortcut_manager
-        self.mgr = shortcut_manager
-        self.setWindowTitle("Keyboard Shortcuts")
-        self.resize(500, 600)
-        
-        self.theme_mode = "light"
-        if hasattr(parent, 'data_manager'):
-            self.theme_mode = parent.data_manager.get_setting("theme_mode", "light")
-        
-        self.layout = QVBoxLayout(self)
+        self.resize(550, 650)
         
         # Table
         self.table = QTableWidget()
@@ -120,7 +90,7 @@ class ShortcutDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
-        self.layout.addWidget(self.table)
+        self.content_layout.addWidget(self.table)
         
         # Buttons
         btn_box = QHBoxLayout()
@@ -133,37 +103,28 @@ class ShortcutDialog(QDialog):
         
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.accept)
+        close_btn.setDefault(True)
         btn_box.addWidget(close_btn)
         
-        self.layout.addLayout(btn_box)
+        self.content_layout.addLayout(btn_box)
         
-        self.layout.addLayout(btn_box)
-        
-        self.apply_theme()
+        self.apply_theme_local()
         self.load_data()
 
     def load_data(self):
         shortcuts = self.mgr.get_all_shortcuts()
         self.table.setRowCount(len(shortcuts))
-        
-        # Sort by action ID or Description? Description is better.
         sorted_items = sorted(shortcuts.items(), key=lambda x: self.mgr.get_description(x[0]))
         
         for row, (action_id, key_seq) in enumerate(sorted_items):
             desc = self.mgr.get_description(action_id)
-            
-            # Col 0: Description
             self.table.setItem(row, 0, QTableWidgetItem(desc))
-            
-            # Col 1: Shortcut
             self.table.setItem(row, 1, QTableWidgetItem(key_seq))
             
-            # Col 2: Edit Button
             edit_btn = QPushButton()
             edit_btn.setIcon(get_premium_icon("pencil"))
             edit_btn.setIconSize(QSize(16, 16))
             edit_btn.setFixedSize(30, 25)
-            # Use partial or lambda with capture
             edit_btn.clicked.connect(lambda checked, aid=action_id, r=row: self.edit_shortcut(aid, r))
             
             cell_widget = QWidget()
@@ -179,7 +140,6 @@ class ShortcutDialog(QDialog):
         if capture.exec() == QDialog.DialogCode.Accepted:
             new_key = capture.result_sequence
             
-            # Collision Check
             existing = self.mgr.get_all_shortcuts()
             collision_id = None
             for aid, key in existing.items():
@@ -189,23 +149,19 @@ class ShortcutDialog(QDialog):
             
             if collision_id:
                 coll_desc = self.mgr.get_description(collision_id)
+                # Note: QMessageBox still uses OS style for now, but we've fixed the custom ones.
                 reply = QMessageBox.question(
                     self, "Collision Detected", 
                     f"The key '{new_key}' is already used by:\n<b>{coll_desc}</b>\n\nOverwrite it?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    # Clear the other one
                     self.mgr.set_shortcut(collision_id, "")
                 else:
                     return
 
-            # Proceed
             self.mgr.set_shortcut(action_id, new_key)
-            self.mgr._save() # Save immediately
-            
-            # Reload One Row? Or All?
-            # Easiest to reload all to reflect cleared collision
+            self.mgr._save()
             self.load_data()
             self.saved.emit()
 
@@ -219,31 +175,47 @@ class ShortcutDialog(QDialog):
             self.mgr.reset_all()
             self.load_data()
             self.saved.emit()
-            self.saved.emit()
 
-    def apply_theme(self):
+    def apply_theme_local(self):
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-        self.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
         
-        # Table Styling
         self.table.setStyleSheet(f"""
             QTableWidget {{
                 background-color: {c['background']};
                 color: {c['foreground']};
                 border: 1px solid {c['border']};
+                border-radius: 8px;
                 gridline-color: {c['border']};
+                padding: 5px;
             }}
             QHeaderView::section {{
                 background-color: {c['muted']};
                 color: {c['muted_foreground']};
                 border: none;
-                padding: 4px;
+                padding: 6px;
+                font-weight: bold;
             }}
             QTableWidget::item {{
-                padding: 4px;
+                padding: 6px;
+                border-bottom: 1px solid {c['border']};
             }}
             QTableWidget::item:selected {{
-                background-color: {c['accent']};
-                color: {c['accent_foreground']};
+                background-color: {c['active_item_bg']};
+                color: {c['primary']};
             }}
         """)
+        
+        btn_style = f"""
+            QPushButton {{
+                background-color: {c['secondary']};
+                color: {c['foreground']};
+                border: 1px solid {c['border']};
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: {c['accent']};
+            }}
+        """
+        self.setStyleSheet(self.styleSheet() + btn_style)

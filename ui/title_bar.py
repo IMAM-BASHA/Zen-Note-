@@ -21,6 +21,19 @@ class CustomTitleBar(QWidget):
         self.layout.setSpacing(8)
         self.setFixedHeight(40) # Standard sleek height
         
+        # App Logo & Title (REMOVED in Phase 47 refinement as it is redundant with Sidebar)
+        # self.logo_label = QLabel()
+        # self.logo_label.setPixmap(QIcon("logo_transparent.png").pixmap(18, 18))
+        # self.logo_label.setFixedSize(18, 18)
+        # self.logo_label.setScaledContents(True)
+        # self.layout.addWidget(self.logo_label)
+        
+        # self.title_label = QLabel("Zen Notes")
+        # self.title_label.setStyleSheet('font-weight: bold; font-family: "Inter", sans-serif;')
+        # self.layout.addWidget(self.title_label)
+        
+        # self.layout.addSpacing(10)
+        
         # Editor Toolbar Container (Left aligned)
         self.toolbar_container = QWidget()
         self.toolbar_layout = QHBoxLayout(self.toolbar_container)
@@ -79,7 +92,7 @@ class CustomTitleBar(QWidget):
                 btn.setToolTip(item.toolTip())
                 # btn.setText(item.text()) # Optional if icon exists
                 btn.clicked.connect(item.trigger)
-                btn.setFixedSize(28, 28)
+                btn.setFixedSize(26, 26) # Slightly more compact
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
                 
                 # Checkable Logic
@@ -148,7 +161,7 @@ class CustomTitleBar(QWidget):
                 background: transparent;
                 border: none;
                 border-radius: 4px;
-                padding: 4px;
+                padding: 2px;
             }}
             QPushButton:hover, QToolButton:hover {{
                 background: {hover_bg};

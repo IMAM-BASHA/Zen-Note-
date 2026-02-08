@@ -1,12 +1,13 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem, 
-    QPushButton, QMenu, QInputDialog, QMessageBox, QLabel, QFrame,
-    QLineEdit, QColorDialog, QTreeWidget, QTreeWidgetItem, QHeaderView,
-    QComboBox, QSizePolicy
+    QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, 
+    QLineEdit, QPushButton, QHBoxLayout, QMenu, QMessageBox, QFileDialog,
+    QFrame, QLabel, QComboBox, QSizePolicy, QColorDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QRect
+from PyQt6.QtGui import QFont, QColor, QAction, QPainter, QIcon
 from ui.color_delegate import ColorDelegate, COLOR_ROLE
 from util.icon_factory import get_premium_icon, get_combined_indicators
+from ui.zen_dialog import ZenInputDialog
 
 class Sidebar(QWidget):
     folderSelected = pyqtSignal(str) # Emits folder ID
@@ -24,6 +25,7 @@ class Sidebar(QWidget):
     createNotebook = pyqtSignal(str)
     deleteNotebook = pyqtSignal(str)
     lockToggled = pyqtSignal(bool)
+    panelToggleRequest = pyqtSignal() # Phase 46
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -56,18 +58,25 @@ class Sidebar(QWidget):
         brand_layout.setContentsMargins(0, 0, 0, 0)
         brand_layout.setSpacing(10)
         
-        # Logo (Sage/Amber Gradient background simulated by icon color for now)
-        self.logo_btn = QPushButton()
-        self.logo_btn.setIcon(get_premium_icon("leaf", color="#D97706")) # Amber 600 default
-        self.logo_btn.setFixedSize(32, 32)
-        self.logo_btn.setIconSize(QSize(20, 20))
-        self.logo_btn.setStyleSheet("border: none; background: transparent;") # Clean
-        brand_layout.addWidget(self.logo_btn)
+        # Logo Container
+        self.logo_container = QFrame()
+        self.logo_container.setObjectName("SidebarLogoContainer")
+        self.logo_container.setFixedSize(36, 36)
+        container_layout = QHBoxLayout(self.logo_container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.logo_label = QLabel()
+        self.logo_label.setPixmap(QIcon("logo_transparent.png").pixmap(24, 24))
+        self.logo_label.setFixedSize(24, 24)
+        self.logo_label.setScaledContents(True)
+        container_layout.addWidget(self.logo_label)
+        
+        brand_layout.addWidget(self.logo_container)
         
         # Title
         self.title_label = QLabel("Zen Notes")
         self.title_label.setObjectName("SidebarTitle")
-        # Font styling handled by SidebarHeader in styles.py, but explicit weight here helps
         brand_layout.addWidget(self.title_label)
         
         brand_layout.addStretch()
@@ -80,6 +89,15 @@ class Sidebar(QWidget):
         self.theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.theme_btn.clicked.connect(self.toggleTheme.emit)
         brand_layout.addWidget(self.theme_btn)
+
+        # Panel Toggle (Phase 46)
+        self.panel_btn = QPushButton()
+        self.panel_btn.setToolTip("Toggle Note Panel")
+        self.panel_btn.setFixedSize(32, 32)
+        self.panel_btn.setIconSize(QSize(20, 20))
+        self.panel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.panel_btn.clicked.connect(self.panelToggleRequest.emit)
+        brand_layout.addWidget(self.panel_btn)
         
         header_layout.addWidget(brand_row)
         
@@ -239,6 +257,12 @@ class Sidebar(QWidget):
         
         # Header Utility Icons
         self.theme_btn.setIcon(get_premium_icon("sun" if is_dark else "moon", color=icon_color))
+        self.panel_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
+        
+        # Action Bar Icons (if applicable)
+        if hasattr(self, '_action_refresh'):
+            self._action_refresh.setIcon(get_premium_icon("rotate_cw", color=icon_color))
+        
         self.highlight_preview_btn.setIcon(get_premium_icon("bookmark", color=icon_color))
         self.preview_btn.setIcon(get_premium_icon("eye", color=icon_color))
         self.wrap_btn.setIcon(get_premium_icon("wrap", color=icon_color))
@@ -296,30 +320,45 @@ class Sidebar(QWidget):
         
     def refresh_list(self):
         search_text = self.search_bar.text().lower()
-        selected_nb_id = self.nb_selector.currentData()
+        # self.list_widget.clear() # Cleared at start of refresh
+
+        # Preservation of expanded states could be done here, but strictly clearing for now.
         self.list_widget.clear()
 
-        # 1. Get Folders for Selected Notebook
+        # --- DATA PREPARATION ---
+        # 1. Get All Folders for current Notebook
+        selected_nb_id = self.nb_selector.currentData()
         nb = next((n for n in self.all_notebooks if n.id == selected_nb_id), None)
         nb_folder_ids = nb.folder_ids if nb else []
         
-        # 2. Separate into Active and Archived
         active_folders = []
         archived_folders = []
         
+        # Special Folder: "Ideas & Sparks"
+        ideas_folder = None
+        
         for f in self.all_folders:
+            # Check if this is the special "Ideas & Sparks" folder (by name for now)
+            if f.name == "Ideas & Sparks" and f.id in nb_folder_ids:
+                ideas_folder = f
+                # Don't add to standard list if we want it ONLY in favorites
+                # But user might want it in both? Let's put it in Favorites ONLY to avoid dupes.
+                continue
+
             if f.id in nb_folder_ids:
                 if getattr(f, 'is_archived', False):
                     archived_folders.append(f)
                 else:
                     active_folders.append(f)
                     
-        # 3. Filter by Search
+        # Filter (Search)
         if search_text:
             active_folders = [f for f in active_folders if search_text in f.name.lower()]
             archived_folders = [f for f in archived_folders if search_text in f.name.lower()]
+            if ideas_folder and search_text not in ideas_folder.name.lower():
+                ideas_folder = None
         
-        # 4. Sort
+        # Sort
         def sort_key(f):
             pinned_rank = not f.is_pinned
             prio = f.priority if f.priority > 0 else 999
@@ -329,37 +368,116 @@ class Sidebar(QWidget):
         active_folders.sort(key=sort_key)
         archived_folders.sort(key=sort_key)
 
-        # 5. Populate Active Folders (Top Level)
+        # --- UI BUILDING ---
+        
+        # 1. FAVORITES SECTION
+        self._add_header_item("FAVORITES")
+        
+        # 1.1 Favorites (Pinned Folders)
+        # Include Ideas & Sparks if found
+        fav_folders = [f for f in active_folders if f.is_pinned]
+        if ideas_folder:
+            fav_folders.insert(0, ideas_folder)
+            
+        for f in fav_folders:
+            item = self._create_folder_item(f)
+            # Override icon for Favorites section to generic heart or keep folder?
+            # Let's keep consistent folder icon but maybe force Heart icon if it's Ideas & Sparks
+            if f.name == "Ideas & Sparks":
+                 item.setIcon(0, get_premium_icon("heart", color="#F472B6"))
+            
+            self.list_widget.addTopLevelItem(item)
+
+        # 1.2 Recent
+        recent_item = QTreeWidgetItem(["Recent"])
+        recent_item.setIcon(0, get_premium_icon("clock", color="#60A5FA")) # Blue clock
+        recent_item.setData(0, Qt.ItemDataRole.UserRole, "RECENT_ROOT")
+        self.list_widget.addTopLevelItem(recent_item)
+
+        # Spacer
+        self._add_spacer_item()
+
+        # 2. FOLDERS SECTION
+        self._add_header_item("FOLDERS")
+        
         for i, folder in enumerate(active_folders, 1):
              f_item = self._create_folder_item(folder, index=i)
              self.list_widget.addTopLevelItem(f_item)
+             
+        # Spacer
+        self._add_spacer_item()
 
-        # 6. Populate Archived Section (Collapsible Group)
+        # 3. SYSTEM SECTION
+        self._add_header_item("SYSTEM")
+        
+        # 3.1 Trash
+        trash_item = QTreeWidgetItem(["Trash"])
+        trash_item.setIcon(0, get_premium_icon("trash_2", color="#9CA3AF")) # Gray trash
+        trash_item.setData(0, Qt.ItemDataRole.UserRole, "TRASH_ROOT")
+        self.list_widget.addTopLevelItem(trash_item)
+        
+        # 3.2 Archived (Collapsible or just item)
+        # Replicating old logic but under System
         if archived_folders:
-             icon_color = "white" if self.theme_mode == "dark" else None
-             arch_item = QTreeWidgetItem([f" Archived ({len(archived_folders)})"])
-             arch_item.setIcon(0, get_premium_icon("folder_archived", color=icon_color))
+             arch_item = QTreeWidgetItem([f"Archived ({len(archived_folders)})"])
+             arch_item.setIcon(0, get_premium_icon("archive", color="#F59E0B")) # Amber archive
              arch_item.setData(0, Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
              
              # Styling
              font = arch_item.font(0)
-             font.setBold(True)
+             # font.setBold(True)
              arch_item.setFont(0, font)
 
              self.list_widget.addTopLevelItem(arch_item)
              
-             # Add children
              for i, folder in enumerate(archived_folders, 1):
                  f_item = self._create_folder_item(folder, index=i)
-                 # Optional: Visual cue for archived items (e.g. grayed out text?)
-                 # For now, just standard items.
+                 # Muted style for archived children?
+                 f_item.setForeground(0, QColor("#A8A29E")) # Zinc 400
                  arch_item.addChild(f_item)
              
-             # Default to Collapsed (unless searching)
              if search_text:
                  arch_item.setExpanded(True)
              else:
                  arch_item.setExpanded(False)
+        else:
+             # Show empty Archived item?
+             arch_item = QTreeWidgetItem(["Archived"])
+             arch_item.setIcon(0, get_premium_icon("archive", color="#52525B")) # Darker
+             arch_item.setData(0, Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
+             # Disable or show empty?
+             # self.list_widget.addTopLevelItem(arch_item) 
+             pass
+
+    def _add_header_item(self, text):
+        item = QTreeWidgetItem([text])
+        item.setFlags(Qt.ItemFlag.NoItemFlags) # Non-selectable
+        
+        # Styling (Small Caps, Muted)
+        font = item.font(0)
+        font.setPointSize(9)
+        font.setBold(True)
+        font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.0)
+        item.setFont(0, font)
+        
+        # Color (handled by delegate or here)
+        # Need to detect theme here or use a generic muted color
+        is_dark = self.theme_mode == "dark"
+        color = QColor("#52525B") if not is_dark else QColor("#A1A1AA") # Zinc 600 vs 400
+        item.setForeground(0, color)
+        # Add some padding visually? standard item doesn't support easy padding without delegate
+        
+        self.list_widget.addTopLevelItem(item)
+    
+    def _add_spacer_item(self):
+        # A dummy item for spacing
+        item = QTreeWidgetItem([""])
+        item.setFlags(Qt.ItemFlag.NoItemFlags)
+        # item.setSizeHint(0, QSize(0, 10)) # Requires SizeHint implementation in delegate or here
+        # Quick hack: Empty item uses default height (~24px). 
+        # Ideally we'd set a custom delegate to render separators. 
+        # For now, just an empty non-selectable item acts as a spacer.
+        self.list_widget.addTopLevelItem(item)
 
     def _create_folder_item(self, folder, index=None):
         prefix = ""
@@ -420,19 +538,19 @@ class Sidebar(QWidget):
             QMessageBox.warning(self, "No Notebook", "Please create or select a notebook first.")
             return
             
-        name, ok = QInputDialog.getText(self, "New Folder", "Folder Name:")
+        name, ok = ZenInputDialog.getText(self, "New Folder", "Folder Name:")
         if ok and name:
             self.createFolder.emit(name, notebook_id)
 
     def prompt_new_notebook(self):
-        name, ok = QInputDialog.getText(self, "New Notebook", "Main Notebook Name:")
+        name, ok = ZenInputDialog.getText(self, "New Notebook", "Main Notebook Name:")
         if ok and name:
             self.createNotebook.emit(name)
 
     def prompt_rename_notebook(self, nb_id, current_name):
         # Strip numbering from name
         clean_name = current_name.split(". ", 1)[-1] if ". " in current_name else current_name
-        name, ok = QInputDialog.getText(self, "Rename Notebook", "Notebook Name:", text=clean_name)
+        name, ok = ZenInputDialog.getText(self, "Rename Notebook", "Notebook Name:", text=clean_name)
         if ok and name:
             # Simple handling: update in-memory and sidebar will refresh via MainWindow
             nb = next((n for n in self.all_notebooks if n.id == nb_id), None)
@@ -450,7 +568,7 @@ class Sidebar(QWidget):
         name_to_type = nb.name.strip()
         msg = f"This will PERMANENTLY delete the notebook <b>'{name_to_type}'</b>.<br><br>Please type the name of the notebook exactly to confirm:"
         
-        typed_name, ok = QInputDialog.getText(self, "Confirm Critical Deletion", msg)
+        typed_name, ok = ZenInputDialog.getText(self, "Confirm Critical Deletion", msg)
         
         if ok:
             if typed_name.strip() == name_to_type:
@@ -459,7 +577,7 @@ class Sidebar(QWidget):
                 QMessageBox.warning(self, "Incorrect Name", "The name entered did not match. Deletion cancelled.")
 
     def prompt_rename_folder(self, folder_id, current_name):
-        name, ok = QInputDialog.getText(self, "Rename Folder", "Folder Name:", text=current_name)
+        name, ok = ZenInputDialog.getText(self, "Rename Folder", "Folder Name:", text=current_name)
         if ok and name:
             self.renameFolder.emit(folder_id, name)
 
@@ -505,6 +623,12 @@ class Sidebar(QWidget):
 
         # Reproduce existing folder options
         rename_act = menu.addAction(get_premium_icon("edit"), "Rename Folder")
+        # Reproduce existing folder options
+        rename_act = menu.addAction(get_premium_icon("edit"), "Rename Folder")
+        
+        set_cover_act = menu.addAction(get_premium_icon("image"), "Set Cover Image...")
+        edit_desc_act = menu.addAction(get_premium_icon("align_left"), "Edit Description...")
+
         color_act = menu.addAction(get_premium_icon("palette"), "Change Color")
         
         # Priority Submenu
@@ -514,11 +638,13 @@ class Sidebar(QWidget):
         p2 = prio_menu.addAction("❷ Medium")
         p3 = prio_menu.addAction("❸ Low")
 
-        pin_text = "Unpin Folder" if folder.is_pinned else "Pin Folder"
-        pin_act = menu.addAction(get_premium_icon("pin"), pin_text)
+        pin_text = "Remove from Favorites" if folder.is_pinned else "Add to Favorites"
+        pin_icon = "heart_off" if folder.is_pinned else "heart"
+        # Fallback if heart_off not exists, use heart
+        pin_act = menu.addAction(get_premium_icon("heart"), pin_text)
         
         arch_text = "Unarchive Folder" if folder.is_archived else "Archive Folder"
-        arch_act = menu.addAction(get_premium_icon("folder_archived"), arch_text)
+        arch_act = menu.addAction(get_premium_icon("folder_archived"), arch_act_text := arch_text) # Fix for name overlap
         
         menu.addSeparator()
         export_act = menu.addAction(get_premium_icon("export"), "Export Folder to PDF")
@@ -529,6 +655,12 @@ class Sidebar(QWidget):
         action = menu.exec(self.list_widget.mapToGlobal(pos))
         if action == rename_act:
             self.prompt_rename_folder(folder_id, folder.name)
+        elif action == set_cover_act:
+            path, _ = QFileDialog.getOpenFileName(self, "Select Cover Image", "", "Images (*.png *.jpg *.jpeg *.webp)")
+            if path: self.updateFolder.emit(folder_id, {"cover_image": path})
+        elif action == edit_desc_act:
+            desc, ok = ZenInputDialog.getText(self, "Edit Description", "Description:", text=getattr(folder, 'description', "") or "")
+            if ok: self.updateFolder.emit(folder_id, {"description": desc})
         elif action == color_act:
             self.prompt_change_color(folder_id)
         elif action == pin_act:

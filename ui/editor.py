@@ -12,6 +12,8 @@ from util.icon_factory import get_premium_icon
 import ui.styles as styles
 from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent
 import time
+from ui.markdown_highlighter import MarkdownHighlighter
+
 # Monkey Patch for libraries using deprecated time.clock (Python 3.8+)
 if not hasattr(time, 'clock'):
     time.clock = time.perf_counter
@@ -241,6 +243,51 @@ class ImageProcessingTask(QRunnable):
 class MarkdownTextEdit(QTextEdit):
     """Custom QTextEdit with Markdown paste support"""
     
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptRichText(True)
+        self.setMouseTracking(True)
+        # Initialize the live markdown highlighter
+        self.highlighter = MarkdownHighlighter(self.document(), theme='light')
+    
+    def keyPressEvent(self, event):
+        """Handle smart editing features like list continuation."""
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            cursor = self.textCursor()
+            block = cursor.block()
+            text = block.text().strip()
+            
+            # Smart List Continuation
+            # Bullets: - or *
+            if text.startswith('- ') or text.startswith('* '):
+                if text == '- ' or text == '* ':
+                    # Empty list item -> clear it (standard behavior)
+                    cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+                    cursor.removeSelectedText()
+                    cursor.insertBlock()
+                else:
+                    prefix = text[:2]
+                    super().keyPressEvent(event)
+                    self.insertPlainText(prefix)
+                return
+            
+            # Numbered Lists: 1. 2. etc.
+            import re
+            match = re.match(r'^(\d+)\.\s', text)
+            if match:
+                if text == f"{match.group(1)}. ":
+                    # Empty list item -> clear it
+                    cursor.select(QTextCursor.SelectionType.BlockUnderCursor)
+                    cursor.removeSelectedText()
+                    cursor.insertBlock()
+                else:
+                    next_num = int(match.group(1)) + 1
+                    super().keyPressEvent(event)
+                    self.insertPlainText(f"{next_num}. ")
+                return
+
+        super().keyPressEvent(event)
+
     def _fix_paste_color(self, start_pos):
         """Ensure pasted text in Level Boxes respects adaptive contrast."""
         end_pos = self.textCursor().position()
@@ -410,7 +457,7 @@ class MarkdownTextEdit(QTextEdit):
                                 return (
                                     f'<table class="code-block-table" border="0" style="margin-top: 10px; margin-bottom: 10px; width: 100%; border-collapse: separate; border-radius: 6px; border: 1px solid gray; page-break-inside: avoid; background-color: #2F3437;">'
                                     f'<tr><td class="code-block-cell" style="padding: 15px; background-color: #2F3437; color: #F8F8F2;">'
-                                    f'<pre class="code-block-pre highlight" style="font-family: Consolas, Monaco, \'Courier New\', monospace; font-size: 13px; margin: 0; white-space: pre-wrap;">'
+                                    f'<pre class="code-block-pre highlight" style="font-family: \'IBM Plex Mono\', Consolas, Monaco, \'Courier New\', monospace; font-size: 13px; margin: 0; white-space: pre-wrap;">'
                                     f'{highlight}'
                                     f'</pre></td></tr></table>'
                                 )
@@ -436,7 +483,8 @@ class MarkdownTextEdit(QTextEdit):
                     html = md.render(text)
                     
                     # Post-process for consistency if highlighter wasn't triggered for inline code
-                    html = html.replace('<code>', '<code style="background: rgba(135,131,120,0.15); color: #EB5757; padding: 2px 5px; border-radius: 3px; font-family: Consolas, monospace;">')
+                    # IBM Plex Mono applied to inline code
+                    html = html.replace('<code>', '<code style="background: rgba(135,131,120,0.15); color: #EB5757; padding: 2px 5px; border-radius: 3px; font-family: \'IBM Plex Mono\', Consolas, monospace;">')
                     
                     # Table Styling
                     html = html.replace('<table>', '<table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; margin: 10px 0;">')
@@ -982,10 +1030,12 @@ class TextEditor(QWidget):
         self.action_indent = QAction(get_premium_icon("indent"), "Indent", self)
         self.action_indent.setShortcut("Tab")
         self.action_indent.triggered.connect(self.text_indent)
+        self.addAction(self.action_indent) # Ensure shortcut works without toolbar
         
         self.action_outdent = QAction(get_premium_icon("outdent"), "Outdent", self)
         self.action_outdent.setShortcut("Shift+Tab")
         self.action_outdent.triggered.connect(self.text_outdent)
+        self.addAction(self.action_outdent) # Ensure shortcut works without toolbar
         
         self.action_bullet = QAction(get_premium_icon("list"), "Bullet List", self)
         self.action_bullet.setCheckable(True)
@@ -1088,49 +1138,53 @@ class TextEditor(QWidget):
     def get_toolbar_actions(self):
         """Returns ordered list of widgets/actions for the Main Window Title Bar."""
         return [
+            # Group 1: Typography
             self.combo_font,
             self.spin_size,
-            self.action_font_inc,
-            self.action_font_dec,
             "SEPARATOR",
+            
+            # Group 2: Basic Styling
             self.action_bold,
             self.action_italic,
             self.action_underline,
             self.action_strike,
+            "SEPARATOR",
+            
+            # Group 3: Script & Color
             self.action_super,
             self.action_sub,
-            "SEPARATOR",
             self.action_highlight,
             self.btn_custom_hl,
             self.action_color,
             "SEPARATOR",
+            
+            # Group 4: Structure
             self.combo_header,
-            "SEPARATOR",
             self.action_bullet,
             self.action_numbering,
             self.action_check,
             "SEPARATOR",
-            self.action_indent,
-            self.action_outdent,
-            "SEPARATOR",
-            self.lvl1_btn,
-            self.lvl2_btn,
+            
+            # Group 5: Indentation & Insert
             self.action_code_block,
             self.action_note_box,
             self.btn_hr,
             "SEPARATOR",
+            
+            # Group 6: Advanced Tools
             self.action_draw,
             self.action_import_wb,
             self.action_link, 
             "SEPARATOR",
+            
+            # Group 7: Navigation & Meta
             self.action_scroll_top,
             self.action_scroll_bottom,
-            "SEPARATOR",
-            self.action_clear,
-            self.action_shortcuts,
             self.toc_action,
             "SEPARATOR",
-            self.action_export
+            
+            # Group 8: System
+            self.action_shortcuts
         ]
 
     def request_link_dialog(self):
@@ -1152,6 +1206,9 @@ class TextEditor(QWidget):
         # Update FindBar Style
         self.find_bar.set_theme_mode(mode)
         
+        if hasattr(self.editor, 'highlighter'):
+            self.editor.highlighter.update_theme(mode)
+            
         # Update TOC Style
         self._update_toc_style()
         
@@ -3208,21 +3265,32 @@ class TextEditor(QWidget):
         self._process_and_insert_image(data, draw_border=True)
 
     def insert_note_box(self):
-        """Insert a styled note box (Callout)."""
-        # Using HTML Table for "box" effect
-        # Width="100%" on table tag is crucial for QTextEdit to render full width
-        # FIX: Removed <thead> to prevent header repetition on new pages in PDF export
-        html = """
+        """Insert a styled premium note box (Zen Callout)."""
+        is_dark = getattr(self, 'theme_mode', 'light') == 'dark'
+        
+        # Premium Zen Palette
+        accent_color = "#6366f1" if is_dark else "#7B9E87" # Indigo (Dark) / Sage Green (Light)
+        bg_color = "#1a1a2e" if is_dark else "#fcfcfd"
+        header_bg = "#252545" if is_dark else "#f1f5f9"
+        text_color = "#d1d5db" if is_dark else "#334155"
+        border_outline = "#2d2d4d" if is_dark else "#e2e8f0"
+        
+        # New Modern Structure: Minimalist card with 4-side border and left accent
+        html = f"""
         <br>
-        <table width="100%" border="1" cellpadding="10" cellspacing="0" style="border-collapse: collapse; border: 2px solid #007ACC; background-color: #f9f9f9;">
-            <tr>
-                <td style="background-color: #e3f2fd; font-weight: bold; color: #007ACC; border-bottom: 2px solid #007ACC;">Note: ✒️</td>
-                <td width="30" style="background-color: #e3f2fd; border-bottom: 2px solid #007ACC; text-align: right; vertical-align: middle;">
-                    <a href="action://delete_level" style="text-decoration: none; color: #007ACC; font-weight: bold; font-size: 14px;">✕</a>
+        <table width="100%" cellpadding="12" cellspacing="0" style="border: 1px solid {border_outline}; border-left: 5px solid {accent_color}; background-color: {bg_color}; border-collapse: collapse;">
+            <tr style="background-color: {header_bg};">
+                <td style="font-family: 'Segoe UI', 'Outfit', sans-serif; font-weight: bold; color: {accent_color}; font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid {accent_color if not is_dark else border_outline};">
+                    ✨ NOTE
+                </td>
+                <td width="30" style="text-align: right; vertical-align: middle; border-bottom: 1px solid {accent_color if not is_dark else border_outline};">
+                    <a href="action://delete_level" style="text-decoration: none; color: #94a3b8; font-size: 16px; font-weight: normal;">✕</a>
                 </td>
             </tr>
             <tr>
-                <td colspan="2"><br></td>
+                <td colspan="2" style="color: {text_color}; font-family: 'Segoe UI', 'Inter', sans-serif; font-size: 13px; line-height: 1.6;">
+                    <br>
+                </td>
             </tr>
         </table>
         <br>
@@ -3911,6 +3979,41 @@ class TextEditor(QWidget):
             print(f"Error getting HTML: {e}")
             return self.editor.toHtml()  # Fallback
 
+        # Refresh TOC strictly after loading to ensure visibility
+        self.refresh_toc()
+
+    def _get_typography_overlay(self):
+        """Returns CSS to enforce the premium typography rules."""
+        # Font Stacks
+        # Playfair Display for headings (Sophisticated)
+        # Inter for body (Efficient)
+        # IBM Plex Mono for technical bits (Precision)
+        return """
+        <style>
+            body { 
+                font-family: 'Inter', sans-serif; 
+                line-height: 1.7; 
+                letter-spacing: -0.01em;
+            }
+            h1, h2, h3, h4, h5, h6 { 
+                font-family: 'Playfair Display', serif; 
+                font-weight: 700; 
+                letter-spacing: -0.02em;
+                margin-top: 1.5em;
+                margin-bottom: 0.5em;
+            }
+            code, pre { 
+                font-family: 'IBM Plex Mono', Consolas, monospace; 
+                font-size: 0.95em;
+            }
+            .level-box-title {
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+        </style>
+        """
+
     def set_html(self, html, whiteboard_images=None):
         """Set HTML content and reload associated image resources."""
         self.whiteboard_images = whiteboard_images if whiteboard_images else {}
@@ -3918,6 +4021,10 @@ class TextEditor(QWidget):
         self._image_dimensions_cache.clear()
         
         doc = self.editor.document()
+        
+        # Inject Typography Rules
+        if html and '<style>' not in html:
+            html = self._get_typography_overlay() + html
         
         # Clear existing resources first
         self.editor.clear()
