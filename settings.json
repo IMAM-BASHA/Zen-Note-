@@ -11,7 +11,8 @@
                 "hello wrld",
                 "nes",
                 "yes_6",
-                "sd"
+                "sd",
+                "Trash"
             ],
             "is_expanded": true
         },
@@ -54,7 +55,15 @@
             "last_note_id": "644dcb26-d62f-4bb7-a38e-0f6ad4c56686"
         },
         "nes": {
-            "last_note_id": "26ef4795-ae8d-4428-ab2b-5f50ce8c4687"
+            "last_note_id": "be9065d6-b16e-4c80-b0cf-2be2721b44c4",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list"
         },
         "hes": {
             "last_note_id": "2f554847-d7eb-4d7d-8b7f-06b094fff5eb"
@@ -542,7 +551,7 @@
             "is_locked": false
         },
         "yelllow this fix it": {
-            "last_note_id": "4c43f8a0-e6ca-40ce-82b5-7fc957b88e0f",
+            "last_note_id": "76f97ca4-685b-4b90-9861-8a2a2b62e5fe",
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
@@ -550,10 +559,10 @@
             "is_locked": false,
             "cover_image": null,
             "description": null,
-            "view_mode": "list"
+            "view_mode": "grid"
         },
         "new wroking": {
-            "last_note_id": "1d5e7112-c4c7-409b-9d59-ca2133df7d95",
+            "last_note_id": "b70a7a61-fae2-48bf-a25b-95ffc4cd41e5",
             "is_pinned": true,
             "priority": 0,
             "is_archived": false,
@@ -572,7 +581,20 @@
             "is_locked": false,
             "cover_image": null,
             "description": null,
-            "view_mode": "grid"
+            "view_mode": "list"
+        },
+        "TRASH_ROOT": {
+            "last_note_id": "5c6e6619-e4fc-4098-be11-5dd6268edb14"
+        },
+        "Trash": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list"
         }
     },
     "last_selected_folder_id": "hello wrld",
@@ -618,7 +640,7 @@
         "1": "#0055ff",
         "2": "#ffaa00"
     },
-    "level1_color": "#00ff7f",
+    "level1_color": "#ff5500",
     "level2_color": "#00007f",
     "show_toc": "true",
     "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots1",

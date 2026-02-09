@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QStyledItemDelegate, QStyle, QListWidget
-from PyQt6.QtGui import QColor, QPalette, QBrush, QPainter, QIcon
+from PyQt6.QtGui import QColor, QPalette, QBrush, QPainter, QIcon, QPen
 from PyQt6.QtCore import Qt, QRect, QSize
+import ui.styles as styles
 
 # Define a custom role for the color
 COLOR_ROLE = Qt.ItemDataRole.UserRole + 10
@@ -8,15 +9,19 @@ COLOR_ROLE = Qt.ItemDataRole.UserRole + 10
 class ColorDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.theme_mode = "light"
+
+    def set_theme_mode(self, mode):
+        self.theme_mode = mode
 
     def sizeHint(self, option, index):
         # Retrieve custom color to verify if we handle it
-        color_data = index.data(COLOR_ROLE)
-        if not color_data:
-            return super().sizeHint(option, index)
+        # Strip whitespace to prevent invisible newlines from affecting size
+        text = index.data(Qt.ItemDataRole.DisplayRole)
+        if text: text = text.strip()
             
         # Standard size calculation with wrap support
-        text = index.data(Qt.ItemDataRole.DisplayRole)
+
         icon = index.data(Qt.ItemDataRole.DecorationRole)
         
         # Determine available width for text
@@ -31,14 +36,16 @@ class ColorDelegate(QStyledItemDelegate):
             
         if width < 50: width = 200 # Fallback
             
+        font = option.font
         font_metrics = option.fontMetrics
         # Calculate bounding rect with WordWrap
         rect = font_metrics.boundingRect(0, 0, width, 9999, 
                                         Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextWordWrap, 
                                         text)
         
-        # Add padding (12px top + 12px bottom + small buffer)
-        height = max(32, rect.height() + 16)
+        # Add padding (Reduced to 8px top/bottom for compact card look)
+        # Consistent height for all items
+        height = max(36, rect.height() + 12) 
         return QSize(width, height)
 
     def paint(self, painter, option, index):
@@ -60,62 +67,61 @@ class ColorDelegate(QStyledItemDelegate):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
         
-        # 1. Draw Background
+        # 1. Draw Background (Card Style for ALL items)
+        
+        # Default Card Background from Theme
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        
+        # Determine background color
         if color and color.isValid():
-            # ... (Logic for custom colors remains same) ...
-            if is_selected:
-                bg_color = color
-                # Fix Highlighting: Make color slightly brighter/darker to show selection? 
-                # Or just keep it flat but ensure text contrast.
-                # Actually, if custom color is set, we use it as background.
-                # To show selection, we might add a border or darken it?
-                # For now, simplistic approach:
-                luminance = (0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) / 255
-                text_color = Qt.GlobalColor.white if luminance < 0.5 else Qt.GlobalColor.black
-            else:
-                bg_color = QColor(color)
-                bg_color.setAlphaF(0.25)
-                text_color = option.palette.text().color()
-            
-            painter.setBrush(QBrush(bg_color))
-            painter.drawRoundedRect(bg_rect, 4, 4)
+            bg_color = color
+            # If colored, use luminance for text
+            luminance = (0.299 * color.red() + 0.587 * color.green() + 0.114 * color.blue()) / 255
+            text_color = Qt.GlobalColor.white if luminance < 0.5 else Qt.GlobalColor.black
         else:
-            # Standard Item (No Custom Color)
-            if is_selected:
-                # Use the palette's highlight set by Stylesheet
-                bg_brush = option.palette.highlight()
-                
-                # Draw Selection Background
-                painter.setBrush(bg_brush)
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.drawRoundedRect(bg_rect, 4, 4)
-                
-                # Use Palette HighlightedText color (matches Zen Theme)
-                text_color = option.palette.highlightedText().color()
+            # Uncolored = Default Card Style
+            # Use 'card' color from theme (usually white or dark grey)
+            bg_color = QColor(c.get('card', '#FFFFFF'))
+            # Use theme foreground for text
+            text_color = QColor(c.get('foreground', '#000000'))
 
-                # Draw subtle border if needed (from style or manually)
-                # For Zen, we have a border in CSS, but delegate might hide it if we don't draw it.
-                # Actually, QListWidget selection border is handled by CSS if we don't clear it.
-                # But here we are painting.
-                # Let's draw a border using the PRIMARY color found in palette link or hardcoded logic?
-                # Stylesheet sets: border: 1px solid {c['primary']}
-                # We can try to access it via option.palette.link().color() if we mapped it, 
-                # but standard palette doesn't map 'primary' reliably.
-                # We'll trust the background fill is sufficient or use a generic border.
-                
-            else:
-                text_color = option.palette.text().color()
+        # Handle Selection Overlay/Border
+        if is_selected:
+             # Use Primary color for border
+             primary_color = c['primary']
+             painter.setPen(QPen(QColor(primary_color), 2))
+             
+             # If uncolored, maybe change background slightly?
+             if not (color and color.isValid()):
+                 bg_color = QColor(c.get('selection_bg', c['secondary']))
+                 # Text color adjustment for selection?
+                 # Zen theme typically uses Primary for selected text, but here we want contrast.
+                 # Let's keep text_color as is (Foreground) or Primary?
+                 # If bg is active_item_bg (light tint), foreground is fine.
+        else:
+             painter.setPen(Qt.PenStyle.NoPen)
+
+        painter.setBrush(QBrush(bg_color))
+        
+        # Draw Rounded Rect (Adjusted for margin)
+        # We want a card look, so let's add a small margin between items visually if needed, 
+        # or just fill the styled rect. 
+        # The QListWidget stylesheet sets margin-bottom, so option.rect might include that?
+        # Typically option.rect is the allocation.
+        # Let's draw slight indent.
+        
+        draw_rect = bg_rect
+        if is_selected:
+             draw_rect = bg_rect.adjusted(1, 1, -1, -1) # Inset for border
+        
+        painter.drawRoundedRect(draw_rect, 6, 6) # 6px radius for cards
 
         painter.setPen(text_color)
         
         # Font Styling (Title Hierarchy)
         font = option.font
-        # Fix: handle pointSize() returning -1 (if size is in pixels)
-        ps = font.pointSize()
-        if ps > 0:
-            font.setPointSize(ps + 1) 
-        elif font.pixelSize() > 0:
-            font.setPixelSize(font.pixelSize() + 1)
+        # REMOVED: Manually increasing font size caused jitter/jumps.
+        # We rely on the font set by the stylesheet now.
         
         if is_selected:
             font.setBold(True)
@@ -137,6 +143,7 @@ class ColorDelegate(QStyledItemDelegate):
         # 3. Draw Text with Word Wrap
         text_rect = QRect(text_x, rect.top() + 4, rect.right() - text_x - 6, rect.height() - 8)
         text = index.data(Qt.ItemDataRole.DisplayRole)
+        if text: text = text.strip()
         painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap, text)
                  
         painter.restore()

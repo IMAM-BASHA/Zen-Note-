@@ -66,6 +66,68 @@ ZEN_THEME = {
         "scrollbar_handle": "#44403C",
         "elevated": "#292524",
         "shadow": "rgba(0, 0, 0, 0.5)"
+    },
+    "dark_blue": {
+        "background": "#0F172A",      # Slate 900 (Main BG)
+        "foreground": "#F1F5F9",      # Slate 100 (Text)
+        "card": "#1E293B",            # Slate 800 (Card/Input)
+        "card_foreground": "#F1F5F9",
+        "popover": "#1E293B",
+        "popover_foreground": "#F1F5F9",
+        "primary": "#38BDF8",         # Sky 400 (Branding/Accents)
+        "primary_foreground": "#0F172A",
+        "secondary": "#334155",       # Slate 700
+        "secondary_foreground": "#F1F5F9",
+        "muted": "#1E293B",
+        "muted_foreground": "#94A3B8",# Slate 400
+        "accent": "rgba(56, 189, 248, 0.15)", # Sky Dim
+        "accent_foreground": "#38BDF8",
+        "destructive": "#EF4444",     # Red 500
+        "destructive_foreground": "#FFFFFF",
+        "border": "#334155",          # Slate 700
+        "input": "#1E293B",
+        "ring": "#38BDF8",
+        "sidebar_bg": "#020617",      # Slate 950 (Sidebar)
+        "sidebar_fg": "#F1F5F9",
+        "sidebar_border": "#1E293B",
+        "active_item_bg": "rgba(14, 165, 233, 0.2)", # Sky 500 Dim
+        "selection_bg": "#0369A1",    # Sky 700
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#0F172A",
+        "scrollbar_handle": "#334155",
+        "elevated": "#1E293B",
+        "shadow": "rgba(0, 0, 0, 0.5)"
+    },
+    "rose": {
+        "background": "#FFFAF0",      # Floral White / Cream (Main BG)
+        "foreground": "#4A044E",      # Deep Purple/Brown text
+        "card": "#FFFFFF",            # White
+        "card_foreground": "#4A044E",
+        "popover": "#FFF1F2",
+        "popover_foreground": "#881337",
+        "primary": "#BE185D",         # Pink 700 (Strong Rose)
+        "primary_foreground": "#FFFFFF",
+        "secondary": "#FCE7F3",       # Pink 100
+        "secondary_foreground": "#831843",
+        "muted": "#FFF1F2",
+        "muted_foreground": "#9D174D",# Pink 800
+        "accent": "rgba(190, 24, 93, 0.1)", # Rose Dim
+        "accent_foreground": "#BE185D",
+        "destructive": "#9F1239",     # Rose 800
+        "destructive_foreground": "#FFFFFF",
+        "border": "#FBCFE8",          # Pink 200
+        "input": "#FFFFFF",
+        "ring": "#BE185D",
+        "sidebar_bg": "#FDF2F8",      # Pink 50 (Sidebar - distinct from main)
+        "sidebar_fg": "#831843",      # Pink 900
+        "sidebar_border": "#FBCFE8",  # Pink 200
+        "active_item_bg": "rgba(190, 24, 93, 0.15)",
+        "selection_bg": "#DB2777",    # Pink 600
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#FFF1F2",
+        "scrollbar_handle": "#FECDD3",
+        "elevated": "#FFFFFF",
+        "shadow": "rgba(0, 0, 0, 0.05)"
     }
 }
 

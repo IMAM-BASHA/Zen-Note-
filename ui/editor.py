@@ -772,9 +772,6 @@ class TextEditor(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
-        # Toolbar Actions (Initialized here, but not added to a local toolbar)
-        self._init_actions()
-        
         # Find Bar (Floating Overlay - Not in Layout)
         self.find_bar = FindBar(self)
         self.find_bar.search_next.connect(lambda t: self.find_text(t, forward=True))
@@ -803,6 +800,11 @@ class TextEditor(QWidget):
             Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
         self.layout.addWidget(self.editor)
+
+        # Toolbar Actions (Initialized here, but not added to a local toolbar)
+        # MOVED: Must be called AFTER find_action and editor are created.
+        self._init_actions()
+
         # Override mousePressEvent to handle anchor clicks - MOVED TO MarkdownTextEdit.mousePressEvent
         # self.editor.mousePressEvent = self._editor_mouse_press
         
@@ -938,6 +940,11 @@ class TextEditor(QWidget):
         self.spin_size.valueChanged.connect(self.text_size)
         self.spin_size.setFixedWidth(42) # Optimized width
         self.spin_size.setToolTip("Font Size")
+        
+        # 0. Search Action (Restored)
+        self.action_search = self.find_action # Alias existing Ctrl+F action
+        self.action_search.setIcon(get_premium_icon("search"))
+        self.action_search.setToolTip("Find in Note (Ctrl+F)")
 
         self.action_font_inc = QAction(get_premium_icon("plus_circle"), "", self)
         self.action_font_inc.setToolTip(f"Increase Font Size ({self._get_shortcut('editor_font_inc', 'Ctrl++')})")
@@ -1010,12 +1017,24 @@ class TextEditor(QWidget):
         self.action_color.triggered.connect(self.text_color)
         self.action_color.setToolTip("Text Color")
 
-        # 5. Headings & Lists
-        self.combo_header = QComboBox()
+        # 5. Headings & Lists (RESTORED BUTTONS)
+        self.action_paragraph = QAction(get_premium_icon("paragraph"), "Par", self)
+        self.action_paragraph.setToolTip("Paragraph Format")
+        self.action_paragraph.triggered.connect(lambda: self.text_heading(0))
+
+        self.action_h1 = QAction(get_premium_icon("h1"), "H1", self)
+        self.action_h1.setToolTip("Heading 1")
+        self.action_h1.triggered.connect(lambda: self.text_heading(1))
+
+        self.action_h2 = QAction(get_premium_icon("h2"), "H2", self)
+        self.action_h2.setToolTip("Heading 2")
+        self.action_h2.triggered.connect(lambda: self.text_heading(2))
+
+        # Keep combo as hidden logic or secondary, but user wants buttons.
+        self.combo_header = QComboBox() 
         self.combo_header.addItems(["Par", "H1", "H2", "H3", "L1", "L2"])
         self.combo_header.currentIndexChanged.connect(self.text_heading)
-        self.combo_header.setFixedWidth(50)
-        self.combo_header.setToolTip("Text Style")
+        self.combo_header.setVisible(False) # Hide in favor of buttons
 
         self.combo_list = QComboBox()
         self.combo_list.addItems(["List", "•", "1.", "A.", "I.", "☑", "Ω"])
@@ -1052,9 +1071,10 @@ class TextEditor(QWidget):
         # Level 1 Button
         self.lvl1_btn = QToolButton()
         self.lvl1_btn.setIcon(get_premium_icon("level1"))
+        self.lvl1_btn.setIconSize(QSize(18, 18))
         self.lvl1_btn.setToolTip("Level 1 Box")
         self.lvl1_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl1_btn.setFixedWidth(40)
+        self.lvl1_btn.setFixedSize(40, 28) # Fixed dimensions for toolbar stability
         self.lvl1_btn.clicked.connect(self.apply_level_1)
         
         lvl1_menu = QMenu(self.lvl1_btn)
@@ -1066,9 +1086,10 @@ class TextEditor(QWidget):
         # Level 2 Button
         self.lvl2_btn = QToolButton()
         self.lvl2_btn.setIcon(get_premium_icon("level2"))
+        self.lvl2_btn.setIconSize(QSize(18, 18))
         self.lvl2_btn.setToolTip("Level 2 Box")
         self.lvl2_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl2_btn.setFixedWidth(40)
+        self.lvl2_btn.setFixedSize(40, 28) # Fixed dimensions for toolbar stability
         self.lvl2_btn.clicked.connect(self.apply_level_2)
         
         lvl2_menu = QMenu(self.lvl2_btn)
@@ -1137,7 +1158,11 @@ class TextEditor(QWidget):
 
     def get_toolbar_actions(self):
         """Returns ordered list of widgets/actions for the Main Window Title Bar."""
-        return [
+        actions = [
+            # Group 0: Search (Restored)
+            self.action_search,
+            "SEPARATOR",
+            
             # Group 1: Typography
             self.combo_font,
             self.spin_size,
@@ -1158,8 +1183,10 @@ class TextEditor(QWidget):
             self.action_color,
             "SEPARATOR",
             
-            # Group 4: Structure
-            self.combo_header,
+            # Group 4: Headings & Lists (Restored Buttons)
+            self.action_paragraph,
+            self.action_h1,
+            self.action_h2,
             self.action_bullet,
             self.action_numbering,
             self.action_check,
@@ -1168,6 +1195,8 @@ class TextEditor(QWidget):
             # Group 5: Indentation & Insert
             self.action_code_block,
             self.action_note_box,
+            self.lvl1_btn, # Restored L1
+            self.lvl2_btn, # Restored L2
             self.btn_hr,
             "SEPARATOR",
             
@@ -1186,6 +1215,11 @@ class TextEditor(QWidget):
             # Group 8: System
             self.action_shortcuts
         ]
+        
+        # DEBUG: Confirm they are here
+        print(f"DEBUG: get_toolbar_actions -> L1: {self.lvl1_btn}, Visible: {self.lvl1_btn.isVisible()}")
+        
+        return actions
 
     def request_link_dialog(self):
         """Emit signal for opening link dialog."""
@@ -1227,7 +1261,8 @@ class TextEditor(QWidget):
             # Fallback Highlight Colors (Yellow for light, darker Gold for dark)
             HIGHLIGHT_DEFAULTS = {
                 "light": "#FFF176", 
-                "dark": "#FACC15" # Yellow-400 (Shadcn/Tailwind friendly)
+                "dark": "#FACC15", # Yellow-400 (Shadcn/Tailwind friendly)
+                "dark_blue": "#FACC15" # Same as Dark
             }
             
             old_def_hex = HIGHLIGHT_DEFAULTS.get(old_mode, '#FFF176')
@@ -1292,6 +1327,11 @@ class TextEditor(QWidget):
         set_icon('action_numbering', 'list_ordered')
         set_icon('action_check', 'check_square')
         
+        # Headings
+        set_icon('action_paragraph', 'paragraph')
+        set_icon('action_h1', 'h1')
+        set_icon('action_h2', 'h2')
+        
         # Scroll
         set_icon('action_scroll_top', 'top')
         set_icon('action_scroll_bottom', 'bottom')
@@ -1327,7 +1367,7 @@ class TextEditor(QWidget):
     def _update_back_btn_style(self, mode):
         """Dynamic styling for the floating back button."""
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-        is_dark = mode == "dark"
+        is_dark = mode != "light"
         
         bg = "#ECEFF1" if not is_dark else "#1F2937"
         fg = "#455A64" if not is_dark else "#E5E7EB"
@@ -1647,6 +1687,18 @@ class TextEditor(QWidget):
 
     def update_format_ui(self):
         """Update toolbar widgets based on cursor position with recursion prevention."""
+        try:
+            # SAFETY CHECK: Ensure widgets still exist (C++ object liveness)
+            if not getattr(self, 'spin_size', None) or not getattr(self, 'combo_header', None):
+                return
+            # Poking a property to trigger RuntimeError if dead
+            _ = self.spin_size.isEnabled()
+            _ = self.combo_header.isEnabled()
+            _ = self.combo_list.isEnabled()
+        except RuntimeError:
+            # One of the widgets has been deleted (likely during toolbar rebuild)
+            return
+
         # Block signals to prevent recursive updates
         self.spin_size.blockSignals(True)
         self.combo_header.blockSignals(True)
@@ -1701,12 +1753,16 @@ class TextEditor(QWidget):
                         self.combo_list.setCurrentIndex(0) # Unknown or other
                 else:
                     self.combo_list.setCurrentIndex(0) # No List
-        except Exception:
+        except Exception as e:
             pass  # Prevent UI update errors from crashing
         finally:
-            self.spin_size.blockSignals(False)
-            self.combo_header.blockSignals(False)
-            self.combo_list.blockSignals(False)
+            # ALways unblock, but check liveness again just in case
+            try:
+                self.spin_size.blockSignals(False)
+                self.combo_header.blockSignals(False)
+                self.combo_list.blockSignals(False)
+            except RuntimeError:
+                pass
 
     def insert_code_block(self):
         """Insert a Notion-style code block."""

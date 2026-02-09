@@ -101,10 +101,11 @@ class Sidebar(QWidget):
         
         header_layout.addWidget(brand_row)
         
-        # --- ROW 2: NOTEBOOK SELECTOR ---
+        # --- ROW 2: NOTEBOOK SELECTOR & CONTROLS ---
         nb_row = QWidget()
         nb_layout = QHBoxLayout(nb_row)
         nb_layout.setContentsMargins(0,0,0,0)
+        nb_layout.setSpacing(8)
         
         self.nb_selector = QComboBox()
         self.nb_selector.setObjectName("SidebarNotebookSelector") # Global styling
@@ -119,88 +120,110 @@ class Sidebar(QWidget):
         view.setMinimumWidth(300)
         
         nb_layout.addWidget(self.nb_selector)
-        header_layout.addWidget(nb_row)
 
-        # --- ROW 3: ACTIONS & UTILITIES ---
-        action_row = QWidget()
-        action_layout = QHBoxLayout(action_row)
-        action_layout.setContentsMargins(0, 0, 0, 0)
-        action_layout.setSpacing(4) # Tight spacing for toolbars
+        # Vertical Controls (Small)
+        controls_layout = QVBoxLayout()
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        controls_layout.setSpacing(0)
         
-        # Group 1: Notebook Management
+        # 1. Add Notebook
         self.add_folder_btn = QPushButton()
         self.add_folder_btn.setIcon(get_premium_icon("plus"))
-        self.add_folder_btn.setFixedSize(32, 32)
+        self.add_folder_btn.setFixedSize(24, 18)
+        self.add_folder_btn.setIconSize(QSize(12, 12))
         self.add_folder_btn.setToolTip("New Notebook")
         self.add_folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_folder_btn.clicked.connect(self.prompt_new_notebook)
-        action_layout.addWidget(self.add_folder_btn)
-
+        # Style flat
+        self.add_folder_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
+        
+        # 2. Delete Notebook
         self.delete_nb_btn = QPushButton()
         self.delete_nb_btn.setIcon(get_premium_icon("trash")) 
-        self.delete_nb_btn.setFixedSize(32, 32)
+        self.delete_nb_btn.setFixedSize(24, 18)
+        self.delete_nb_btn.setIconSize(QSize(12, 12))
         self.delete_nb_btn.setToolTip("Delete Notebook")
         self.delete_nb_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.delete_nb_btn.clicked.connect(self._on_delete_notebook_clicked)
-        action_layout.addWidget(self.delete_nb_btn)
-        
-        action_layout.addSpacing(8)
-        
-        # Group 2: View Options
-        self.sort_btn = QPushButton()
-        self.sort_btn.setIcon(get_premium_icon("sort_down"))
-        self.sort_btn.setToolTip("Sort by Date")
-        self.sort_btn.setFixedSize(32, 32)
-        self.sort_btn.setCheckable(True)
-        self.sort_btn.setChecked(True)
-        self.sort_btn.clicked.connect(self.toggle_sort)
-        action_layout.addWidget(self.sort_btn)
-        
-        self.wrap_btn = QPushButton()
-        self.wrap_btn.setIcon(get_premium_icon("wrap"))
-        self.wrap_btn.setToolTip("Toggle Wrap")
-        self.wrap_btn.setFixedSize(32, 32)
-        self.wrap_btn.setCheckable(True)
-        self.wrap_btn.clicked.connect(lambda: self.wrapToggled.emit(self.wrap_btn.isChecked()))
-        action_layout.addWidget(self.wrap_btn)
-        
-        self.preview_btn = QPushButton()
-        self.preview_btn.setIcon(get_premium_icon("eye"))
-        self.preview_btn.setToolTip("Preview PDF")
-        self.preview_btn.setFixedSize(32, 32)
-        self.preview_btn.clicked.connect(self.requestPdfPreview.emit)
-        action_layout.addWidget(self.preview_btn)
+        self.delete_nb_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(239, 68, 68, 0.2); }")
 
-        action_layout.addStretch()
-
-        # Lock (Aligned Right)
+        # 3. Lock
         self.lock_btn = QPushButton()
         self.lock_btn.setIcon(get_premium_icon("unlock"))
-        self.lock_btn.setToolTip("Lock Navigation")
         self.lock_btn.setCheckable(True)
-        self.lock_btn.setFixedSize(32, 32)
+        self.lock_btn.setFixedSize(24, 18)
+        self.lock_btn.setIconSize(QSize(12, 12))
+        self.lock_btn.setToolTip("Lock Navigation")
         self.lock_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lock_btn.toggled.connect(self._on_lock_toggled)
-        action_layout.addWidget(self.lock_btn)
-        
-        # Removed highlight_preview_btn to de-clutter (can access via menu or standard shortcuts?)
-        # Or keep it if critical. The user didn't explicitly ask for it in the redesign.
-        # I'll enable it if space permits, but for now focus on clean UI.
-        self.highlight_preview_btn = QPushButton()
-        self.highlight_preview_btn.setIcon(get_premium_icon("bookmark"))
-        self.highlight_preview_btn.setToolTip("Highlights")
-        self.highlight_preview_btn.setFixedSize(32, 32)
-        self.highlight_preview_btn.clicked.connect(self.requestHighlightPreview.emit)
-        action_layout.insertWidget(action_layout.count() - 1, self.highlight_preview_btn) # Insert before lock
+        self.lock_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
 
-        header_layout.addWidget(action_row)
+        controls_layout.addWidget(self.add_folder_btn)
+        controls_layout.addWidget(self.delete_nb_btn)
+        controls_layout.addWidget(self.lock_btn)
+        
+        nb_layout.addLayout(controls_layout)
+        
+        # --- End of Header --
+        header_layout.addWidget(nb_row)
         self.layout.addWidget(header_container)
 
     def _setup_search(self):
+        # Horizontal Layout: [ Search Bar ] [Sort] [Wrap] [Eye] [Mark]
+        container = QWidget()
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(16, 0, 16, 10) # Match header margin width, bottom spacing
+        layout.setSpacing(4)
+
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search folders...")
         self.search_bar.textChanged.connect(self.refresh_list)
-        self.layout.addWidget(self.search_bar)
+        layout.addWidget(self.search_bar)
+        
+        # --- Action Buttons (Moved from Header) ---
+        icon_size = 28 # Slightly smaller than original 32 for compact row
+        
+        # 1. Sort
+        self.sort_btn = QPushButton()
+        self.sort_btn.setIcon(get_premium_icon("sort_down"))
+        self.sort_btn.setToolTip("Sort by Date")
+        self.sort_btn.setFixedSize(icon_size, icon_size)
+        self.sort_btn.setCheckable(True)
+        self.sort_btn.setChecked(True)
+        self.sort_btn.clicked.connect(self.toggle_sort)
+        # Flat style
+        self.sort_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); } QPushButton:checked { background: rgba(0,0,0,0.15); }")
+        layout.addWidget(self.sort_btn)
+        
+        # 2. Wrap
+        self.wrap_btn = QPushButton()
+        self.wrap_btn.setIcon(get_premium_icon("wrap"))
+        self.wrap_btn.setToolTip("Toggle Wrap")
+        self.wrap_btn.setFixedSize(icon_size, icon_size)
+        self.wrap_btn.setCheckable(True)
+        self.wrap_btn.clicked.connect(lambda: self.wrapToggled.emit(self.wrap_btn.isChecked()))
+        self.wrap_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); } QPushButton:checked { background: rgba(0,0,0,0.15); }")
+        layout.addWidget(self.wrap_btn)
+        
+        # 3. Preview
+        self.preview_btn = QPushButton()
+        self.preview_btn.setIcon(get_premium_icon("eye"))
+        self.preview_btn.setToolTip("Preview PDF")
+        self.preview_btn.setFixedSize(icon_size, icon_size)
+        self.preview_btn.clicked.connect(self.requestPdfPreview.emit)
+        self.preview_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
+        layout.addWidget(self.preview_btn)
+
+        # 4. Highlight
+        self.highlight_preview_btn = QPushButton()
+        self.highlight_preview_btn.setIcon(get_premium_icon("bookmark"))
+        self.highlight_preview_btn.setToolTip("Highlights")
+        self.highlight_preview_btn.setFixedSize(icon_size, icon_size)
+        self.highlight_preview_btn.clicked.connect(self.requestHighlightPreview.emit)
+        self.highlight_preview_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
+        layout.addWidget(self.highlight_preview_btn)
+
+        self.layout.addWidget(container)
 
     def _setup_list(self):
         self.list_widget = QTreeWidget()
@@ -249,7 +272,7 @@ class Sidebar(QWidget):
 
     def set_theme_mode(self, mode):
         """Updates the sidebar header and components for the given theme mode."""
-        is_dark = mode == "dark"
+        is_dark = mode != "light"
         icon_color = "#FFFFFF" if is_dark else "#09090b" # Shadcn foreground
         
         # 1. Update Buttons Icons
@@ -273,12 +296,32 @@ class Sidebar(QWidget):
         
         # Action Icons
         # Note: Primary/Destructive buttons typically have contrasting text (white/white)
-        self.add_folder_btn.setIcon(get_premium_icon("plus", color="white"))
-        self.delete_nb_btn.setIcon(get_premium_icon("trash", color="white"))
+        # UPDATE: Now they are flat icons next to title, so use theme icon_color
+        self.add_folder_btn.setIcon(get_premium_icon("plus", color=icon_color))
+        self.delete_nb_btn.setIcon(get_premium_icon("trash", color=icon_color))
         
         # Lock button (Normal: Icon Color, Checked: White)
         lock_color = "white" if self.lock_btn.isChecked() else icon_color
         self.lock_btn.setIcon(get_premium_icon("lock" if self.lock_btn.isChecked() else "unlock", color=lock_color))
+        
+        # 3. Update Stylesheets for Hover Visibility
+        hover_bg = "rgba(0,0,0,0.1)" if not is_dark else "rgba(255,255,255,0.1)"
+        checked_bg = "rgba(0,0,0,0.15)" if not is_dark else "rgba(255,255,255,0.15)"
+        
+        flat_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: {hover_bg}; }}"
+        checkable_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: {hover_bg}; }} QPushButton:checked {{ background: {checked_bg}; }}"
+        delete_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: rgba(239, 68, 68, 0.2); }}"
+
+        # Apply to Vertical Controls
+        self.add_folder_btn.setStyleSheet(flat_style)
+        self.delete_nb_btn.setStyleSheet(delete_style)
+        self.lock_btn.setStyleSheet(checkable_style)
+        
+        # Apply to Horizontal Controls
+        self.sort_btn.setStyleSheet(checkable_style)
+        self.wrap_btn.setStyleSheet(checkable_style)
+        self.preview_btn.setStyleSheet(flat_style)
+        self.highlight_preview_btn.setStyleSheet(flat_style)
         
         # 2. Refresh Tree Items (to update folder icons)
         self.refresh_list()

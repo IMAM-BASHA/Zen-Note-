@@ -765,3 +765,51 @@ NameError: name 'MarkdownHighlighter' is not defined
 2026-02-08 23:07:57,116 - NoteApp - ERROR - [data_manager.py:267] - Error saving note e69b20dd-abed-4598-a9ee-9b2170b9474e: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\tmphxv_3gb3.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\e69b20dd-abed-4598-a9ee-9b2170b9474e.json'
 2026-02-08 23:08:08,979 - NoteApp - DEBUG - [main_window.py:834] - Cleared content for note_id=e69b20dd-abed-4598-a9ee-9b2170b9474e
 2026-02-08 23:18:06,699 - NoteApp - ERROR - [data_manager.py:267] - Error saving note e69b20dd-abed-4598-a9ee-9b2170b9474e: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\tmpnfp94frv.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\hello wrld\\e69b20dd-abed-4598-a9ee-9b2170b9474e.json'
+2026-02-09 00:22:53,468 - NoteApp - INFO - [exporter.py:463] - Exporting note 'yes' to C:/Users/IMAM/Desktop/yes.pdf (Native + Footer)...
+2026-02-09 08:37:26,154 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 776, in __init__
+    self._init_actions()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 943, in _init_actions
+    self.action_search = self.find_action # Alias existing Ctrl+F action
+                         ^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'find_action'. Did you mean: '_init_actions'?
+2026-02-09 12:59:53,775 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:00:14,480 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:00:19,467 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:00:49,153 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:00:53,054 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:02:06,244 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:02:08,926 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:02:12,406 - NoteApp - ERROR - [main_window.py:428] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-09 13:24:12,265 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 338, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 458, in apply_theme
+    self.title_bar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 540, in set_theme_mode
+    btn_color = "#FFFFFF" if is_dark else c['muted_foreground']
+                             ^^^^^^^
+NameError: name 'is_dark' is not defined
+2026-02-09 13:46:50,689 - NoteApp - DEBUG - [editor.py:2508] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots1
+2026-02-09 13:46:50,701 - NoteApp - DEBUG - [editor.py:2518] - Found 9 images in directory.
+2026-02-09 13:46:50,701 - NoteApp - DEBUG - [editor.py:2529] - Latest Image Identified: Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png (2026-02-09 13:12:31.642418)
+2026-02-09 13:46:50,701 - NoteApp - DEBUG - [editor.py:2544] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots1\Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png
+2026-02-09 13:46:53,759 - NoteApp - DEBUG - [editor.py:2553] - User selected: C:/Users/IMAM/Pictures/Screenshots1/Gemini_Generated_Image_786xz0786xz0786x.png

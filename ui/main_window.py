@@ -392,7 +392,14 @@ class MainWindow(QMainWindow):
     
     def toggle_theme(self):
         current = self.data_manager.get_setting("theme_mode", "light")
-        new_mode = "dark" if current == "light" else "light"
+        
+        # Cycle: Light -> Dark -> Dark Blue -> Rose -> Light
+        modes = ["light", "dark", "dark_blue", "rose"]
+        try:
+            idx = modes.index(current)
+            new_mode = modes[(idx + 1) % len(modes)]
+        except ValueError:
+            new_mode = "light"
         
         self.data_manager.set_setting("theme_mode", new_mode)
         self.apply_theme(new_mode)
@@ -404,15 +411,25 @@ class MainWindow(QMainWindow):
         # Apply global stylesheet
         css = styles.get_stylesheet(mode)
         
+        # Map custom themes to qdarktheme base
+        # dark_blue -> dark
+        # rose -> light
+        if mode == "dark_blue":
+            base_mode = "dark"
+        elif mode == "rose":
+            base_mode = "light"
+        else:
+            base_mode = mode
+        
         try:
             import qdarktheme
             # Support for older versions (0.1.7) which only have load_stylesheet
             if hasattr(qdarktheme, 'setup_theme'):
-                 qdarktheme.setup_theme(mode)
-                 QApplication.instance().setStyleSheet(qdarktheme.load_stylesheet(mode) + css)
+                 qdarktheme.setup_theme(base_mode)
+                 QApplication.instance().setStyleSheet(qdarktheme.load_stylesheet(base_mode) + css)
             elif hasattr(qdarktheme, 'load_stylesheet'):
                  # v0.1.7 style
-                 qt_css = qdarktheme.load_stylesheet(mode)
+                 qt_css = qdarktheme.load_stylesheet(base_mode)
                  QApplication.instance().setStyleSheet(qt_css + css)
             else:
                  # Fallback

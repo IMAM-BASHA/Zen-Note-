@@ -214,7 +214,7 @@ class NoteList(QWidget):
                 if getattr(note, 'is_pinned', False): indicators.append("pin")
                 if getattr(note, 'is_locked', False): indicators.append("lock")
                 
-                item = QListWidgetItem(f"{idx}. {prefix}{note_title}")
+                item = QListWidgetItem(f"{idx}. {prefix}{note_title.strip()}")
                 icon_color = "white" if self.theme_mode == "dark" else None
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
@@ -261,6 +261,7 @@ class NoteList(QWidget):
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
         
         self.grid_delegate.set_theme_mode(mode)
+        self.list_delegate.set_theme_mode(mode) # Ensure List Delegate gets theme too
         self.filter_notes(self.search_input.text())
         
     def toggle_view_mode(self):
@@ -281,12 +282,18 @@ class NoteList(QWidget):
             self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
             self.list_widget.setItemDelegate(self.grid_delegate)
             self.list_widget.setSpacing(10)
+            # Enable Snap for better grid reordering
+            self.list_widget.setMovement(QListWidget.Movement.Snap)
+            self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
             self.view_toggle_btn.setIcon(get_premium_icon("layout_list", color=icon_color))
             self.view_toggle_btn.setToolTip("Switch to List View")
         else:
             self.list_widget.setViewMode(QListWidget.ViewMode.ListMode)
             self.list_widget.setItemDelegate(self.list_delegate)
             self.list_widget.setSpacing(0)
+            # Standard list movement
+            self.list_widget.setMovement(QListWidget.Movement.Free)
+            self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
             self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=icon_color))
             self.view_toggle_btn.setToolTip("Switch to Grid View")
         

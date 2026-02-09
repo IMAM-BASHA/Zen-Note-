@@ -3,6 +3,7 @@ from PyQt6.QtCore import Qt, QRect, QSize, QPoint, QRectF, QPointF
 from PyQt6.QtGui import QPainter, QColor, QFont, QPixmap, QBrush, QPen, QPainterPath, QIcon
 from models.note import Note
 from util.icon_factory import get_premium_icon
+import ui.styles as styles
 import os
 
 class NoteCardDelegate(QStyledItemDelegate):
@@ -15,32 +16,47 @@ class NoteCardDelegate(QStyledItemDelegate):
         self.theme_mode = mode
 
     def sizeHint(self, option, index):
-        # Phase 40: Responsive Width
-        width = 250
+        # Enforce 2 Columns
+        # Viewport width - Scrollbar/Padding adjustments
         if option.widget:
-            # Clamp to viewport width - padding (approx 24px)
-            available_width = option.widget.viewport().width() - 24
-            if available_width > 0:
-                 width = min(width, available_width)
-        return QSize(width, 110)
+            viewport = option.widget.viewport()
+            total_width = viewport.width()
+            # Spacing in QListWidget is set to 10
+            spacing = 10
+            # Margins (approx 20px total)
+            available_width = total_width - 24 
+            
+            # Calculate width for 2 columns
+            # Width = (Available - Spacing) / 2
+            card_width = (available_width - spacing) // 2
+            
+            # Minimum width clamp (to prevent tiny cards)
+            card_width = max(200, card_width)
+            
+            return QSize(card_width, 110)
+        return QSize(250, 110)
 
     def paint(self, painter, option, index):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         # 1. Setup Colors based on Theme
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
         is_dark = self.theme_mode == "dark"
-        bg_color = QColor("#292524") if is_dark else QColor("#FFFFFF")
-        text_color = QColor("#E7E5E4") if is_dark else QColor("#3D3A38")
-        sub_text_color = QColor("#A8A29E") if is_dark else QColor("#8D8682")
-        border_color = QColor("#44403C") if is_dark else QColor("#E0DDD9")
+        
+        # Default Card Colors
+        bg_color = QColor(c.get('card', "#FFFFFF"))
+        text_color = QColor(c.get('foreground', "#3D3A38"))
+        sub_text_color = QColor(c.get('muted_foreground', "#8D8682"))
+        border_color = QColor(c.get('border', "#E0DDD9"))
         
         if option.state & QStyle.StateFlag.State_Selected:
-            bg_color = QColor("#451a03") if is_dark else QColor("rgba(123, 158, 135, 0.15)")
-            border_color = QColor("#D97706") if is_dark else QColor("#7B9E87")
+            # Dynamic Theme Colors (Fixes "Orange" request for Dark Mode and supports all others)
+            bg_color = QColor(c.get('selection_bg', c['secondary']))
+            border_color = QColor(c.get('ring', c['primary']))
         
         if option.state & QStyle.StateFlag.State_MouseOver:
-             border_color = QColor("#D97706") if is_dark else QColor("#7B9E87")
+             border_color = QColor(c.get('ring', c['primary']))
 
         # 2. Draw Card Background
         rect = option.rect
@@ -79,15 +95,15 @@ class NoteCardDelegate(QStyledItemDelegate):
         
         # Draw Checkbox
         painter.save()
-        cb_border = QColor("#57534E") if is_dark else QColor("#D6D3D1")
-        cb_bg = QColor("#44403C") if is_dark else QColor("#F5F5F4")
+        cb_border = QColor(c.get('border', "#E0DDD9"))
+        cb_bg = QColor(c.get('input', "#FFFFFF"))
         
         is_closed = bool(getattr(note, 'closed_at', None))
         
         painter.setPen(QPen(cb_border, 1.5))
         if is_closed:
             # Filled if closed
-            painter.setBrush(QBrush(QColor("#D97706"))) # Amber
+            painter.setBrush(QBrush(QColor(c.get('primary', "#7B9E87")))) # Use Primary for check
             painter.drawRoundedRect(self.cb_rect, 4, 4)
             # Draw Checkmark
             painter.setPen(QPen(Qt.GlobalColor.white, 2))
@@ -143,8 +159,8 @@ class NoteCardDelegate(QStyledItemDelegate):
         if not has_image:
             # Draw Placeholder
             painter.save()
-            placeholder_color = QColor("#44403C") if is_dark else QColor("#F5F5F4")
-            icon_color = QColor("#78716C") if is_dark else QColor("#A8A29E")
+            placeholder_color = QColor(c.get('muted', "#F2F0ED"))
+            icon_color = QColor(c.get('muted_foreground', "#8D8682"))
             
             p_path = QPainterPath()
             p_path.addRoundedRect(image_rect, 6, 6)

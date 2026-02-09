@@ -1,0 +1,7 @@
+PyQt6
+pyqtdarktheme
+markdown-it-py
+Pygments
+requests
+beautifulsoup4
+opencv-python
