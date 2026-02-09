@@ -301,8 +301,21 @@ class MainWindow(QMainWindow):
 
         # Set stretch factors for MAIN splitter
         self.main_splitter.setSizes([200, 300, 700])
-        # Ensure the note list handle doesn't disappear when collapsed
-        self.main_splitter.setCollapsible(1, False)
+        # Ensure all panels are non-collapsible to prevent disappearance
+        self.main_splitter.setCollapsible(0, False) # Folders
+        self.main_splitter.setCollapsible(1, False) # Notes
+        self.main_splitter.setCollapsible(2, False) # Editor
+        
+        # Enforce width constraints for sidebars
+        self.sidebar.setMinimumWidth(200)
+        self.sidebar.setMaximumWidth(350) # Prevent Folders from becoming "too big"
+        self.note_list.setMinimumWidth(240)
+        self.note_list.setMaximumWidth(400) # Hard limit for Notes List to prevent "fat" cards
+        
+        # Set stretch factors: Sidebar and NoteList stay fixed, Editor takes extra space
+        self.main_splitter.setStretchFactor(0, 0)
+        self.main_splitter.setStretchFactor(1, 0)
+        self.main_splitter.setStretchFactor(2, 1)
 
         # Connect splitter signal to resize images when sidebar is resized
         self.main_splitter.splitterMoved.connect(self._handle_splitter_resize)
@@ -2736,7 +2749,7 @@ class MainWindow(QMainWindow):
                 else:
                     # Handle numeric timestamps
                     dt = datetime.fromtimestamp(raw_ts)
-                modified_time = dt.strftime("%Y-%m-%d %H:%M:%S")
+                modified_time = dt.strftime("%Y-%m-%d %I:%M:%S %p")
             except Exception as e:
                 logger.error(f"Error parsing timestamp {raw_ts}: {e}")
              

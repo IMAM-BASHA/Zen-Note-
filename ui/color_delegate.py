@@ -28,25 +28,20 @@ class ColorDelegate(QStyledItemDelegate):
         # List width - scrollbar - margins - icon
         list_widget = self.parent()
         if isinstance(list_widget, QListWidget):
-            width = list_widget.viewport().width() - 30 # Margin buffer
-            if icon:
-                width -= (option.decorationSize.width() + 10)
+            # Calculate width based on viewport but cap it for Zen look
+            # Cards shouldn't be too wide in List view to maintain readability
+            width = list_widget.viewport().width() - 12 # Padding buffer
+            width = min(400, width) # Cap card width
         else:
-            width = option.rect.width() - 40
+            width = min(400, option.rect.width() - 12)
             
         if width < 50: width = 200 # Fallback
             
         font = option.font
         font_metrics = option.fontMetrics
         # Calculate bounding rect with WordWrap
-        rect = font_metrics.boundingRect(0, 0, width, 9999, 
-                                        Qt.AlignmentFlag.AlignLeft | Qt.TextFlag.TextWordWrap, 
-                                        text)
-        
-        # Add padding (Reduced to 8px top/bottom for compact card look)
-        # Consistent height for all items
-        height = max(36, rect.height() + 12) 
-        return QSize(width, height)
+        # Fixed stable height for List View items (Card Style)
+        return QSize(width, 54)
 
     def paint(self, painter, option, index):
         painter.save()
@@ -60,9 +55,13 @@ class ColorDelegate(QStyledItemDelegate):
         if is_selected:
             pass # print(f"DEBUG: ColorDelegate Painting SELECTED item: {index.row()} | Palette Highlight: {option.palette.highlight().color().name()}")
         
-        # Standardize rect with padding
+        # Standardize rect with proper margins for the "Card" look
         rect = option.rect
-        bg_rect = rect.adjusted(2, 1, -2, -1)
+        
+        # Consistent width cap for List mode cards (Avoid excessive stretching)
+        # Left-aligned for a more standard/anchored list feel as requested
+        card_w = min(400, rect.width() - 12)
+        bg_rect = QRect(rect.left() + 6, rect.top() + 4, card_w, rect.height() - 8)
         
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
@@ -99,7 +98,8 @@ class ColorDelegate(QStyledItemDelegate):
                  # Let's keep text_color as is (Foreground) or Primary?
                  # If bg is active_item_bg (light tint), foreground is fine.
         else:
-             painter.setPen(Qt.PenStyle.NoPen)
+             # Use subtle border color from theme for non-selected items
+             painter.setPen(QPen(QColor(c.get('border', '#E0DDD9')), 1))
 
         painter.setBrush(QBrush(bg_color))
         
@@ -114,14 +114,11 @@ class ColorDelegate(QStyledItemDelegate):
         if is_selected:
              draw_rect = bg_rect.adjusted(1, 1, -1, -1) # Inset for border
         
-        painter.drawRoundedRect(draw_rect, 6, 6) # 6px radius for cards
-
+        painter.drawRoundedRect(draw_rect, 8, 8) # 8px radius for cleaner cards
         painter.setPen(text_color)
         
         # Font Styling (Title Hierarchy)
         font = option.font
-        # REMOVED: Manually increasing font size caused jitter/jumps.
-        # We rely on the font set by the stylesheet now.
         
         if is_selected:
             font.setBold(True)
@@ -131,19 +128,26 @@ class ColorDelegate(QStyledItemDelegate):
         
         # 2. Draw Icon
         icon = index.data(Qt.ItemDataRole.DecorationRole)
-        text_x = rect.left() + 8
         if icon and isinstance(icon, QIcon):
             icon_size = option.decorationSize
             icon_y = rect.top() + (rect.height() - icon_size.height()) // 2
-            icon_rect = QRect(rect.left() + 6, icon_y, icon_size.width(), icon_size.height())
+            # Position icon inside the card (bg_rect.left() + padding)
+            icon_rect = QRect(bg_rect.left() + 10, icon_y, icon_size.width(), icon_size.height())
             icon.paint(painter, icon_rect, Qt.AlignmentFlag.AlignCenter, 
                        QIcon.Mode.Selected if is_selected else QIcon.Mode.Normal, QIcon.State.On)
-            text_x = icon_rect.right() + 8
+            text_x = icon_rect.right() + 12
+        else:
+            text_x = bg_rect.left() + 10
 
-        # 3. Draw Text with Word Wrap
-        text_rect = QRect(text_x, rect.top() + 4, rect.right() - text_x - 6, rect.height() - 8)
+
+        # 3. Draw Text with Elision ("...")
+        # Capping note title to a single line for a clean list look
+        # Strict padding: 10px from card edge
+        text_rect = QRect(text_x, rect.top(), bg_rect.right() - text_x - 10, rect.height())
         text = index.data(Qt.ItemDataRole.DisplayRole)
-        if text: text = text.strip()
-        painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter | Qt.TextFlag.TextWordWrap, text)
+        if text: 
+            text = text.strip().replace('\n', ' ') # Clean up newlines for list view
+            elided_text = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, text_rect.width())
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided_text)
                  
         painter.restore()

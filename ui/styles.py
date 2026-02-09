@@ -247,10 +247,18 @@ def get_stylesheet(mode="light"):
             background-color: {c['background']};
             color: {c['foreground']};
             border: none;
-            padding: 32px; /* More breathable workspace */
+            padding: 0px; /* Controlled via setViewportMargins in editor.py */
             selection-background-color: {c.get('selection_bg', c['secondary'])};
             selection-color: {c.get('selection_fg', c['secondary_foreground'])};
-            line-height: 1.7; /* Optical sizing */
+            line-height: 1.2; /* Tighter, more standard line height */
+        }}
+
+        QFrame#MetadataBar {{
+            background-color: {c['muted']};
+            border-top: 1px solid {c['border']};
+            border-bottom-left-radius: {radius};
+            border-bottom-right-radius: {radius};
+            color: {c['muted_foreground']};
         }}
 
         /* --- BUTTONS (Shadcn Variants) --- */

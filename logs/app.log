@@ -813,3 +813,40 @@ NameError: name 'is_dark' is not defined
 2026-02-09 13:46:50,701 - NoteApp - DEBUG - [editor.py:2529] - Latest Image Identified: Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png (2026-02-09 13:12:31.642418)
 2026-02-09 13:46:50,701 - NoteApp - DEBUG - [editor.py:2544] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots1\Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png
 2026-02-09 13:46:53,759 - NoteApp - DEBUG - [editor.py:2553] - User selected: C:/Users/IMAM/Pictures/Screenshots1/Gemini_Generated_Image_786xz0786xz0786x.png
+2026-02-09 16:45:24,687 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 877, in __init__
+    self._init_actions()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1239, in _init_actions
+    self._refresh_toolbar_icons(self.theme_mode)
+                                ^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'theme_mode'. Did you mean: 'set_theme_mode'?
+2026-02-09 16:47:22,372 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 879, in __init__
+    self._init_actions()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1241, in _init_actions
+    self._refresh_toolbar_icons(self.theme_mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1455, in _refresh_toolbar_icons
+    self._update_custom_hl_icon(self.custom_highlight_color)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'custom_highlight_color'. Did you mean: 'pick_custom_highlight_color'?

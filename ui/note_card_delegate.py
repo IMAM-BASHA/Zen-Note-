@@ -16,25 +16,26 @@ class NoteCardDelegate(QStyledItemDelegate):
         self.theme_mode = mode
 
     def sizeHint(self, option, index):
-        # Enforce 2 Columns
-        # Viewport width - Scrollbar/Padding adjustments
+        # Optimized for "Vertical Grid" (Card List) within constrained sidebar width
         if option.widget:
             viewport = option.widget.viewport()
             total_width = viewport.width()
-            # Spacing in QListWidget is set to 10
-            spacing = 10
-            # Margins (approx 20px total)
-            available_width = total_width - 24 
             
-            # Calculate width for 2 columns
-            # Width = (Available - Spacing) / 2
-            card_width = (available_width - spacing) // 2
+            # Margins (Standardized for Zen aesthetic)
+            margin = 24 
+            available_width = total_width - margin
             
-            # Minimum width clamp (to prevent tiny cards)
+            # Enforce Vertical Layout (1 Column) for Grid View as requested.
+            # This ensures cards fill the sidebar width properly up to the 450px limit.
+            card_width = available_width
+            card_width = min(420, card_width)
+            
+            # Minimum width clamp
             card_width = max(200, card_width)
             
-            return QSize(card_width, 110)
-        return QSize(250, 110)
+            # 120px height for improved multi-line metadata visibility
+            return QSize(int(card_width), 120)
+        return QSize(250, 120)
 
     def paint(self, painter, option, index):
         painter.save()
@@ -58,9 +59,13 @@ class NoteCardDelegate(QStyledItemDelegate):
         if option.state & QStyle.StateFlag.State_MouseOver:
              border_color = QColor(c.get('ring', c['primary']))
 
-        # 2. Draw Card Background
+        # 2. Draw Card Background (Balanced stretching)
         rect = option.rect
-        card_rect = rect.adjusted(4, 4, -4, -4)
+        # Centering internal margin logic:
+        # If the rect is wider than our intended max (from sizeHint), 
+        # let's center the card inside it.
+        # But sizeHint already does the heavy lifting, so we just use the rect with standard padding.
+        card_rect = rect.adjusted(6, 4, -6, -4) 
         
         path = QPainterPath()
         path.addRoundedRect(QRectF(card_rect), 10, 10) # Slightly tighter radius
@@ -227,7 +232,8 @@ class NoteCardDelegate(QStyledItemDelegate):
         
         # Adjust description height (Force Redefine)
         desc_top = text_rect.y() + actual_title_height + 4
-        desc_h = text_rect.height() - actual_title_height - footer_height - 6
+        # Calculate footer space dynamically
+        desc_h = text_rect.height() - actual_title_height - footer_height - 8
         desc_rect = QRectF(text_rect.x(), desc_top, text_rect.width(), max(0, desc_h))
 
         
@@ -286,7 +292,7 @@ class NoteCardDelegate(QStyledItemDelegate):
             # We need to calculate cb_rect here again because paint() might not have been called recently
             # or we don't want to rely on the side effect of self.cb_rect.
             rect = option.rect
-            card_rect = rect.adjusted(4, 4, -4, -4)
+            card_rect = rect.adjusted(6, 4, -6, -4)
             cb_size = 18
             cb_padding = 10
             cb_rect = QRectF(card_rect.right() - cb_size - cb_padding, card_rect.top() + cb_padding, cb_size, cb_size)

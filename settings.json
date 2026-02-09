@@ -562,7 +562,7 @@
             "view_mode": "grid"
         },
         "new wroking": {
-            "last_note_id": "b70a7a61-fae2-48bf-a25b-95ffc4cd41e5",
+            "last_note_id": "dbfc0e5b-3e03-4e44-a5db-ef3cd7e43829",
             "is_pinned": true,
             "priority": 0,
             "is_archived": false,
@@ -570,7 +570,7 @@
             "is_locked": false,
             "cover_image": null,
             "description": null,
-            "view_mode": "grid"
+            "view_mode": "list"
         },
         "hello wrld": {
             "last_note_id": "e69b20dd-abed-4598-a9ee-9b2170b9474e",
@@ -597,7 +597,7 @@
             "view_mode": "list"
         }
     },
-    "last_selected_folder_id": "hello wrld",
+    "last_selected_folder_id": "new wroking",
     "last_image_dir": "C:/Users/IMAM/Desktop",
     "wrap_mode": false,
     "whiteboard_settings": {

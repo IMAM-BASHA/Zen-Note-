@@ -47,6 +47,10 @@ class NoteList(QWidget):
         self._setup_search()
         self._setup_list()
         
+        # Apply initial constraints (Standardize across all startup paths)
+        self.setMaximumWidth(400)
+        self.setMinimumWidth(240)
+        
     def _setup_top_controls(self):
         top_container = QWidget()
         top_layout = QVBoxLayout(top_container)
@@ -273,7 +277,7 @@ class NoteList(QWidget):
         self.view_mode = mode
         
         self.list_widget.setItemDelegate(self.list_delegate)
-        self.list_widget.setSpacing(0)
+        self.list_widget.setSpacing(4) # Add 4px gap between note cards
         
         # Use theme-aware color for icons
         icon_color = "#FFFFFF" if self.theme_mode == "dark" else "#09090b"
@@ -287,15 +291,21 @@ class NoteList(QWidget):
             self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
             self.view_toggle_btn.setIcon(get_premium_icon("layout_list", color=icon_color))
             self.view_toggle_btn.setToolTip("Switch to List View")
+            
+            # Limit stretching in Grid mode to keep cards tight and organized
+            self.setMaximumWidth(450) 
         else:
             self.list_widget.setViewMode(QListWidget.ViewMode.ListMode)
             self.list_widget.setItemDelegate(self.list_delegate)
-            self.list_widget.setSpacing(0)
+            self.list_widget.setSpacing(4) # Add gap in list mode too
             # Standard list movement
             self.list_widget.setMovement(QListWidget.Movement.Free)
             self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
             self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=icon_color))
             self.view_toggle_btn.setToolTip("Switch to Grid View")
+            
+            # Stricter width limit for List mode to match card cap (400px)
+            self.setMaximumWidth(400)
         
         self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
         

@@ -521,6 +521,11 @@ class MarkdownTextEdit(QTextEdit):
         if source.hasHtml() and not is_markdown:
             html = source.html()
             
+            # GENERIC FIX: Strip fixed widths that cause "stretching" or horizontal scrolling
+            import re
+            html = re.sub(r'(width|max-width|min-width)\s*:[^;>]+(?:;)?', '', html, flags=re.IGNORECASE)
+            html = re.sub(r'width\s*=\s*["\']?[^"\'>\s]+["\']?', '', html, flags=re.IGNORECASE)
+            
             # DARK MODE FIX: Prevent "Black-on-Dark" invisibility
             # Find TextEditor parent (could be nested in Splitter)
             p = self.parent()
@@ -532,9 +537,7 @@ class MarkdownTextEdit(QTextEdit):
                 p = p.parent()
             
             if theme == 'dark':
-                import re
                 # SUPER NUCLEAR RESET: Strip ALL hardcoded color/background styles
-                # Robust regex to catch rgb(...), hex, named colors
                 html = re.sub(r'color\s*:[^;>]+(?:;)?', '', html, flags=re.IGNORECASE)
                 html = re.sub(r'background(?:-color)?\s*:[^;>]+(?:;)?', '', html, flags=re.IGNORECASE)
                 html = re.sub(r'bgcolor\s*=\s*["\']?[^"\'>\s]+["\']?', '', html, flags=re.IGNORECASE)
@@ -788,7 +791,17 @@ class TextEditor(QWidget):
         self.editor = MarkdownTextEdit()
         self.editor.setFont(QFont("Segoe UI", 12))
         # Replace layout-breaking setTextWidth with proper viewport margins
-        self.editor.setViewportMargins(30, 20, 30, 20)
+        # self.editor.setViewportMargins(30, 20, 30, 20) # REMOVED: Too much padding requested
+        # Provide proper Zen-style padding (Asymmetric: 50px left for space, 5px right for scrollbar)
+        self.editor.setViewportMargins(50, 30, 5, 30) 
+        self.editor.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth) # Ensure text wraps to window
+        # Ensure long words (like long URLs or 'dddd...') wrap instead of stretching
+        from PyQt6.QtGui import QTextOption
+        self.editor.document().setDefaultTextOption(QTextOption(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop))
+        option = self.editor.document().defaultTextOption()
+        option.setWrapMode(QTextOption.WrapMode.WrapAtWordBoundaryOrAnywhere)
+        self.editor.document().setDefaultTextOption(option)
+        
         self.editor.textChanged.connect(self.contentChanged.emit)
         self.editor.installEventFilter(self) # Handle link clicks
         self.find_bar.closed.connect(self.editor.setFocus)
@@ -1493,10 +1506,9 @@ class TextEditor(QWidget):
                 return
             
             # Calculate available width for images
-            # Use the actual viewport width minus the margins we set in __init__
-            # We set 30px left/right, so effective width is -60
-            new_width = self.editor.viewport().width() - 60 
-            
+            # Use the actual viewport width minus the asymmetric margins (50px left, 5px right)
+            # We also subtract a small buffer for the scrollbar (~15-20px)
+            new_width = self.editor.viewport().width() - 75 # 55px padding + 20px scrollbar buffer
             if new_width < 100:
                 return  # Too small, likely during initialization
             
@@ -4078,9 +4090,9 @@ class TextEditor(QWidget):
         
         doc = self.editor.document()
         
-        # Inject Typography Rules
-        if html and '<style>' not in html:
-            html = self._get_typography_overlay() + html
+        # Inject Typography Rules (REMOVED: Caused font enlargement issues on reload)
+        # if html and '<style>' not in html:
+        #     html = self._get_typography_overlay() + html
         
         # Clear existing resources first
         self.editor.clear()
