@@ -7,6 +7,7 @@ from ui.color_delegate import ColorDelegate, COLOR_ROLE
 from ui.color_delegate import ColorDelegate, COLOR_ROLE
 from util.icon_factory import get_premium_icon, get_combined_indicators
 from ui.note_card_delegate import NoteCardDelegate
+from ui.animations import pulse_button
 from PyQt6.QtWidgets import QFileDialog
 import os
 
@@ -17,6 +18,9 @@ class NoteList(QWidget):
     noteSelected = pyqtSignal(str)
     createNoteRequest = pyqtSignal()
     deleteNote = pyqtSignal(str)
+    restoreItem = pyqtSignal(str, str) # note_id, trash_path
+    permanentDeleteItem = pyqtSignal(str) # trash_path
+    emptyTrashRequest = pyqtSignal() # NEW
     clearNoteContentRequest = pyqtSignal(str)
     renameNote = pyqtSignal(str, str)
     updateNote = pyqtSignal(str, dict)  # Emit note_id, updates dict (e.g. {'is_pinned': True})
@@ -24,7 +28,7 @@ class NoteList(QWidget):
     reorderNote = pyqtSignal(str, int)
     moveNoteToFolder = pyqtSignal(str)   # Emit note_id when user wants to move note
     exportNote = pyqtSignal(str)         # Emit note_id for export
-    exportNote = pyqtSignal(str)         # Emit note_id for export
+    exportNoteWord = pyqtSignal(str)     # NEW
     previewNote = pyqtSignal(str)        # Emit note_id for preview
     viewModeChanged = pyqtSignal(str)    # Emit "list" or "grid"
     togglePanelRequest = pyqtSignal()   # Phase 46
@@ -73,13 +77,13 @@ class NoteList(QWidget):
         self.view_toggle_btn.setIconSize(QSize(20, 20))
         
         # Initial color based on theme_mode
-        initial_color = "#FFFFFF" if self.theme_mode == "dark" else "#09090b"
+        initial_color = "#FFFFFF" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else "#09090b"
         self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=initial_color)) 
         
         self.view_toggle_btn.setToolTip("Switch to Grid View")
         self.view_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.view_toggle_btn.setFixedSize(32, 32)
-        self.view_toggle_btn.clicked.connect(self.toggle_view_mode)
+        self.view_toggle_btn.clicked.connect(lambda: (pulse_button(self.view_toggle_btn), self.toggle_view_mode()))
         
         self.panel_toggle_btn = QPushButton()
         self.panel_toggle_btn.setObjectName("ViewToggleBtn") # Re-use same premium style
@@ -88,7 +92,7 @@ class NoteList(QWidget):
         self.panel_toggle_btn.setToolTip("Hide Note Panel")
         self.panel_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.panel_toggle_btn.setFixedSize(32, 32)
-        self.panel_toggle_btn.clicked.connect(self.togglePanelRequest.emit)
+        self.panel_toggle_btn.clicked.connect(lambda: (pulse_button(self.panel_toggle_btn), self.togglePanelRequest.emit()))
         
         controls_layout.addWidget(self.panel_toggle_btn)
         controls_layout.addWidget(self.view_toggle_btn)
@@ -97,8 +101,18 @@ class NoteList(QWidget):
         self.new_note_btn.setIcon(get_premium_icon("plus", color="white"))
         self.new_note_btn.setObjectName("NewNoteBtn")
         self.new_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.new_note_btn.clicked.connect(self.createNoteRequest.emit)
+        self.new_note_btn.clicked.connect(lambda: (pulse_button(self.new_note_btn), self.createNoteRequest.emit()))
+        
+        self.empty_trash_btn = QPushButton(" Empty Trash")
+        self.empty_trash_btn.setIcon(get_premium_icon("trash", color="white"))
+        self.empty_trash_btn.setObjectName("EmptyTrashBtn")
+        self.empty_trash_btn.setStyleSheet("background: #ef4444; color: white;") # Destructive red
+        self.empty_trash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.empty_trash_btn.clicked.connect(lambda: (pulse_button(self.empty_trash_btn), self.emptyTrashRequest.emit()))
+        self.empty_trash_btn.setVisible(False)
+        
         controls_layout.addWidget(self.new_note_btn)
+        controls_layout.addWidget(self.empty_trash_btn)
         top_layout.addLayout(controls_layout)
         
         self.layout.addWidget(top_container)
@@ -141,8 +155,15 @@ class NoteList(QWidget):
         self.list_widget.viewport().update()
         self.filter_notes(self.search_input.text())
         
-    def load_notes(self, notes):
+    def load_notes(self, notes, folder_id=None):
         self.current_notes = notes
+        self.current_folder_id = folder_id
+        
+        # UI Updates based on context
+        is_trash = folder_id == "TRASH_ROOT"
+        self.new_note_btn.setVisible(not is_trash)
+        self.empty_trash_btn.setVisible(is_trash)
+        
         self.filter_notes(self.search_input.text())
         
     def filter_notes(self, text):
@@ -195,7 +216,7 @@ class NoteList(QWidget):
         if not self.showing_archived and not text:
             archived_count = sum(1 for n in self.current_notes if getattr(n, 'is_archived', False))
             if archived_count > 0:
-                icon_color = "white" if self.theme_mode == "dark" else None
+                icon_color = "white" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else None
                 archived_item = QListWidgetItem(f" Archived Notes ({archived_count})")
                 archived_item.setIcon(get_premium_icon("folder_archived", color=icon_color))
                 archived_item.setData(Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
@@ -214,12 +235,12 @@ class NoteList(QWidget):
                 elif p == 3: prefix += "❸ "
                 
                 # Combine Indicators
-                indicators = ["list"]
+                indicators = ["note"]
                 if getattr(note, 'is_pinned', False): indicators.append("pin")
                 if getattr(note, 'is_locked', False): indicators.append("lock")
                 
                 item = QListWidgetItem(f"{idx}. {prefix}{note_title.strip()}")
-                icon_color = "white" if self.theme_mode == "dark" else None
+                icon_color = "white" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else None
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setData(Qt.ItemDataRole.UserRole, note.id)
@@ -254,7 +275,7 @@ class NoteList(QWidget):
     def set_theme_mode(self, mode):
         """Refreshes icons for theme changes."""
         self.theme_mode = mode
-        is_dark = mode == "dark"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         icon_color = "#FFFFFF" if is_dark else "#09090b"
         
         self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
@@ -280,7 +301,7 @@ class NoteList(QWidget):
         self.list_widget.setSpacing(4) # Add 4px gap between note cards
         
         # Use theme-aware color for icons
-        icon_color = "#FFFFFF" if self.theme_mode == "dark" else "#09090b"
+        icon_color = "#FFFFFF" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else "#09090b"
         
         if mode == VIEW_MODE_GRID:
             self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
@@ -338,38 +359,59 @@ class NoteList(QWidget):
         lock_action = menu.addAction(lock_text)
 
         menu.addSeparator()
-        rename_action = menu.addAction("Rename Note")
-        if getattr(note, 'is_locked', False):
-            rename_action.setEnabled(False)
-            clear_action = menu.addAction("Clear All Content (Locked)"); clear_action.setEnabled(False)
-            delete_action = menu.addAction("Delete Note (Locked)"); delete_action.setEnabled(False)
-        else:
-            clear_action = menu.addAction("🗑 Clear All Content")
-            delete_action = menu.addAction("Delete Note")
+        # Trash Specific Actions
+        is_trash = hasattr(self, 'current_folder_id') and self.current_folder_id == "TRASH_ROOT"
         
-        move_action = menu.addAction("Move to Notebook")
-        
-        menu.addSeparator()
-        
-        # Cover Image Management (Phase 43)
-        current_cover = getattr(note, 'cover_image', None)
-        has_cover = current_cover and os.path.exists(current_cover)
-        
-        if has_cover:
-            set_cover_action = menu.addAction("Change Cover Image...")
-            remove_cover_action = menu.addAction("Remove Cover Image")
-        else:
-            set_cover_action = menu.addAction("Set Cover Image...")
-            remove_cover_action = None
+        if is_trash:
+            restore_action = menu.addAction("Restore Item")
+            menu.addSeparator()
+            perm_delete_action = menu.addAction("Delete Permanently")
             
-        edit_desc_action = menu.addAction("Edit Description...")
-        
-        menu.addSeparator()
-        preview_action = menu.addAction("Preview Note PDF")
-        export_action = menu.addAction("Export to PDF")
-        
-        menu.addSeparator()
-        archive_action = menu.addAction("Unarchive" if getattr(note, 'is_archived', False) else "Archive")
+            # Disable standard actions in trash
+            rename_action = None
+            clear_action = None
+            delete_action = None
+            move_action = None
+            archive_action = None
+            preview_action = None
+            export_action = None
+            export_word_action = None
+        else:
+            restore_action = None
+            perm_delete_action = None
+            rename_action = menu.addAction("Rename Note")
+            if getattr(note, 'is_locked', False):
+                rename_action.setEnabled(False)
+                clear_action = menu.addAction("Clear All Content (Locked)"); clear_action.setEnabled(False)
+                delete_action = menu.addAction("Move to Trash (Locked)"); delete_action.setEnabled(False)
+            else:
+                clear_action = menu.addAction("🗑 Clear All Content")
+                delete_action = menu.addAction("Move to Trash")
+            
+            move_action = menu.addAction("Move to Notebook")
+            
+            menu.addSeparator()
+            
+            # Cover Image Management (Phase 43)
+            current_cover = getattr(note, 'cover_image', None)
+            has_cover = current_cover and os.path.exists(current_cover)
+            
+            if has_cover:
+                set_cover_action = menu.addAction("Change Cover Image...")
+                remove_cover_action = menu.addAction("Remove Cover Image")
+            else:
+                set_cover_action = menu.addAction("Set Cover Image...")
+                remove_cover_action = None
+                
+            edit_desc_action = menu.addAction("Edit Description...")
+            
+            menu.addSeparator()
+            preview_action = menu.addAction("Preview Note PDF")
+            export_action = menu.addAction("Export to PDF")
+            export_word_action = menu.addAction("Export to Word (.docx)") # NEW
+            
+            menu.addSeparator()
+            archive_action = menu.addAction("Unarchive" if getattr(note, 'is_archived', False) else "Archive")
         
         action = menu.exec(self.list_widget.mapToGlobal(pos))
         
@@ -385,9 +427,17 @@ class NoteList(QWidget):
         elif action == p2: self.updateNote.emit(note_id, {"priority": 2})
         elif action == p3: self.updateNote.emit(note_id, {"priority": 3})
         elif action == pn: self.updateNote.emit(note_id, {"priority": 0})
-        elif action == delete_action:
-            if QMessageBox.question(self, "Delete", f"Delete '{note.title}'?", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
-                self.deleteNote.emit(note_id)
+        elif restore_action and action == restore_action:
+            trash_path = getattr(note, '_trash_path', None)
+            if trash_path:
+                self.restoreItem.emit(note_id, trash_path)
+        elif perm_delete_action and action == perm_delete_action:
+            trash_path = getattr(note, '_trash_path', None)
+            if trash_path:
+                if QMessageBox.question(self, "Delete Permanently", f"Are you sure you want to permanently delete this item?\nThis action cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
+                    self.permanentDeleteItem.emit(trash_path)
+        elif delete_action and action == delete_action:
+            self.deleteNote.emit(note_id)
         elif action == clear_action:
             if QMessageBox.question(self, "Clear Content", f"Are you sure you want to clear all content in '{note.title}'?\nThis action cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
                 self.clearNoteContentRequest.emit(note_id)
@@ -408,7 +458,8 @@ class NoteList(QWidget):
                 self.updateNote.emit(note_id, {"description": desc})
         elif action == preview_action: self.previewNote.emit(note_id)
         elif action == export_action: self.exportNote.emit(note_id)
-        elif action == archive_action: self.updateNote.emit(note_id, {"is_archived": not getattr(note, 'is_archived', False)})
+        elif action == export_word_action: self.exportNoteWord.emit(note_id) # NEW
+        elif archive_action and action == archive_action: self.updateNote.emit(note_id, {"is_archived": not getattr(note, 'is_archived', False)})
 
     def select_note_by_id(self, note_id):
         print(f"DEBUG: NoteList.select_note_by_id CALLED: note_id='{note_id}'")

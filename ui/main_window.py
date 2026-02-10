@@ -28,9 +28,11 @@ import json
 import os
 import sys
 from datetime import datetime
+from word_export import export_note_to_docx, export_folder_to_docx # NEW
 from ui.note_overlay import NoteOverlayDialog
 from ui.title_bar import CustomTitleBar
 from ui.zen_dialog import ZenInputDialog, ZenItemDialog
+from ui.animations import animate_splitter, crossfade_theme, fade_widget
 
 class MetadataBar(QFrame):
     """Subtle bar displaying note metadata with technical typography."""
@@ -200,6 +202,7 @@ class MainWindow(QMainWindow):
         self.sidebar.deleteFolder.connect(self.delete_folder)
         self.sidebar.folderSelected.connect(self.select_folder)
         self.sidebar.exportFolder.connect(self.export_folder_by_id)
+        self.sidebar.exportFolderWord.connect(self.export_folder_word) # NEW
         self.sidebar.exportWhiteboard.connect(self.export_folder_whiteboard)
         self.sidebar.updateFolder.connect(self.update_folder)
         self.sidebar.renameFolder.connect(self.rename_folder)
@@ -226,11 +229,14 @@ class MainWindow(QMainWindow):
         self.note_list.updateNote.connect(self.update_note) # NEW
         self.note_list.togglePanelRequest.connect(self.toggle_note_panel)
         self.note_list.moveNoteToFolder.connect(self.move_note_to_folder_with_dialog)
-        self.note_list.exportNote.connect(self.export_note_by_id) # Connect Export
-        self.note_list.exportNote.connect(self.export_note_by_id) # Connect Export
-        self.note_list.previewNote.connect(self.preview_note_by_id) # Connect Preview
+        self.note_list.exportNote.connect(self.export_note_by_id) 
+        self.note_list.exportNoteWord.connect(self.export_note_by_id_word) # NEW
+        self.note_list.previewNote.connect(self.preview_note_by_id)
         self.note_list.clearNoteContentRequest.connect(self.clear_note_content) # NEW
         self.note_list.viewModeChanged.connect(self.on_view_mode_changed) # NEW: Persist View Mode
+        self.note_list.restoreItem.connect(self.restore_item) # NEW: Trash Restore
+        self.note_list.permanentDeleteItem.connect(self.permanent_delete_trash_item) # NEW: Permanent Delete
+        self.note_list.emptyTrashRequest.connect(self.empty_trash) # NEW: Empty Trash
         self.main_splitter.addWidget(self.note_list)
 
         # 3. Editor Content Splitter (Nested)
@@ -242,9 +248,6 @@ class MainWindow(QMainWindow):
         editor_layout = QVBoxLayout(self.editor_container)
         editor_layout.setContentsMargins(0, 0, 0, 0)
         editor_layout.setSpacing(0)
-        
-        # Add Title Bar to editor area instead of global layout
-        editor_layout.addWidget(self.title_bar)
         
         # Highlight Preview View (Hidden by default, on the LEFT like whiteboard)
         self.highlight_view = QTextBrowser()
@@ -272,6 +275,7 @@ class MainWindow(QMainWindow):
         
         self.editor.contentChanged.connect(self.auto_save_note)
         self.editor.exportNoteRequest.connect(self.export_current_note_pdf)
+        self.editor.exportWordRequest.connect(self.export_current_note_word) # NEW
         self.editor.edit_whiteboard_requested.connect(self.jump_to_whiteboard)
         self.editor.request_open_note.connect(self.open_note_by_id)
         self.editor.request_open_note_overlay.connect(self.open_note_overlay)
@@ -288,7 +292,17 @@ class MainWindow(QMainWindow):
         self.editor_stack.addWidget(self.empty_state)
         self.editor_stack.addWidget(self.editor_container)
         
-        self.content_splitter.addWidget(self.editor_stack)
+        # 7. Persistent Wrapper for Title Bar + Editor Stack
+        # This ensures window controls (Min/Max/Close) stay visible in empty state.
+        self.right_panel_container = QWidget()
+        right_panel_layout = QVBoxLayout(self.right_panel_container)
+        right_panel_layout.setContentsMargins(0, 0, 0, 0)
+        right_panel_layout.setSpacing(0)
+        
+        right_panel_layout.addWidget(self.title_bar)
+        right_panel_layout.addWidget(self.editor_stack)
+        
+        self.content_splitter.addWidget(self.right_panel_container)
         
         # Connect editor text changes to metadata updates
         self.editor.editor.textChanged.connect(self.refresh_metadata)
@@ -385,7 +399,7 @@ class MainWindow(QMainWindow):
         # New Shortcuts
         self.action_theme = QAction("Toggle Theme", self)
         self.action_theme.setShortcut(self.shortcut_manager.get_shortcut("global_toggle_theme"))
-        self.action_theme.triggered.connect(self.toggle_theme)
+        self.action_theme.triggered.connect(lambda _checked: self.toggle_theme())
         self.addAction(self.action_theme)
 
         self.action_highlight_prev = QAction("Highlight Preview", self)
@@ -403,19 +417,30 @@ class MainWindow(QMainWindow):
 
     # --- Logic ---
     
-    def toggle_theme(self):
-        current = self.data_manager.get_setting("theme_mode", "light")
+    def toggle_theme(self, mode=None):
+        # Guard: QAction.triggered(bool) can pass False as mode — treat non-string as None
+        if not isinstance(mode, str):
+            mode = None
+            
+        if mode is None:
+            # Fallback: cycle if called without argument
+            current = self.data_manager.get_setting("theme_mode", "light")
+            # Ensure current is actually a string (hard reset if settings were corrupted)
+            if not isinstance(current, str):
+                current = "light"
+                
+            modes = ["light", "dark", "dark_blue", "rose", "ocean_depth", "forest_sage", "noir_ember"]
+            try:
+                idx = modes.index(current)
+                mode = modes[(idx + 1) % len(modes)]
+            except (ValueError, IndexError):
+                mode = "light"
         
-        # Cycle: Light -> Dark -> Dark Blue -> Rose -> Light
-        modes = ["light", "dark", "dark_blue", "rose"]
-        try:
-            idx = modes.index(current)
-            new_mode = modes[(idx + 1) % len(modes)]
-        except ValueError:
-            new_mode = "light"
+        self.data_manager.set_setting("theme_mode", mode)
+        print(f"DEBUG: toggle_theme called with mode='{mode}'")
         
-        self.data_manager.set_setting("theme_mode", new_mode)
-        self.apply_theme(new_mode)
+        # Animate theme switch
+        crossfade_theme(self, lambda: self.apply_theme(mode))
         
         # FIX: Refresh highlight preview to apply new theme CSS
         self.refresh_highlight_preview_if_visible()
@@ -425,14 +450,23 @@ class MainWindow(QMainWindow):
         css = styles.get_stylesheet(mode)
         
         # Map custom themes to qdarktheme base
-        # dark_blue -> dark
-        # rose -> light
-        if mode == "dark_blue":
+        dark_themes = {"dark", "dark_blue", "ocean_depth", "noir_ember"}
+        light_themes = {"light", "rose", "forest_sage"}
+        
+        if mode in dark_themes:
             base_mode = "dark"
-        elif mode == "rose":
+        elif mode in light_themes:
             base_mode = "light"
         else:
-            base_mode = mode
+            # Custom theme — detect from background color
+            c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+            bg = c.get("background", "#FFFFFF")
+            # Simple brightness check
+            if bg.startswith("#"):
+                r = int(bg[1:3], 16)
+                base_mode = "dark" if r < 128 else "light"
+            else:
+                base_mode = "light"
         
         try:
             import qdarktheme
@@ -452,6 +486,7 @@ class MainWindow(QMainWindow):
             QApplication.instance().setStyleSheet(css)
 
         # Propagate theme to sidebar and note list
+        print(f"DEBUG: apply_theme propagating mode='{mode}' to components")
         if hasattr(self, 'sidebar'):
             self.sidebar.set_theme_mode(mode)
         if hasattr(self, 'note_list'):
@@ -469,6 +504,10 @@ class MainWindow(QMainWindow):
         
         if hasattr(self, 'title_bar'):
             self.title_bar.set_theme_mode(mode)
+        
+        # Trigger initial refresh
+        if hasattr(self, 'editor'):
+            self.editor._refresh_toolbar_icons(mode)
             
         # Update open overlays
         if hasattr(self, '_overlays'):
@@ -611,13 +650,15 @@ class MainWindow(QMainWindow):
         if list_w > 0:
             # Collapse
             self._last_note_list_width = list_w
-            self.main_splitter.setSizes([sidebar_w, 0, editor_w + list_w])
+            target_sizes = [sidebar_w, 0, editor_w + list_w]
         else:
             # Expand
             target_w = getattr(self, '_last_note_list_width', 300)
             # Ensure we don't reduce editor to nothing
             new_editor_w = max(100, editor_w - target_w)
-            self.main_splitter.setSizes([sidebar_w, target_w, new_editor_w])
+            target_sizes = [sidebar_w, target_w, new_editor_w]
+            
+        animate_splitter(self.main_splitter, target_sizes)
 
 
     def delete_folder(self, folder_id):
@@ -734,7 +775,7 @@ class MainWindow(QMainWindow):
             self.current_folder = Folder("Trash", "TRASH_ROOT")
             self.current_folder.notes = trash_notes
             
-            self.note_list.load_notes(trash_notes)
+            self.note_list.load_notes(trash_notes, folder_id="TRASH_ROOT")
             self.current_note = None
             self.editor.clear()
             self.editor.editor.setReadOnly(True)
@@ -756,7 +797,7 @@ class MainWindow(QMainWindow):
             
             self.current_folder = Folder("Archived", "ARCHIVED_ROOT")
             self.current_folder.notes = all_archived
-            self.note_list.load_notes(all_archived)
+            self.note_list.load_notes(all_archived, folder_id="ARCHIVED_ROOT")
             self.current_note = None
             self.editor.clear()
             self.editor.editor.setReadOnly(True)
@@ -766,7 +807,7 @@ class MainWindow(QMainWindow):
 
         self.current_folder = self.data_manager.get_folder_by_id(folder_id)
         if self.current_folder:
-            self.note_list.load_notes(self.current_folder.notes)
+            self.note_list.load_notes(self.current_folder.notes, folder_id=folder_id)
             self.current_note = None
             self.editor.clear()
             
@@ -802,7 +843,7 @@ class MainWindow(QMainWindow):
                 logger.error(f"Error loading folder whiteboard: {e}")
     def delete_note(self, note_id):
         """Move note to trash."""
-        if QMessageBox.question(self, "Delete", "Delete this note? This cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
+        if QMessageBox.question(self, "Move to Trash", "Move this note to Trash? You can restore it later.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
             return
 
         if not self.current_folder:
@@ -825,8 +866,45 @@ class MainWindow(QMainWindow):
         self.data_manager.delete_note(self.current_folder, note_id)
         
         # Reload List
-        self.note_list.load_notes(self.current_folder.notes)
+        self.note_list.load_notes(self.current_folder.notes, folder_id=self.current_folder.id)
         self.refresh_metadata()
+
+    def restore_item(self, note_id, trash_path):
+        """Restore note or folder from trash."""
+        # Check if it was a folder
+        success = False
+        if os.path.isdir(trash_path):
+            success = self.data_manager.restore_folder(trash_path)
+        else:
+            success = self.data_manager.restore_note(note_id, trash_path)
+        
+        if success:
+            # Full refresh to update sidebar and note list
+            self.refresh_folders()
+            # If we were in Trash view, reload it
+            if self.current_folder and self.current_folder.id == "TRASH_ROOT":
+                self.select_folder("TRASH_ROOT")
+        else:
+            QMessageBox.warning(self, "Restore Failed", "Could not restore the item. The original location might be corrupted.")
+
+    def permanent_delete_trash_item(self, trash_path):
+        """Permanently remove an item from trash."""
+        self.data_manager.permanent_delete_item(trash_path)
+        # Reload Trash View
+        if self.current_folder and self.current_folder.id == "TRASH_ROOT":
+            self.select_folder("TRASH_ROOT")
+
+    def empty_trash(self):
+        """Permanently delete all items in trash (Phase 46.1)."""
+        if QMessageBox.question(self, "Empty Trash", "Are you sure you want to permanently delete ALL items in the trash?\nThis action cannot be undone.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.No:
+            return
+            
+        if self.data_manager.empty_trash():
+            # Reload Trash View
+            if self.current_folder and self.current_folder.id == "TRASH_ROOT":
+                self.select_folder("TRASH_ROOT")
+        else:
+            QMessageBox.warning(self, "Failed", "Could not fully empty trash. Some files might be in use.")
 
     def clear_note_content(self, note_id):
         """Wipes all text content from a note."""
@@ -1421,6 +1499,31 @@ class MainWindow(QMainWindow):
             progress.close()
             self.show_message(QMessageBox.Icon.Critical, "Export Error", f"Failed to export PDF:\n{e}")
 
+    def export_note_by_id_word(self, note_id):
+        """Handle export request from context menu for Word."""
+        if not self.current_folder: return
+        note = next((n for n in self.current_folder.notes if n.id == note_id), None)
+        if not note: return
+        
+        default_name = f"{note.title}.docx"
+        last_dir = self.data_manager.get_setting("last_export_dir", os.path.expanduser("~/Documents"))
+        default_path = os.path.join(last_dir, default_name)
+        
+        path, _ = QFileDialog.getSaveFileName(self, "Export Note to Word", default_path, "Word Documents (*.docx)")
+        if not path: return
+        
+        new_dir = os.path.dirname(path)
+        self.data_manager.set_setting("last_export_dir", new_dir)
+        
+        try:
+            success = export_note_to_docx(note, path)
+            if success:
+                 self.show_message(QMessageBox.Icon.Information, "Export Successful", f"Note exported to:\n{path}")
+            else:
+                 self.show_message(QMessageBox.Icon.Warning, "Export Failed", "Could not export note.")
+        except Exception as e:
+            self.show_message(QMessageBox.Icon.Critical, "Export Error", f"Failed to export Word doc:\n{e}")
+
     def export_pdf(self):
         # Legacy method if needed, but we mostly use by ID now
         if self.current_folder:
@@ -1448,6 +1551,7 @@ class MainWindow(QMainWindow):
         light_radio.setChecked(True)  # Default
         light_radio.setStyleSheet("font-size: 12px; padding: 5px;")
         theme_group.addButton(light_radio, 0)
+        
         layout.addWidget(light_radio)
         
         dark_radio = QRadioButton("Dark Theme (Dark Background)")
@@ -1455,79 +1559,72 @@ class MainWindow(QMainWindow):
         theme_group.addButton(dark_radio, 1)
         layout.addWidget(dark_radio)
         
-        # Preview
-        preview_label = QLabel("Preview:")
-        preview_label.setStyleSheet("font-weight: bold; margin-top: 15px;")
-        layout.addWidget(preview_label)
-        
-        preview_widget = QWidget()
-        preview_widget.setFixedHeight(80)
-        preview_widget.setStyleSheet("""
-            QWidget {
-                border: 1px solid #ccc;
-                border-radius: 5px;
-                background: white;
-                margin: 5px;
-            }
-        """)
-        layout.addWidget(preview_widget)
-        
-        # Buttons
-        buttons_layout = QHBoxLayout()
-        
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(dialog.reject)
-        
+        btn_box = QHBoxLayout()
         export_btn = QPushButton("Export")
-        export_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #007ACC;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #005a9e;
-            }
-        """)
-        
-        # Update preview when theme changes
-        def update_preview(theme_id):
-            if theme_id == 0:  # Light
-                preview_widget.setStyleSheet("""
-                    QWidget {
-                        border: 1px solid #ccc;
-                        border-radius: 5px;
-                        background: white;
-                        margin: 5px;
-                    }
-                """)
-            else:  # Dark
-                preview_widget.setStyleSheet("""
-                    QWidget {
-                        border: 1px solid #555;
-                        border-radius: 5px;
-                        background: #2d2d2d;
-                        margin: 5px;
-                    }
-                """)
-        
-        theme_group.buttonToggled.connect(lambda checked, button_id: update_preview(theme_group.checkedId()))
-        
-        buttons_layout.addWidget(cancel_btn)
-        buttons_layout.addWidget(export_btn)
-        layout.addLayout(buttons_layout)
-        
-        # Handle dialog result
         export_btn.clicked.connect(dialog.accept)
+        btn_box.addStretch()
+        btn_box.addWidget(export_btn)
+        layout.addLayout(btn_box)
         
-        result = dialog.exec()
-        if result == QDialog.DialogCode.Accepted:
-            return theme_group.checkedId()  # 0 for light, 1 for dark
-        else:
-            return -1  # Cancelled
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            return theme_group.checkedId()
+        return 0
+
+    def export_current_note_word(self):
+        """Export current note to Word (.docx)."""
+        if not self.current_note: return
+        
+        default_name = f"{self.current_note.title}.docx"
+        last_dir = self.data_manager.get_setting("last_export_dir", os.path.expanduser("~/Documents"))
+        default_path = os.path.join(last_dir, default_name)
+        
+        path, _ = QFileDialog.getSaveFileName(self, "Export Note to Word", default_path, "Word Documents (*.docx)")
+        if not path: return
+        
+        new_dir = os.path.dirname(path)
+        self.data_manager.set_setting("last_export_dir", new_dir)
+        
+        try:
+            success = export_note_to_docx(self.current_note, path)
+            if success:
+                 self.show_message(QMessageBox.Icon.Information, "Export Successful", f"Note exported to:\n{path}")
+            else:
+                 self.show_message(QMessageBox.Icon.Warning, "Export Failed", "Could not export note.")
+        except Exception as e:
+            self.show_message(QMessageBox.Icon.Critical, "Export Error", f"Failed to export Word doc:\n{e}")
+
+    def export_folder_word(self, folder_id):
+        """Export folder to Word (.docx)."""
+        folder = self.data_manager.get_folder_by_id(folder_id)
+        if not folder: return
+        
+        default_name = f"{folder.name}_Export.docx"
+        last_dir = self.data_manager.get_setting("last_export_dir", os.path.expanduser("~/Documents"))
+        default_path = os.path.join(last_dir, default_name)
+        
+        path, _ = QFileDialog.getSaveFileName(self, "Export Folder to Word", default_path, "Word Documents (*.docx)")
+        if not path: return
+        
+        new_dir = os.path.dirname(path)
+        self.data_manager.set_setting("last_export_dir", new_dir)
+        
+        progress = QProgressDialog(f"Exporting '{folder.name}' to Word...", "Cancel", 0, len(folder.notes), self)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.show()
+        
+        def update_progress(current, total):
+            progress.setValue(current)
+            if progress.wasCanceled():
+                raise Exception("Export canceled by user")
+        
+        try:
+            success = export_folder_to_docx(folder, path, progress_callback=update_progress)
+            progress.close()
+            if success:
+                 self.show_message(QMessageBox.Icon.Information, "Export Successful", f"Folder exported to:\n{path}")
+        except Exception as e:
+            progress.close()
+            self.show_message(QMessageBox.Icon.Critical, "Export Error", f"Failed to export Word doc:\n{e}")
 
     def export_current_note_pdf(self):
         if not self.current_note:
@@ -2765,3 +2862,5 @@ class MainWindow(QMainWindow):
             # MainWindow.update_folder updates 'folders_meta'.
             # Let's reuse that pipeline.
             self.sidebar.updateFolder.emit(self.current_folder.id, {"view_mode": mode})
+
+

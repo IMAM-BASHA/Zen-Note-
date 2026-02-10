@@ -277,12 +277,30 @@ class NoteCardDelegate(QStyledItemDelegate):
         if is_closed:
              try:
                  from datetime import datetime
-                 dt = datetime.fromisoformat(note.closed_at)
+                 dt = datetime.now() # Fallback
+                 if note.closed_at:
+                     dt = datetime.fromisoformat(note.closed_at)
                  closed_str = "Closed: " + dt.strftime("%b %d, %I:%M %p")
                  painter.setPen(QColor("#10b981") if is_dark else QColor("#059669"))
                  r = QRectF(text_rect.x(), content_rect.bottom() - 36, text_rect.width(), 12)
                  painter.drawText(r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, closed_str)
              except: pass
+
+        # 4. Trash Original Location (Special)
+        orig_folder = getattr(note, 'trash_original_folder_name', None)
+        if orig_folder:
+            painter.setFont(QFont("Inter", 7, QFont.Weight.Bold))
+            painter.setPen(QColor("#ef4444") if is_dark else QColor("#b91c1c")) # Muted red
+            
+            # Draw tiny trash icon + folder name
+            trash_icon = get_premium_icon("trash", color=painter.pen().color().name()).pixmap(10, 10)
+            icon_x = text_rect.x()
+            icon_y = content_rect.bottom() - 48 if is_closed else content_rect.bottom() - 36
+            
+            painter.drawPixmap(QPointF(icon_x, icon_y + 1), trash_icon)
+            
+            r = QRectF(icon_x + 14, icon_y, text_rect.width() - 14, 12)
+            painter.drawText(r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, f"Original: {orig_folder}")
 
         painter.restore()
 

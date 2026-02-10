@@ -1,27 +1,15 @@
 {
-    "theme_mode": "light",
+    "theme_mode": "noir_ember",
     "whiteboard_split_view": true,
     "notebooks": [
         {
-            "id": "6fd53f1d-c562-4263-bdea-c3beb82205f8",
+            "id": "279d6ef2-7d99-4515-82cf-a06c8a794e0d",
             "name": "Personal Notebook",
             "folder_ids": [
-                "yelllow this fix it",
-                "new wroking",
-                "hello wrld",
-                "nes",
-                "yes_6",
-                "sd",
-                "Trash"
-            ],
-            "is_expanded": true
-        },
-        {
-            "id": "217f37ac-83d0-4c4b-904a-36c47855bfde",
-            "name": "yes",
-            "folder_ids": [
-                "yes",
-                "fixing"
+                "Recent",
+                "Trash",
+                "sdf",
+                "yes"
             ],
             "is_expanded": true
         }
@@ -82,9 +70,6 @@
         },
         "sdf": {
             "last_note_id": "c3bc1af7-f7c0-4c29-bbae-8157bcd44b1c"
-        },
-        "yes": {
-            "last_note_id": "ddf30e35-481a-4eaa-9801-de23f55dce91"
         },
         "few things": {
             "last_note_id": "4b813ecb-30b3-4f18-9d84-717654f0fcb2"
@@ -562,7 +547,7 @@
             "view_mode": "grid"
         },
         "new wroking": {
-            "last_note_id": "dbfc0e5b-3e03-4e44-a5db-ef3cd7e43829",
+            "last_note_id": "6b4fc773-07d3-43e6-8b5c-1eade479cb58",
             "is_pinned": true,
             "priority": 0,
             "is_archived": false,
@@ -570,7 +555,7 @@
             "is_locked": false,
             "cover_image": null,
             "description": null,
-            "view_mode": "list"
+            "view_mode": "grid"
         },
         "hello wrld": {
             "last_note_id": "e69b20dd-abed-4598-a9ee-9b2170b9474e",
@@ -584,9 +569,9 @@
             "view_mode": "list"
         },
         "TRASH_ROOT": {
-            "last_note_id": "5c6e6619-e4fc-4098-be11-5dd6268edb14"
+            "last_note_id": "yss]"
         },
-        "Trash": {
+        "fixing": {
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
@@ -595,11 +580,60 @@
             "cover_image": null,
             "description": null,
             "view_mode": "list"
+        },
+        "Recent": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list",
+            "last_note_id": "3efffe3e-8dbe-4bab-ae7c-ab2afdf01bb8"
+        },
+        "List": {
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list",
+            "last_note_id": "593e0423-16ee-4421-8f34-87596ed5f061"
+        },
+        "hs": {
+            "last_note_id": "43a8abce-f706-48ac-8d67-f751b9df677a",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "grid"
+        },
+        "des": {
+            "last_note_id": "e1b12abc-1b17-41e7-a67d-01ee53ed77ee"
+        },
+        "this is the new": {
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list"
+        },
+        "Trash": {
+            "last_note_id": "yss]"
         }
     },
-    "last_selected_folder_id": "new wroking",
+    "last_selected_folder_id": "Recent",
     "last_image_dir": "C:/Users/IMAM/Desktop",
-    "wrap_mode": false,
+    "wrap_mode": true,
     "whiteboard_settings": {
         "pen_type": "Std",
         "bg_mode": "Rule",
@@ -652,5 +686,20 @@
         "spin_size",
         "combo_header",
         "action_strike"
-    ]
+    ],
+    "focus_mode": {
+        "active_sound": "ocean",
+        "custom_sounds": [
+            {
+                "name": "I m 34. If You re In Your 20 s or 30 s, Listen to this.mp3",
+                "path": "C:/Users/IMAM/Desktop/I m 34. If You re In Your 20 s or 30 s, Listen to this.mp3",
+                "type": "local"
+            },
+            {
+                "name": "YouTube: l_1PWkiNMls",
+                "path": "https://youtu.be/l_1PWkiNMls?si=5MrJ3j8QmhYzy_Qc",
+                "type": "youtube"
+            }
+        ]
+    }
 }

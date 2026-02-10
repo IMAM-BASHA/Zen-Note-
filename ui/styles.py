@@ -128,6 +128,99 @@ ZEN_THEME = {
         "scrollbar_handle": "#FECDD3",
         "elevated": "#FFFFFF",
         "shadow": "rgba(0, 0, 0, 0.05)"
+    },
+    "ocean_depth": {
+        "background": "#0D1B2A",       # Deep Navy
+        "foreground": "#E8F4F8",       # Soft White
+        "card": "#1E3448",             # Dark Teal
+        "card_foreground": "#E8F4F8",
+        "popover": "#1E3448",
+        "popover_foreground": "#E8F4F8",
+        "primary": "#00B4D8",          # Electric Cyan
+        "primary_foreground": "#0D1B2A",
+        "secondary": "#1B2A3B",        # Slate Blue
+        "secondary_foreground": "#E8F4F8",
+        "muted": "#1B2A3B",
+        "muted_foreground": "#7B9BB5", # Muted Blue-Gray
+        "accent": "rgba(0, 180, 216, 0.12)",
+        "accent_foreground": "#00B4D8",
+        "destructive": "#EF4444",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#243B55",           # Dark Blue
+        "input": "#1E3448",
+        "ring": "#00B4D8",
+        "sidebar_bg": "#091422",       # Deeper Navy
+        "sidebar_fg": "#E8F4F8",
+        "sidebar_border": "#1B2A3B",
+        "active_item_bg": "rgba(0, 180, 216, 0.15)",
+        "selection_bg": "#0077B6",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#0D1B2A",
+        "scrollbar_handle": "#243B55",
+        "elevated": "#1E3448",
+        "shadow": "rgba(0, 0, 0, 0.5)"
+    },
+    "forest_sage": {
+        "background": "#F5F0E8",       # Warm Cream
+        "foreground": "#1C2415",       # Deep Charcoal
+        "card": "#FFFFFF",
+        "card_foreground": "#1C2415",
+        "popover": "#FFFFFF",
+        "popover_foreground": "#1C2415",
+        "primary": "#2D6A4F",          # Forest Green
+        "primary_foreground": "#FFFFFF",
+        "secondary": "#E8E2D5",        # Pale Sand
+        "secondary_foreground": "#1C2415",
+        "muted": "#EDE8DE",            # Soft Linen
+        "muted_foreground": "#6B7C5A", # Muted Olive
+        "accent": "rgba(45, 106, 79, 0.1)",
+        "accent_foreground": "#2D6A4F",
+        "destructive": "#C1292E",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#C4CEB4",           # Light Sage
+        "input": "#FFFFFF",
+        "ring": "#2D6A4F",
+        "sidebar_bg": "#EDE8DE",       # Soft Linen
+        "sidebar_fg": "#1C2415",
+        "sidebar_border": "#C4CEB4",
+        "active_item_bg": "rgba(45, 106, 79, 0.12)",
+        "selection_bg": "#2D6A4F",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#F5F0E8",
+        "scrollbar_handle": "#C4CEB4",
+        "elevated": "#FFFFFF",
+        "shadow": "rgba(0, 0, 0, 0.06)"
+    },
+    "noir_ember": {
+        "background": "#0A0A0A",       # True Black
+        "foreground": "#F5F5F5",       # Off White
+        "card": "#1E1E1E",             # Dark Gray
+        "card_foreground": "#F5F5F5",
+        "popover": "#1E1E1E",
+        "popover_foreground": "#F5F5F5",
+        "primary": "#E85D04",          # Burnt Orange
+        "primary_foreground": "#FFFFFF",
+        "secondary": "#141414",        # Charcoal
+        "secondary_foreground": "#F5F5F5",
+        "muted": "#141414",
+        "muted_foreground": "#8A8A8A", # Warm Gray
+        "accent": "rgba(232, 93, 4, 0.12)",
+        "accent_foreground": "#E85D04",
+        "destructive": "#DC2626",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#2A2A2A",           # Dark Charcoal
+        "input": "#1E1E1E",
+        "ring": "#E85D04",
+        "sidebar_bg": "#050505",       # Near Black
+        "sidebar_fg": "#F5F5F5",
+        "sidebar_border": "#1E1E1E",
+        "active_item_bg": "rgba(232, 93, 4, 0.12)",
+        "selection_bg": "#9A3412",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#0A0A0A",
+        "scrollbar_handle": "#2A2A2A",
+        "elevated": "#1E1E1E",
+        "shadow": "rgba(0, 0, 0, 0.7)"
     }
 }
 
@@ -175,7 +268,6 @@ def get_stylesheet(mode="light"):
             {display_font}
             font-weight: 700;
             font-size: 18px; 
-            letter-spacing: 0.02em;
             text-transform: uppercase;
         }}
         
@@ -195,9 +287,9 @@ def get_stylesheet(mode="light"):
             selection-color: {c['primary'] if mode == 'light' else '#ffffff'};
         }}
         QTreeWidget::item {{
-            padding: 6px 12px;
+            padding: 10px 16px;
             border-radius: {radius};
-            margin-bottom: 2px;
+            margin-bottom: 4px;
             color: {c['sidebar_fg']};
             font-family: "Inter", sans-serif;
             font-size: 14px;

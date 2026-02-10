@@ -289,24 +289,12 @@ class CustomTitleBar(QWidget):
                 item.setStyleSheet(self._get_toolbar_btn_style(self.property("theme_mode") or "light"))
                 
         elif isinstance(item, QAction):
-            # Create a button for the action
-            btn = QPushButton()
-            btn.setDefault(False)
-            btn.setAutoDefault(False)
-            btn.setIcon(item.icon())
-            btn.setToolTip(item.toolTip())
-            btn.clicked.connect(item.trigger)
-            btn.setFixedSize(26, 26) # Slightly more compact
+            # Create a tool button for the action for automatic syncing
+            btn = QToolButton()
+            btn.setDefaultAction(item)
+            btn.setFixedSize(26, 26)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             
-            # Checkable Logic
-            if item.isCheckable():
-                btn.setCheckable(True)
-                btn.setChecked(item.isChecked())
-                # Disconnect old to avoid multiple connections? 
-                # QAction signals are 1-many, it's fine.
-                item.toggled.connect(btn.setChecked)
-                
             # Apply Style
             btn.setProperty("class", "ToolbarBtn")
             btn.setStyleSheet(self._get_toolbar_btn_style(self.property("theme_mode") or "light"))
@@ -433,7 +421,7 @@ class CustomTitleBar(QWidget):
         # Hover: Slight tint of primary color
         # Checked: Solid subtle primary background
         
-        is_dark = mode != "light"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         
         # Opacities for Zen feel
         hover_bg = f"{c['primary']}20" # 12% opacity roughly (hex alpha) - assuming valid hex. 
@@ -513,7 +501,7 @@ class CustomTitleBar(QWidget):
     def set_theme_mode(self, mode):
         """Update styles based on theme."""
         self.setProperty("theme_mode", mode) 
-        is_dark = mode != "light"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
         
         # 1. Main Bar - Zen Clarity
@@ -539,6 +527,7 @@ class CustomTitleBar(QWidget):
         
         # 2. Window Control Buttons
         btn_color = "#FFFFFF" if is_dark else c['muted_foreground'] 
+        print(f"DEBUG: title_bar.set_theme_mode mode='{mode}', is_dark={is_dark}, btn_color='{btn_color}'")
         hover_bg = c['destructive'] # Close button red
         
         # Refresh Icons with current color

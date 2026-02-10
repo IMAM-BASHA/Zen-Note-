@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QWidget, QFrame, QLineEdit, QComboBox, QSpacerItem, QSizePolicy
 )
-from PyQt6.QtCore import Qt, QPoint, QSize
+from PyQt6.QtCore import Qt, QPoint, QSize, QTimer
 from PyQt6.QtGui import QIcon, QFont, QColor
 from util.icon_factory import get_premium_icon
 import ui.styles as styles
@@ -159,14 +159,18 @@ class ZenInputDialog(ZenDialog):
     """ drop-in replacement for QInputDialog.getText """
     def __init__(self, parent=None, title="Input", label="Enter value:", text="", theme_mode="light"):
         super().__init__(parent, title, theme_mode)
-        self.setFixedWidth(400)
+        self.setMinimumWidth(440)
         
         self.label = QLabel(label)
+        self.label.setWordWrap(True)
+        self.label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
         self.content_layout.addWidget(self.label)
         
         self.input = QLineEdit(text)
-        self.input.setFocus()
         self.content_layout.addWidget(self.input)
+        
+        # Robustly set focus after the layout and buttons are established
+        QTimer.singleShot(0, self.input.setFocus)
         
         # Buttons
         btn_layout = QHBoxLayout()
@@ -258,6 +262,9 @@ class ZenItemDialog(ZenDialog):
         self.combo.setCurrentIndex(current)
         self.combo.setEditable(editable)
         self.content_layout.addWidget(self.combo)
+        
+        # Focus the combobox for immediate selection
+        QTimer.singleShot(0, self.combo.setFocus)
         
         # Buttons
         btn_layout = QHBoxLayout()

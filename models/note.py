@@ -2,7 +2,8 @@ import uuid
 from datetime import datetime
 
 class Note:
-    def __init__(self, title="New Note", content="", created_at=None, note_id=None, whiteboard_images=None, order=None, is_pinned=False, is_archived=False, priority=0, color=None, is_locked=False, last_scroll_position=0, content_splitter_sizes=None, cover_image=None, description=None, last_opened=None, closed_at=None):
+    def __init__(self, title="New Note", content="", created_at=None, note_id=None, whiteboard_images=None, order=None, is_pinned=False, is_archived=False, priority=0, color=None, is_locked=False, last_scroll_position=0, content_splitter_sizes=None, cover_image=None, description=None, last_opened=None, closed_at=None,
+                 trash_original_folder_id=None, trash_original_folder_name=None):
         self.id = note_id if note_id else str(uuid.uuid4())
         self.title = title
         self.content = content  # HTML content
@@ -20,6 +21,8 @@ class Note:
         self.description = description
         self.last_opened = last_opened
         self.closed_at = closed_at
+        self.trash_original_folder_id = trash_original_folder_id
+        self.trash_original_folder_name = trash_original_folder_name
 
     def to_dict(self):
         return {
@@ -39,7 +42,9 @@ class Note:
             "cover_image": self.cover_image,
             "description": self.description,
             "last_opened": self.last_opened,
-            "closed_at": self.closed_at
+            "closed_at": self.closed_at,
+            "trash_original_folder_id": self.trash_original_folder_id,
+            "trash_original_folder_name": self.trash_original_folder_name
         }
 
     @classmethod
@@ -61,7 +66,9 @@ class Note:
             cover_image=data.get("cover_image"),
             description=data.get("description"),
             last_opened=data.get("last_opened"),
-            closed_at=data.get("closed_at")
+            closed_at=data.get("closed_at"),
+            trash_original_folder_id=data.get("trash_original_folder_id"),
+            trash_original_folder_name=data.get("trash_original_folder_name")
         )
     
     @staticmethod

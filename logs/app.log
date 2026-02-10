@@ -850,3 +850,169 @@ Traceback (most recent call last):
     self._update_custom_hl_icon(self.custom_highlight_color)
                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 AttributeError: 'TextEditor' object has no attribute 'custom_highlight_color'. Did you mean: 'pick_custom_highlight_color'?
+2026-02-09 17:59:00,468 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 351, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 456, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 378, in set_theme_mode
+    c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        ^^^^^^
+NameError: name 'styles' is not defined. Did you mean: 'QStyle'?
+2026-02-09 17:59:27,192 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 351, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 456, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 426, in set_theme_mode
+    hover_bg = "rgba(0,0,0,0.1)" if not is_dark else "rgba(255,255,255,0.1)"
+                                        ^^^^^^^
+NameError: name 'is_dark' is not defined
+2026-02-09 19:29:41,061 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 939, in __init__
+    self.speed_reader = SpeedReaderBar(self, self)
+                        ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 182, in __init__
+    self.editor = editor_widget.editor
+                  ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'editor'
+2026-02-09 19:30:08,194 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 939, in __init__
+    self.speed_reader = SpeedReaderBar(self, self)
+                        ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 182, in __init__
+    self.editor = editor_widget.editor
+                  ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'editor'
+2026-02-09 19:31:55,432 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 974, in __init__
+    self.speed_reader = SpeedReaderBar(self, self)
+                        ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 190, in __init__
+    self.set_theme_mode(editor_widget.theme_mode)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'theme_mode'. Did you mean: 'set_theme_mode'?
+2026-02-09 19:32:17,527 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 974, in __init__
+    self.speed_reader = SpeedReaderBar(self, self)
+                        ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 190, in __init__
+    self.set_theme_mode(editor_widget.theme_mode)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TextEditor' object has no attribute 'theme_mode'. Did you mean: 'set_theme_mode'?
+2026-02-09 20:44:19,700 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 266, in setup_ui
+    self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
+                  ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1130, in __init__
+    self.speed_reader = SpeedReaderBar(self, self)
+                        ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 261, in __init__
+    self.tts_thread = QThread()
+                      ^^^^^^^
+NameError: name 'QThread' is not defined
+2026-02-09 21:09:41,340 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 99, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 268, in setup_ui
+    self.editor.set_theme_mode(current_theme)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1562, in set_theme_mode
+    self._refresh_toolbar_icons(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 1634, in _refresh_toolbar_icons
+    self.speed_reader.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\editor.py", line 305, in set_theme_mode
+    border: 1px solid {c['input']};
+    ^^^^^^
+NameError: name 'border' is not defined
+2026-02-10 13:25:39,981 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 100, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 199, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 344, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 395, in _setup_header
+    brand_layout.addWidget(self.logo_container)
+    ^^^^^^^^^^^^
+NameError: name 'brand_layout' is not defined. Did you mean: 'self.brand_layout'?
+2026-02-10 14:10:46,529 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:47,033 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:47,724 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:48,229 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:50,094 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:50,338 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 14:10:50,596 - NoteApp - ERROR - [main_window.py:454] - Theme setup error: The argument [theme] can only be specified as 'dark' or 'light'.
+2026-02-10 20:49:22,667 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
+2026-02-10 20:49:25,987 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
+2026-02-10 21:32:41,009 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash

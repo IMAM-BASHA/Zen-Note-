@@ -46,40 +46,132 @@ class DataManager:
         return all_notes[:limit]
 
     def get_trash_notes(self):
-        """Parse notes from .trash directory."""
-        trash_notes = []
+        """Parse items from .trash directory (Notes and Folders)."""
+        trash_items = []
         if not os.path.exists(TRASH_DIR):
             return []
             
-        # Scan .json files in trash
-        # Filename format: {note_id}_{timestamp}.json
-        import glob
-        files = glob.glob(os.path.join(TRASH_DIR, "*.json"))
-        for f_path in files:
+        # 1. Individual Note Files (.json)
+        note_files = glob(os.path.join(TRASH_DIR, "*.json"))
+        for f_path in note_files:
             try:
                 with open(f_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     note = Note.from_dict(data)
-                    # We might want to attach the deletion timestamp or original folder from context?
-                    # For now just returning the note object.
-                    trash_notes.append(note)
+                    # Attach path for operations
+                    note._trash_path = f_path
+                    trash_items.append(note)
             except Exception as e:
                 logger.error(f"Failed to load trash note {f_path}: {e}")
+
+        # 2. Trashed Folders (Directories)
+        for entry in os.scandir(TRASH_DIR):
+            if entry.is_dir():
+                meta_path = os.path.join(entry.path, ".trash_meta.json")
+                if os.path.exists(meta_path):
+                    try:
+                        with open(meta_path, 'r', encoding='utf-8') as f:
+                            mdata = json.load(f)
+                            # Create a dummy note to represent the folder in the list
+                            pseudo_note = Note(
+                                title=f"Folder: {mdata.get('name', 'Untitled')}",
+                                description=f"Contains folder and all its notes.",
+                                note_id=mdata.get('id'),
+                                trash_original_folder_name=mdata.get('orig_nb_name', 'Notebook')
+                            )
+                            pseudo_note._is_trash_folder = True
+                            pseudo_note._trash_path = entry.path
+                            trash_items.append(pseudo_note)
+                    except Exception as e:
+                        logger.error(f"Failed to load trash folder meta {meta_path}: {e}")
                 
-        # Sort by deletion time (inferred from filename) or Note date?
-        # Filename has timestamp.
-        # Let's sort by timestamp in filename descending.
-        def trash_sort(path):
+        # Sort by creation logic (or we could use ctime for deletion date)
+        trash_items.sort(key=lambda n: n.created_at, reverse=True) 
+        return trash_items
+
+    def restore_note(self, note_id, trash_path):
+        """Restore a single note to its original folder."""
+        if not os.path.exists(trash_path): return False
+        try:
+            with open(trash_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                note = Note.from_dict(data)
+            
+            orig_folder_name = note.trash_original_folder_name or "Personal"
+            target_folder_dir = os.path.join(NOTES_DIR, self._sanitize(orig_folder_name))
+            os.makedirs(target_folder_dir, exist_ok=True)
+            
+            target_path = os.path.join(target_folder_dir, f"{note.id}.json")
+            
+            # Clean trash metadata before restoring
+            note.trash_original_folder_id = None
+            note.trash_original_folder_name = None
+            with open(trash_path, 'w', encoding='utf-8') as f:
+                json.dump(note.to_dict(), f, indent=4)
+                
+            shutil.move(trash_path, target_path)
+            
+            # Re-sync in memory
+            self.load_data()
+            return True
+        except Exception as e:
+            logger.error(f"Restore failed: {e}")
+            return False
+
+    def restore_folder(self, trash_path):
+        """Restore an entire folder and its notebook assignment."""
+        if not os.path.exists(trash_path): return False
+        try:
+            meta_path = os.path.join(trash_path, ".trash_meta.json")
+            with open(meta_path, 'r', encoding='utf-8') as f:
+                mdata = json.load(f)
+            
+            orig_id = mdata.get('id')
+            target_path = os.path.join(NOTES_DIR, self._sanitize(orig_id))
+            
+            # Remove meta file before moving back
+            os.remove(meta_path)
+            shutil.move(trash_path, target_path)
+            
+            # Restore notebook mapping if possible
+            orig_nb_id = mdata.get('orig_nb_id')
+            if orig_nb_id:
+                nb = next((n for n in self.notebooks if n.id == orig_nb_id), None)
+                if nb and orig_id not in nb.folder_ids:
+                    nb.folder_ids.append(orig_id)
+                    self.save_settings()
+            
+            self.load_data()
+            return True
+        except Exception as e:
+            logger.error(f"Folder restore failed: {e}")
+            return False
+
+    def permanent_delete_item(self, trash_path):
+        """Permanently remove item from disk."""
+        if not os.path.exists(trash_path): return
+        try:
+            if os.path.isdir(trash_path):
+                shutil.rmtree(trash_path)
+            else:
+                os.remove(trash_path)
+        except Exception as e:
+            logger.error(f"Permanent delete failed: {e}")
+
+    def empty_trash(self):
+        """Delete everything in the .trash directory."""
+        if os.path.exists(TRASH_DIR):
             try:
-                return int(path.rsplit('_', 1)[-1].split('.')[0])
-            except:
-                return 0
-        
-        # We need to sort the notes list based on the file modify time or filename timestamp
-        # But we already parsed them.
-        # Let's just sort by note.created_at for now to be simple, or keep scan order.
-        trash_notes.sort(key=lambda n: n.created_at, reverse=True) 
-        return trash_notes
+                # Instead of removing TRASH_DIR, we remove its contents to keep the dir
+                for entry in os.scandir(TRASH_DIR):
+                    if entry.is_dir():
+                        shutil.rmtree(entry.path)
+                    else:
+                        os.remove(entry.path)
+                return True
+            except Exception as e:
+                logger.error(f"Empty trash failed: {e}")
+        return False
 
     def _ensure_storage(self):
         os.makedirs(NOTES_DIR, exist_ok=True)
@@ -282,33 +374,89 @@ class DataManager:
         self.folders.append(folder)
         return folder
 
-    def delete_folder(self, folder_id):
-        """Move folder to trash instead of direct deletion (Soft Delete)."""
-        # Prevent deleting the trash folder itself or hidden folders
-        if folder_id.startswith('.') or "trash" in folder_id:
+    def delete_folder(self, folder_id, permanent=False):
+        """Delete folder, either moving to trash (default) or permanently."""
+        # Prevent deleting the trash directory itself or hidden folders
+        if folder_id.startswith('.') or "trash" in folder_id.lower():
              logger.warning(f"Attempted to delete protected folder: {folder_id}")
              return
 
+        folder = next((f for f in self.folders if f.id == folder_id), None)
+        if not folder: return
+
         path = os.path.join(NOTES_DIR, self._sanitize(folder_id))
-        if os.path.exists(path):
-            try:
-                # Move to trash with unique name to avoid collisions
-                trash_path = os.path.join(TRASH_DIR, f"{self._sanitize(folder_id)}_{int(time.time())}")
-                shutil.move(path, trash_path)
-                print(f"Folder '{folder_id}' moved to trash: {trash_path}")
-            except Exception as e:
-                print(f"Soft delete failed, fallback to permanent deletion: {e}")
-                shutil.rmtree(path)
+        
+        if permanent:
+            if os.path.exists(path):
+                try:
+                    shutil.rmtree(path)
+                    print(f"Folder '{folder_id}' permanently deleted.")
+                except Exception as e:
+                    logger.error(f"Permanent folder delete failed: {e}")
+            
+            # Surgically purge any items in the .trash that belonged to this folder
+            self._purge_trash_for_folder(folder_id)
+
+            # Cleanup metadata in settings
+            folders_meta = self.get_setting("folders_meta", {})
+            if folder_id in folders_meta:
+                del folders_meta[folder_id]
+                self.set_setting("folders_meta", folders_meta)
+        else:
+            # Find original notebook for restoration context
+            orig_nb = None
+            for nb in self.notebooks:
+                if folder_id in nb.folder_ids:
+                    orig_nb = nb
+                    break
+
+            folder.trash_original_notebook_id = orig_nb.id if orig_nb else None
+            folder.trash_original_notebook_name = orig_nb.name if orig_nb else "Personal Notebook"
+
+            if os.path.exists(path):
+                try:
+                    # Move to trash with unique name to avoid collisions
+                    trash_name = f"{self._sanitize(folder_id)}_{int(time.time())}"
+                    trash_path = os.path.join(TRASH_DIR, trash_name)
+                    
+                    # Save metadata file inside the trashed folder for restoration
+                    meta_path = os.path.join(path, ".trash_meta.json")
+                    with open(meta_path, 'w', encoding='utf-8') as f:
+                        json.dump({
+                            "id": folder.id,
+                            "name": folder.name,
+                            "orig_nb_id": folder.trash_original_notebook_id,
+                            "orig_nb_name": folder.trash_original_notebook_name,
+                            "type": "folder"
+                        }, f)
+
+                    shutil.move(path, trash_path)
+                    print(f"Folder '{folder_id}' moved to trash: {trash_path}")
+                except Exception as e:
+                    print(f"Soft delete failed, fallback to permanent deletion: {e}")
+                    shutil.rmtree(path)
+                    
         self.folders = [f for f in self.folders if f.id != folder_id]
 
     def delete_note(self, folder, note_id):
         """Move note file to trash (Soft Delete)."""
         if not folder: return
+        note = folder.get_note_by_id(note_id)
+        if not note: return
+
+        # Set metadata for restoration
+        note.trash_original_folder_id = folder.id
+        note.trash_original_folder_name = folder.name
+        
         folder.remove_note(note_id)
         
         target_note_path = os.path.join(NOTES_DIR, self._sanitize(folder.name), f"{note_id}.json")
         if os.path.exists(target_note_path):
             try:
+                # Save metadata in the JSON before moving
+                with open(target_note_path, 'w', encoding='utf-8') as f:
+                    json.dump(note.to_dict(), f, indent=4)
+
                 trash_note_path = os.path.join(TRASH_DIR, f"{note_id}_{int(time.time())}.json")
                 shutil.move(target_note_path, trash_note_path)
             except Exception as e:
@@ -537,9 +685,57 @@ class DataManager:
         return nb
 
     def delete_notebook(self, nb_id):
-        # We don't delete the folders, just the group
+        # Cascaded Deletion: Delete all folders within this notebook PERMANENTLY
+        nb = next((n for n in self.notebooks if n.id == nb_id), None)
+        if nb:
+            # First, pull any member folders already in the trash
+            self._purge_trash_for_notebook(nb_id)
+
+            # We copy the list to avoid mutation issues during iteration
+            for folder_id in list(nb.folder_ids):
+                self.delete_folder(folder_id, permanent=True)
+
         self.notebooks = [nb for nb in self.notebooks if nb.id != nb_id]
         self.save_settings()
+
+    def _purge_trash_for_folder(self, folder_id):
+        """Permanently remove any items in the Trash that belonged to this specific folder."""
+        if not os.path.exists(TRASH_DIR): return
+        
+        # 1. Notes
+        for f_path in glob(os.path.join(TRASH_DIR, "*.json")):
+            try:
+                with open(f_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    if data.get('trash_original_folder_id') == folder_id:
+                        os.remove(f_path)
+            except: pass
+
+        # 2. Folders
+        for entry in os.scandir(TRASH_DIR):
+            if entry.is_dir():
+                meta_path = os.path.join(entry.path, ".trash_meta.json")
+                if os.path.exists(meta_path):
+                    try:
+                        with open(meta_path, 'r', encoding='utf-8') as f:
+                            mdata = json.load(f)
+                            if mdata.get('id') == folder_id:
+                                shutil.rmtree(entry.path)
+                    except: pass
+
+    def _purge_trash_for_notebook(self, nb_id):
+        """Surgically remove any trashed folders that belonged to this notebook."""
+        if not os.path.exists(TRASH_DIR): return
+        for entry in os.scandir(TRASH_DIR):
+            if entry.is_dir():
+                meta_path = os.path.join(entry.path, ".trash_meta.json")
+                if os.path.exists(meta_path):
+                    try:
+                        with open(meta_path, 'r', encoding='utf-8') as f:
+                            mdata = json.load(f)
+                            if mdata.get('orig_nb_id') == nb_id:
+                                shutil.rmtree(entry.path)
+                    except: pass
 
     def add_folder_to_notebook(self, folder_id, nb_id):
         """Associate a folder with a specific notebook."""

@@ -40,7 +40,7 @@ class EmptyStateWidget(QWidget):
         """
         Adjust style based on theme.
         """
-        is_dark = mode == "dark"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         text_color = "#A1A1AA" if is_dark else "#52525B" # Zinc 400 vs Zinc 600
         
         self.text_lbl.setStyleSheet(f"""

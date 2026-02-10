@@ -3,7 +3,8 @@ from models.note import Note
 from datetime import datetime
 
 class Folder:
-    def __init__(self, name="New Folder", folder_id=None, notes=None, is_pinned=False, is_archived=False, priority=0, created_at=None, color=None, is_locked=False, order=0, cover_image=None, description=None, view_mode="list"):
+    def __init__(self, name="New Folder", folder_id=None, notes=None, is_pinned=False, is_archived=False, priority=0, created_at=None, color=None, is_locked=False, order=0, cover_image=None, description=None, view_mode="list",
+                 trash_original_notebook_id=None, trash_original_notebook_name=None):
         self.id = folder_id if folder_id else str(uuid.uuid4())
         self.name = name
         self.notes = notes if notes else []
@@ -18,6 +19,8 @@ class Folder:
         self.cover_image = cover_image
         self.description = description
         self.view_mode = view_mode # "list" or "grid"
+        self.trash_original_notebook_id = trash_original_notebook_id
+        self.trash_original_notebook_name = trash_original_notebook_name
 
     def add_note(self, note: Note):
         self.notes.append(note)
@@ -46,6 +49,8 @@ class Folder:
             "cover_image": self.cover_image,
             "description": self.description,
             "view_mode": self.view_mode,
+            "trash_original_notebook_id": self.trash_original_notebook_id,
+            "trash_original_notebook_name": self.trash_original_notebook_name,
             "notes": [note.to_dict() for note in self.notes]
         }
 
@@ -64,6 +69,8 @@ class Folder:
             cover_image=data.get("cover_image"),
             description=data.get("description"),
             view_mode=data.get("view_mode", "list"),
+            trash_original_notebook_id=data.get("trash_original_notebook_id"),
+            trash_original_notebook_name=data.get("trash_original_notebook_name"),
             notes=[Note.from_dict(n) for n in data.get("notes", [])]
         )
         return folder

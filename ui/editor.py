@@ -9,8 +9,9 @@ from PyQt6.QtGui import (
     QPixmap, QPolygonF, QPen, QBrush, QIcon, QClipboard, QTextFormat
 )
 from util.icon_factory import get_premium_icon
+from util.tts_engine import TTSWorker # Import TTS Worker
 import ui.styles as styles
-from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent, QThread
 import time
 from ui.markdown_highlighter import MarkdownHighlighter
 
@@ -32,6 +33,7 @@ except ImportError:
 
 import uuid
 from util.logger import logger
+from ui.animations import slide_height
 
 class FindBar(QWidget):
     """Collapsible Search Bar for finding text within the editor."""
@@ -113,12 +115,16 @@ class FindBar(QWidget):
              self.lbl_count.setText("")
 
     def close_bar(self):
-        self.setVisible(False)
+        # Slide up animation
+        slide_height(self, 46, 0)
+        
         self.inp_search.clear() # Clear on close
         self.closed.emit()
         
     def show_bar(self):
-        self.setVisible(True)
+        # Slide down animation
+        slide_height(self, 0, 46) # 40 + margins
+        
         self.inp_search.setFocus()
         self.inp_search.selectAll()
         # Trigger initial count if text exists
@@ -172,6 +178,333 @@ class FindBar(QWidget):
                 padding: 0 4px;
             }}
         """)
+
+class SpeedReaderBar(QWidget):
+    """Floating toolbar for Speed Reading (RSVP style - Rapid Serial Visual Presentation equivalent logic)."""
+    
+    request_say = pyqtSignal(str, str, int)
+    request_stop = pyqtSignal()
+    request_init = pyqtSignal()
+    request_rate = pyqtSignal(int)
+
+    def __init__(self, editor_widget, parent=None):
+        super().__init__(parent)
+        print("DEBUG: SpeedReaderBar.__init__ CALLED")
+        self.editor_widget = editor_widget
+        self.editor = editor_widget.editor
+        self.is_reading = False
+        self.tts_active = False
+        self.tts_start_pos = 0
+        
+        # Setup UI
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(15, 0, 15, 0) # NO vertical padding
+        self.layout.setSpacing(10)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.setMinimumWidth(600)
+        self.setFixedHeight(36) # Tight height for perfect centering
+        
+        # 1. Icon & Title
+        self.lbl_icon = QLabel()
+        self.lbl_icon.setFixedSize(24, 24)
+        self.layout.addWidget(self.lbl_icon, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        self.lbl_title = QLabel("Speed Read")
+        self.lbl_title.setFixedHeight(30)
+        # Add negative bottom padding for precise baseline correction
+        self.lbl_title.setStyleSheet("font-weight: 600; font-size: 13px; border: none; background: transparent; padding: 0; padding-bottom: -1px;")
+        self.layout.addWidget(self.lbl_title, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        self.layout.addStretch(1)
+        
+        # 2. WPM Control
+        self.spin_wpm = QSpinBox()
+        self.spin_wpm.setRange(50, 800) # Higher range for fast readers
+        self.spin_wpm.setValue(200)
+        self.spin_wpm.setSuffix(" wpm")
+        self.spin_wpm.setSingleStep(20)
+        self.spin_wpm.setToolTip("Words Per Minute")
+        self.spin_wpm.setFixedSize(90, 28) # Strict size for alignment
+        self.spin_wpm.valueChanged.connect(self._update_timer_interval)
+        self.layout.addWidget(self.spin_wpm, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        # 3. Voice Controls
+        self.btn_voice = QPushButton()
+        self.btn_voice.setCheckable(True)
+        self.btn_voice.setIcon(get_premium_icon("volume_x", color=self._get_icon_color(editor_widget.theme_mode)))
+        self.btn_voice.setFixedSize(28, 28)
+        self.btn_voice.setToolTip("Enable Text-to-Speech")
+        self.btn_voice.clicked.connect(self.toggle_voice_mode)
+        self.layout.addWidget(self.btn_voice, 0, Qt.AlignmentFlag.AlignVCenter)
+
+        self.combo_voice = QComboBox()
+        self.combo_voice.setToolTip("Select Voice")
+        self.combo_voice.setVisible(False)
+        self.combo_voice.setFixedSize(160, 28) 
+        self.combo_voice.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
+        self.layout.addWidget(self.combo_voice, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        # 4. Controls
+        for btn, icon, tip, slot in [
+            (QPushButton(), "play", "Start Reading (Space)", self.toggle_reading),
+            (QPushButton(), "stop", "Stop & Reset", self.stop_reading),
+            (QPushButton(), "window_close", "Close", self.close_bar)
+        ]:
+            btn.setFixedSize(28, 28)
+            btn.setToolTip(tip)
+            btn.clicked.connect(slot)
+            if icon == "play": self.btn_play = btn
+            elif icon == "stop": self.btn_stop = btn
+            elif icon == "window_close": self.btn_close = btn
+            self.layout.addWidget(btn, 0, Qt.AlignmentFlag.AlignVCenter)
+        
+        # Helper to avoid reassignment issues
+        self.btn_play.setIcon(get_premium_icon("play", color=self._get_icon_color()))
+        self.btn_stop.setIcon(get_premium_icon("stop", color=self._get_icon_color()))
+        self.btn_close.setIcon(get_premium_icon("window_close", color=self._get_icon_color()))
+        
+        # Timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._next_word)
+        
+        # TTS Worker Thread
+        self.tts_thread = QThread()
+        self.tts_worker = TTSWorker()
+        self.tts_worker.moveToThread(self.tts_thread)
+        
+        # Connect Signals
+        self.request_say.connect(self.tts_worker.say)
+        self.request_stop.connect(self.tts_worker.stop)
+        self.request_rate.connect(self.tts_worker.set_rate)
+        self.request_init.connect(self.tts_worker.init_engine)
+        
+        self.tts_worker.word_spoken.connect(self._on_word_spoken)
+        # DEBUG: Disabling finished signal to prevent premature stops
+        # self.tts_worker.finished.connect(self.pause_reading)
+        self.tts_worker.voices_loaded.connect(self.update_voices)
+        
+        self.tts_thread.start()
+        self.request_init.emit()
+        
+        self.hide()
+
+    def _get_icon_color(self, mode=None):
+        if mode is None: mode = self.editor_widget.theme_mode
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        return c['foreground']
+
+    def set_theme_mode(self, mode):
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        self.setObjectName("SpeedReaderBar")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        
+        self.setStyleSheet(f"""
+            QWidget#SpeedReaderBar {{ 
+                background-color: {c['popover']}; 
+                border: 1px solid {c['border']}; 
+                border-radius: 12px; 
+                color: {c['foreground']};
+            }}
+            QLabel {{
+                background-color: transparent;
+                color: {c['foreground']};
+                border: none;
+                padding: 0px;
+                margin: 0px;
+            }}
+            QSpinBox {{
+                border: 1px solid {c['input']};
+                border-radius: 6px;
+                padding: 0px 8px;
+                background: {c['background']};
+                min-width: 90px; 
+                height: 32px;
+                font-size: 13px;
+                margin: 0px;
+                selection-background-color: {c['primary']};
+            }}
+            QComboBox {{
+                border: 1px solid {c['input']};
+                border-radius: 6px;
+                padding: 0px 8px;
+                background: {c['background']};
+                height: 32px;
+                font-size: 13px;
+                margin: 0px;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: url(util/icons/chevron-down.png);
+                width: 12px;
+                height: 12px;
+            }}
+            QPushButton {{ 
+                border: none;
+                border-radius: 6px; 
+                background: transparent;
+                margin: 0px;
+                padding: 4px;
+            }}
+            QPushButton:hover {{ 
+                background-color: {c['accent']}; 
+            }}
+        """)
+        # Update Icon Colors
+        color = c['foreground']
+        self.lbl_icon.setPixmap(get_premium_icon("zap", color=color, size=QSize(18,18)).pixmap(18,18))
+        self.btn_voice.setIcon(get_premium_icon("volume_2" if self.tts_active else "volume_x", color=color))
+        self.btn_play.setIcon(get_premium_icon("pause" if self.is_reading else "play", color=color))
+        self.btn_stop.setIcon(get_premium_icon("stop", color=color))
+        self.btn_close.setIcon(get_premium_icon("window_close", color=color))
+        
+    def _update_timer_interval(self):
+        wpm = self.spin_wpm.value()
+        interval = int(60000 / wpm)
+        if self.is_reading:
+            self.timer.start(interval)
+            
+        # Update TTS rate live
+        if self.tts_active:
+             self.request_rate.emit(wpm)
+            
+
+    def toggle_voice_mode(self):
+        self.tts_active = self.btn_voice.isChecked()
+        print(f"DEBUG: SpeedReaderBar.toggle_voice_mode: active={self.tts_active}")
+        self.combo_voice.setVisible(self.tts_active)
+        self.btn_voice.setIcon(get_premium_icon("volume_2" if self.tts_active else "volume_x", color=self._get_icon_color()))
+
+    def update_voices(self, voices):
+        self.combo_voice.clear()
+        for v in voices:
+            self.combo_voice.addItem(v['name'], v['id'])
+            
+    def toggle_reading(self):
+        print(f"DEBUG: SpeedReaderBar.toggle_reading: is_reading={self.is_reading}, tts_active={self.tts_active}")
+        if self.is_reading:
+            self.pause_reading()
+        else:
+            self.start_reading()
+            
+    def start_reading(self):
+        self.is_reading = True
+        self.btn_play.setIcon(get_premium_icon("pause", color=self._get_icon_color()))
+        self.btn_play.setToolTip("Pause (Space)")
+        
+        if self.tts_active:
+             # TTS Mode
+             cursor = self.editor.textCursor()
+             # Get text from cursor to end
+             text = self.editor.toPlainText()[cursor.position():]
+             if not text.strip(): 
+                 print("DEBUG: SpeedReaderBar - No text from cursor, reading from start")
+                 text = self.editor.toPlainText()
+                 if not text.strip():
+                     print("DEBUG: SpeedReaderBar - Document is empty")
+                     return
+             
+             # Calculate rate
+             wpm = self.spin_wpm.value()
+             voice_id = self.combo_voice.currentData()
+             
+             print(f"DEBUG: SpeedReaderBar emitting request_say: voice={voice_id}, wpm={wpm}, text_len={len(text)}")
+             
+             # Store start position to map callbacks
+             self.tts_start_pos = cursor.position()
+             
+             self.request_say.emit(text, voice_id, wpm)
+        else:
+             # RSVP Mode
+             self._update_timer_interval()
+             self.timer.start()
+             # Initial highlight
+             self._highlight_current_word()
+        
+    def pause_reading(self):
+        print("DEBUG: SpeedReaderBar.pause_reading")
+        self.is_reading = False
+        self.btn_play.setIcon(get_premium_icon("play", color=self._get_icon_color()))
+        self.btn_play.setToolTip("Resume (Space)")
+        
+        self.timer.stop()
+        if self.tts_active:
+             print("DEBUG: SpeedReaderBar emitting request_stop")
+             self.request_stop.emit()
+        
+    def stop_reading(self):
+        self.pause_reading()
+        # Clear highlights
+        self.editor.setExtraSelections([])
+        
+    def close_bar(self):
+        self.stop_reading()
+        self.hide()
+
+    def _on_word_spoken(self, location, length):
+        """Callback from TTS Worker."""
+        if not self.is_reading: return
+        
+        # Select the word in editor
+        start = self.tts_start_pos + location
+        end = start + length
+        
+        doc_len = self.editor.document().characterCount()
+        if start < 0 or start >= doc_len or end > doc_len:
+            # print(f"DEBUG: Ignoring out of range TTS highlight: {start}-{end}")
+            return
+        
+        cursor = self.editor.textCursor()
+        cursor.setPosition(start)
+        cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+        self.editor.setTextCursor(cursor)
+        
+        # Highlight
+        selection = QTextEdit.ExtraSelection()
+        selection.cursor = cursor
+        selection.format.setBackground(QColor(styles.ZEN_THEME[self.editor_widget.theme_mode]['primary']))
+        selection.format.setForeground(QColor(styles.ZEN_THEME[self.editor_widget.theme_mode]['primary_foreground']))
+        self.editor.setExtraSelections([selection])
+        
+        self.editor.ensureCursorVisible()
+
+    def _next_word(self):
+        cursor = self.editor.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.NextWord, QTextCursor.MoveMode.MoveAnchor)
+        cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+        
+        # If we hit end of doc
+        if cursor.atEnd():
+            self.stop_reading()
+            return
+            
+        self.editor.setTextCursor(cursor)
+        self._highlight_current_word()
+        self.editor.ensureCursorVisible() # Auto-scroll
+        
+    def _highlight_current_word(self):
+        cursor = self.editor.textCursor()
+        if not cursor.hasSelection():
+            cursor.select(QTextCursor.SelectionType.WordUnderCursor)
+            
+        selection = QTextEdit.ExtraSelection()
+        selection.cursor = cursor
+        
+        # Theme-aware highlight color (Primary with alpha)
+        mode = self.editor_widget.theme_mode
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        color = QColor(c['primary'])
+        color.setAlpha(100) # Semi-transparent
+        
+        fmt = QTextCharFormat()
+        fmt.setBackground(QBrush(color))
+        # Optional: Change text color for contrast if needed
+        # fmt.setForeground(QColor("white")) 
+        selection.format = fmt
+        
+        self.editor.setExtraSelections([selection])
 
 class ImageProcessor(QObject):
     """Async image processing worker to prevent UI blocking."""
@@ -767,11 +1100,14 @@ class TextEditor(QWidget):
 
     request_open_link_dialog = pyqtSignal()
     requestShortcutDialog = pyqtSignal()
+    exportWordRequest = pyqtSignal() # NEW
 
     def __init__(self, parent=None, data_manager=None, shortcut_manager=None):
         super().__init__(parent)
         self.data_manager = data_manager
+        self.toc_mode = 'toc' # Added for Bookmark feature
         self.shortcut_manager = shortcut_manager
+        self.theme_mode = "light" # Initialize early for child widgets
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
@@ -779,6 +1115,7 @@ class TextEditor(QWidget):
         self.find_bar = FindBar(self)
         self.find_bar.search_next.connect(lambda t: self.find_text(t, forward=True))
         self.find_bar.search_prev.connect(lambda t: self.find_text(t, forward=False))
+
         
         # Connect Ctrl+F
         self.find_action = QAction(self)
@@ -813,6 +1150,9 @@ class TextEditor(QWidget):
             Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
         self.layout.addWidget(self.editor)
+
+        # Speed Reader Bar (Floating Overlay) - Must be after editor init
+        self.speed_reader = SpeedReaderBar(self, self)
 
         # Toolbar Actions (Initialized here, but not added to a local toolbar)
         # MOVED: Must be called AFTER find_action and editor are created.
@@ -897,6 +1237,30 @@ class TextEditor(QWidget):
         header_layout.addWidget(self.lbl_toc)
         header_layout.addStretch()
         
+        # Toggle Buttons for Mode
+        self.btn_mode_toc = QPushButton()
+        self.btn_mode_toc.setFixedSize(24, 24)
+        self.btn_mode_toc.setToolTip("Show Table of Contents")
+        self.btn_mode_toc.setCheckable(True)
+        self.btn_mode_toc.setChecked(True)
+        self.btn_mode_toc.clicked.connect(lambda: self.set_toc_mode('toc'))
+        
+        self.btn_mode_bookmarks = QPushButton()
+        self.btn_mode_bookmarks.setFixedSize(24, 24)
+        self.btn_mode_bookmarks.setToolTip("Show In-Note Bookmarks")
+        self.btn_mode_bookmarks.setCheckable(True)
+        self.btn_mode_bookmarks.clicked.connect(lambda: self.set_toc_mode('bookmarks'))
+        
+        # Group them to act as radio buttons
+        from PyQt6.QtWidgets import QButtonGroup
+        self.mode_group = QButtonGroup(self)
+        self.mode_group.addButton(self.btn_mode_toc)
+        self.mode_group.addButton(self.btn_mode_bookmarks)
+        
+        header_layout.addWidget(self.btn_mode_toc)
+        header_layout.addWidget(self.btn_mode_bookmarks)
+        header_layout.addSpacing(5)
+
         self.btn_close_toc = QPushButton("×")
         self.btn_close_toc.setFixedSize(20, 20)
         self.btn_close_toc.clicked.connect(self.toggle_toc)
@@ -907,7 +1271,8 @@ class TextEditor(QWidget):
         self.toc_list = QListWidget()
         self.toc_list.setFrameShape(QListWidget.Shape.NoFrame)
         self.toc_list.setWordWrap(True)
-        self.toc_list.setTextElideMode(Qt.TextElideMode.ElideNone)
+        self.toc_list.setTextElideMode(Qt.TextElideMode.ElideRight)
+        self.toc_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.toc_list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.toc_list.itemClicked.connect(self._on_toc_item_clicked)
         toc_layout.addWidget(self.toc_list)
@@ -1080,6 +1445,12 @@ class TextEditor(QWidget):
         self.action_scroll_bottom = QAction(get_premium_icon("bottom"), "Scroll to Bottom", self)
         self.action_scroll_bottom.triggered.connect(self.scroll_to_bottom)
 
+        # 6.5 Bookmarks (In-Note)
+        self.action_bookmark = QAction(get_premium_icon("bookmark"), "Insert Bookmark", self)
+        self.action_bookmark.setToolTip("Insert Bookmark (Reading Progress)")
+        self.action_bookmark.setShortcut("Ctrl+Shift+B")
+        self.action_bookmark.triggered.connect(self.insert_bookmark)
+
         # 7. Structure & Inserts (Row 2 equivalent)
         # Level 1 Button
         self.lvl1_btn = QToolButton()
@@ -1169,6 +1540,15 @@ class TextEditor(QWidget):
         self.action_export.triggered.connect(self.exportNoteRequest.emit)
         self.action_export.setToolTip("Export Note as PDF")
 
+        self.action_export_word = QAction(get_premium_icon("doc"), "Export Word", self)
+        self.action_export_word.triggered.connect(self.exportWordRequest.emit)
+        self.action_export_word.setToolTip("Export Note as Word (.docx)")
+
+        self.action_speed_read = QAction(get_premium_icon("zap"), "Speed Read", self)
+        self.action_speed_read.triggered.connect(self.toggle_speed_reader)
+        self.action_speed_read.setToolTip("Speed Reader Mode")
+
+
     def get_toolbar_actions(self):
         """Returns ordered list of widgets/actions for the Main Window Title Bar."""
         actions = [
@@ -1217,11 +1597,13 @@ class TextEditor(QWidget):
             self.action_draw,
             self.action_import_wb,
             self.action_link, 
+            self.action_speed_read,
             "SEPARATOR",
             
             # Group 7: Navigation & Meta
             self.action_scroll_top,
             self.action_scroll_bottom,
+            self.action_bookmark, # Added Bookmark
             self.toc_action,
             "SEPARATOR",
             
@@ -1313,10 +1695,15 @@ class TextEditor(QWidget):
         # But 'color' arg in get_premium_icon sets the stroke.
         # Light: #3D3A38, Dark: #E7E5E4.
         color = c['foreground']
+        print(f"DEBUG: _refresh_toolbar_icons called with mode='{mode}', color='{color}'")
         
         def set_icon(action_attr, icon_name):
             if hasattr(self, action_attr):
                 getattr(self, action_attr).setIcon(get_premium_icon(icon_name, color=color))
+
+        if hasattr(self, 'speed_reader'):
+            self.speed_reader.set_theme_mode(mode)
+            set_icon('action_speed_read', 'zap')
 
         # Core
         set_icon('action_search', 'search')
@@ -1363,7 +1750,6 @@ class TextEditor(QWidget):
         set_icon('action_clear', 'trash')
         set_icon('action_shortcuts', 'keyboard')
         set_icon('toc_action', 'list')
-        set_icon('action_export', 'export')
         
         # Tool Buttons
         if hasattr(self, 'lvl1_btn'):
@@ -1380,7 +1766,7 @@ class TextEditor(QWidget):
     def _update_back_btn_style(self, mode):
         """Dynamic styling for the floating back button."""
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-        is_dark = mode != "light"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         
         bg = "#ECEFF1" if not is_dark else "#1F2937"
         fg = "#455A64" if not is_dark else "#E5E7EB"
@@ -1451,6 +1837,29 @@ class TextEditor(QWidget):
         self.toc_header.setStyleSheet(f"background-color: {header_bg}; border-bottom: 1px solid {header_border};")
         self.lbl_toc.setStyleSheet(f"font-weight: bold; color: {label_color}; font-size: 11px;")
         
+        # Update Toggle Icons (New for Bookmark feature)
+        self.btn_mode_toc.setIcon(get_premium_icon("layout_list", color=text_color))
+        self.btn_mode_bookmarks.setIcon(get_premium_icon("bookmark", color=text_color))
+        
+        # Style for toggle buttons
+        toggle_style = f"""
+            QPushButton {{
+                background: transparent;
+                border: 1px solid transparent;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background: {hover_bg};
+            }}
+            QPushButton:checked {{
+                background: {selected_bg};
+                border: 1px solid {c['primary']};
+            }}
+        """
+        self.btn_mode_toc.setStyleSheet(toggle_style)
+        self.btn_mode_bookmarks.setStyleSheet(toggle_style)
+
+        # Style for close button
         self.btn_close_toc.setStyleSheet(f"QPushButton {{ border: none; color: {btn_color}; font-weight: bold; }} QPushButton:hover {{ color: {btn_hover}; }}")
 
         self.toc_list.setStyleSheet(f"""
@@ -1463,15 +1872,20 @@ class TextEditor(QWidget):
                 outline: none;
             }}
             QListWidget::item {{
-                padding: 8px;
-                border-bottom: 1px solid {item_border};
+                padding: 10px 8px;
+                margin: 2px 5px;
+                border: 1px solid {item_border};
+                border-radius: 8px;
+                background-color: {header_bg};
             }}
             QListWidget::item:selected {{
                 background-color: {selected_bg};
-                color: white;
+                color: {text_color};
+                border: 1px solid {c['primary']};
             }}
             QListWidget::item:hover {{
                 background-color: {hover_bg};
+                border-color: {c['primary']};
             }}
         """)
 
@@ -1496,7 +1910,46 @@ class TextEditor(QWidget):
             x = self.width() - self.find_bar.width() - 25 # 25px right margin
             y = toolbar_height + 10 # 10px top margin
             self.find_bar.move(x, y)
+            self.find_bar.move(x, y)
             self.find_bar.raise_() # Ensure on top
+
+        if hasattr(self, 'speed_reader') and self.speed_reader and self.speed_reader.isVisible():
+            # Position: Bottom-Right or Top-Right (below find bar?)
+            # Let's put it Bottom-Right for now, standard for overlays
+            toolbar_height = 0
+            x = self.width() - self.speed_reader.width() - 25
+            y = self.height() - self.speed_reader.height() - 25 
+            # Or maybe Top-Right, stacked under Find Bar if visible?
+            # Let's stick to Top-Right for consistency, offset if FindBar is there.
+            y = toolbar_height + 10
+            if self.find_bar.isVisible():
+                y += self.find_bar.height() + 10
+            
+            self.speed_reader.move(x, y)
+            self.speed_reader.raise_() 
+
+    def toggle_speed_reader(self):
+        if self.speed_reader.isVisible():
+            print("DEBUG: Hiding Speed Reader")
+            self.speed_reader.stop_reading()
+            self.speed_reader.hide()
+        else:
+            print("DEBUG: Showing Speed Reader")
+            self.speed_reader.show()
+            self.speed_reader.raise_()
+            self.speed_reader.setFocus()
+            self._reposition_speed_reader() # Ensure positioned correctly
+
+    def _reposition_speed_reader(self):
+        """Helper to force reposition logic (reuses resizeEvent logic)"""
+        if self.speed_reader.isVisible():
+             toolbar_height = 0
+             x = self.width() - self.speed_reader.width() - 25
+             # Stack under find bar if visible
+             y = 10
+             if self.find_bar.isVisible():
+                 y += self.find_bar.height() + 10
+             self.speed_reader.move(x, y)
 
     def _resize_images_to_fit(self):
         """Resize all images to fit within the current editor width with performance optimizations."""
@@ -2248,48 +2701,58 @@ class TextEditor(QWidget):
         if not is_visible:
             self.refresh_toc()
             
+    def set_toc_mode(self, mode):
+        """Switch between TOC and Bookmark display."""
+        self.toc_mode = mode
+        self.lbl_toc.setText("Table of Contents" if mode == 'toc' else "In-Note Bookmarks")
+        self.btn_mode_toc.setChecked(mode == 'toc')
+        self.btn_mode_bookmarks.setChecked(mode == 'bookmarks')
+        self.refresh_toc()
+
     def refresh_toc(self):
-        """Scan document for Level Headers and populate TOC."""
+        """Scan document for Level Headers or Bookmarks and populate TOC."""
+        if not hasattr(self, 'toc_list') or not self.toc_list.isVisible():
+            return
+            
         self.toc_list.clear()
         doc = self.editor.document()
         block = doc.begin()
         
         import re
-        # Pattern to find Level Numbers: [1.1] or [1.1.1]
-        # Allow optional spaces inside brackets: [ 1.1 ]
-        pattern = re.compile(r'^\[\s*(\d+(?:\.\d+)+)\s*\]')
+        pattern_toc = re.compile(r'^\[\s*(\d+(?:\.\d+)+)\s*\]')
+        pattern_bookmark = re.compile(r'🔖\s*(.*)', re.UNICODE)
         
-        # DEBUG: Print scan start
-        # logger is implicit or use print for now
-        # print("DEBUG: Starting TOC Refresh...")
-        
+        idx = 1
         while block.isValid():
             text = block.text().strip()
-            # print(f"DEBUG: Scanning Block: '{text}'") # Keep this commented to avoid spam, or uncomment if needed
             
-
-
-
-            # Check for Level Boxes [1.1]
-            match = pattern.match(text)
-            if match:
-                # Level Box Logic
-                content_block = block.next()
-                content_text = content_block.text().strip() if content_block.isValid() else ""
-                
-                level = match.group(1) # "1.1"
-                display_text = f"{level} {content_text}"
-                
-                dots = level.count('.')
-                indent = "    " * (dots - 1) if dots > 1 else ""
-                
-                item = QListWidgetItem(f"{indent}{display_text}")
-                item.setData(Qt.ItemDataRole.UserRole, block.position())
-                item.setToolTip(display_text)
-                self.toc_list.addItem(item)
-                
-            # 2. Standard Headers (H1-H3) are EXCLUDED per user request.
-            # Only Level Boxes ([1.1], [1.1.1]) are shown.
+            if self.toc_mode == 'toc':
+                match = pattern_toc.match(text)
+                if match:
+                    content_block = block.next()
+                    content_text = content_block.text().strip() if content_block.isValid() else ""
+                    level = match.group(1)
+                    display_text = f"{level} {content_text}"
+                    dots = level.count('.')
+                    indent = "    " * (dots - 1) if dots > 1 else ""
+                    item = QListWidgetItem(f"{indent}{display_text}")
+                    item.setData(Qt.ItemDataRole.UserRole, block.position())
+                    item.setToolTip(display_text)
+                    self.toc_list.addItem(item)
+            else:
+                match = pattern_bookmark.search(text)
+                if match:
+                    rest = match.group(1).strip()
+                    if not rest:
+                        next_b = block.next()
+                        rest = next_b.text().strip()[:30] + "..." if next_b.isValid() else "Bookmark"
+                    
+                    display_text = f"🔖 {idx}. {rest}"
+                    item = QListWidgetItem(display_text)
+                    item.setData(Qt.ItemDataRole.UserRole, block.position())
+                    item.setToolTip(text)
+                    self.toc_list.addItem(item)
+                    idx += 1
             
             block = block.next()
             
@@ -2302,6 +2765,21 @@ class TextEditor(QWidget):
             self.editor.setTextCursor(cursor)
             self.editor.ensureCursorVisible()
             self.editor.setFocus()
+
+    def insert_bookmark(self):
+        """Insert a bookmark symbol at the cursor position."""
+        cursor = self.editor.textCursor()
+        # Ensure it's on a new line or at least has a space
+        if not cursor.atBlockStart():
+            cursor.insertText("\n")
+        
+        cursor.insertText("🔖 ")
+        self.editor.setTextCursor(cursor)
+        self.editor.setFocus()
+        
+        # Auto-refresh if in bookmark mode
+        if getattr(self, 'toc_mode', 'toc') == 'bookmarks':
+            self.refresh_toc()
 
     # --- End New Handlers ---
 
