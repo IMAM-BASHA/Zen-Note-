@@ -102,9 +102,65 @@ class CustomizeToolbarDialog(QDialog):
         return list(self.hidden_ids)
 
     def _apply_theme(self):
-        # Basic dark mode support if parent has it
-        if self.parent() and hasattr(self.parent(), 'styleSheet'):
-            self.setStyleSheet(self.parent().styleSheet())
+        mode = self.parent().property("theme_mode") if self.parent() else "light"
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        
+        self.setStyleSheet(f"""
+            QDialog {{ background-color: {c['background']}; }}
+            QLabel {{ color: {c['foreground']}; font-size: 14px; font-weight: 500; }}
+            QScrollArea {{ border: 1px solid {c['border']}; border-radius: 8px; background: {c['card']}; }}
+            QWidget#ScrollContent {{ background: {c['card']}; }}
+            QCheckBox {{ color: {c['foreground']}; padding: 8px; font-size: 13px; }}
+            QCheckBox::indicator {{ width: 18px; height: 18px; border-radius: 4px; border: 2px solid {c['border']}; }}
+            QCheckBox::indicator:checked {{ background-color: {c['primary']}; border-color: {c['primary']}; }}
+            QPushButton {{ 
+                background: {c['secondary']}; color: {c['secondary_foreground']}; 
+                border-radius: 8px; padding: 8px 16px; border: 1px solid {c['border']};
+            }}
+            QPushButton:hover {{ background: {c['accent']}; }}
+        """)
+
+class ToolbarActionWidget(QWidget):
+    """Custom menu widget with pinning checkbox and action trigger."""
+    def __init__(self, item, item_id, is_hidden, on_toggle_pin, parent=None):
+        super().__init__(parent)
+        self.item = item
+        self.item_id = item_id
+        self.on_toggle_pin = on_toggle_pin
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(8, 2, 8, 2)
+        layout.setSpacing(10)
+        
+        # 1. Pin Checkbox
+        self.chk = QCheckBox()
+        self.chk.setChecked(not is_hidden)
+        self.chk.setToolTip("Pin to Toolbar")
+        self.chk.stateChanged.connect(lambda state: self.on_toggle_pin(self.item_id, state == Qt.CheckState.Checked.value))
+        layout.addWidget(self.chk)
+        
+        # 2. Action Trigger (Icon + Name)
+        self.btn = QPushButton()
+        self.btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn.setStyleSheet("QPushButton { text-align: left; background: transparent; border: none; padding: 4px; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.05); }")
+        
+        if isinstance(item, QAction):
+            self.btn.setIcon(item.icon())
+            self.btn.setText(item.text() or item.toolTip())
+            self.btn.clicked.connect(item.trigger)
+        elif isinstance(item, QWidget):
+            self.btn.setText(item.toolTip() or "Widget")
+            # For widgets, clicking just selects/focuses them if possible, or triggers primary action
+            if hasattr(item, 'clicked'): self.btn.clicked.connect(item.clicked)
+            
+        layout.addWidget(self.btn, 1)
+        
+    def _apply_theme(self, mode):
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        fg = c['foreground']
+        accent = c['accent']
+        self.btn.setStyleSheet(f"QPushButton {{ color: {fg}; text-align: left; background: transparent; border: none; padding: 4px; border-radius: 4px; }} QPushButton:hover {{ background: {accent}; }}")
+        # Checkbox indicator handle via QMenu stylesheet usually, but here it's an embedded widget
 
 class CustomTitleBar(QWidget):
     """
@@ -185,47 +241,27 @@ class CustomTitleBar(QWidget):
         """Rebuilds the toolbar based on hidden items."""
         
         # 1. RECLAIM & FILTER WIDGETS
-        # We must Identify valid widgets and reclaim them from potential death 
-        # (e.g. from a destroying QWidgetAction).
         valid_items = []
-        
         for item in self.all_items_ref:
             if isinstance(item, QWidget):
                 try:
-                    # Try to access object to check liveness & Reclaim ownership
-                    # Calling setParent(self) pulls it out of any QWidgetAction or previous layout
                     item.setParent(self) 
                     item.setVisible(False)
                     valid_items.append(item)
                 except RuntimeError:
-                    # Widget has been deleted (C++ object dead)
-                    # We must drop it to prevent crash
-                    print(f"WARNING: Toolbar item {item} was deleted externally. Removing from toolbar.")
                     continue
             else:
-                # QAction or string (SEPARATOR)
                 valid_items.append(item)
-        
-        # 2. CLEAR LAYOUT (Removes More Tools btn, separators, etc.)
-        # CRITICAL: Do NOT destroy widgets we just validated/reclaimed!
+                
+        # 2. CLEAR LAYOUT
         while self.toolbar_layout.count():
             child = self.toolbar_layout.takeAt(0)
-            w = child.widget()
-            if w:
-                if w in valid_items:
-                    # This widget is safe, we own it now. 
-                    # Just ensure it's not deleted.
-                    continue
-                else:
-                    # Garbage (Separators, old More Tools btn, etc.)
-                    w.setParent(None) 
-                
-        self.more_tools_btn = None
-                
-        hidden_items_list = []
+            if child.widget():
+                child.widget().setParent(None)
         
-        # Track separators to avoid duplicates
-        last_was_separator = True 
+        # 3. BUILD
+        hidden_items = []
+        last_was_separator = True # Start with true to avoid leading separator
         
         for item in valid_items:
             if item == "SEPARATOR":
@@ -233,34 +269,38 @@ class CustomTitleBar(QWidget):
                     self._add_separator()
                     last_was_separator = True
                 continue
-
-            # Identify Item
+                
             item_id = self._get_item_id(item)
-            
-            if item_id and item_id in self.hidden_action_ids:
-                hidden_items_list.append(item)
+            if item_id in self.hidden_action_ids:
+                hidden_items.append(item)
                 continue
                 
             # Add to Toolbar
             self._add_toolbar_item(item, item_id)
             last_was_separator = False
 
-        # Add "More Tools" button if we have hidden items
-        if hidden_items_list:
-            if not last_was_separator:
-                self._add_separator()
-            self._add_more_tools_btn(hidden_items_list)
+        # 4. ADD "MORE TOOLS" IF NEEDED
+        if hidden_items:
+            self._add_more_tools_btn(hidden_items)
+            
+        self.toolbar_container.update()
 
     def _get_item_id(self, item):
         try:
-            if isinstance(item, QWidget):
-                return item.toolTip()
-            elif isinstance(item, QAction):
-                return item.toolTip() or item.text()
-        except RuntimeError:
-            # Handle cases where C++ object is deleted
-            return None
+            if isinstance(item, QWidget): return item.toolTip()
+            if isinstance(item, QAction): return item.toolTip() or item.text()
+        except RuntimeError: return None
         return None
+
+    def _toggle_pin(self, item_id, checked):
+        """Callback from More Tools menu checkboxes."""
+        if checked:
+            if item_id in self.hidden_action_ids:
+                self.hidden_action_ids.remove(item_id)
+        else:
+            self.hidden_action_ids.add(item_id)
+        self._save_settings()
+        self.repopulate_toolbar()
 
     def _add_separator(self):
         line = QLabel()
@@ -292,8 +332,10 @@ class CustomTitleBar(QWidget):
             # Create a tool button for the action for automatic syncing
             btn = QToolButton()
             btn.setDefaultAction(item)
-            btn.setFixedSize(26, 26)
+            btn.setFixedSize(32, 28) # Standardized larger size
+            btn.setIconSize(QSize(20, 20)) # Standardized icon size
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             
             # Apply Style
             btn.setProperty("class", "ToolbarBtn")
@@ -336,32 +378,36 @@ class CustomTitleBar(QWidget):
         # Ensure we keep a reference
         self.more_tools_btn = btn
         
-        btn.setText("⋮") 
+        # Use premium icon instead of text ellipsis
+        mode = self.property("theme_mode") or "light"
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        btn_color = "#FFFFFF" if is_dark else c['muted_foreground']
+        
+        btn.setIcon(get_premium_icon("more_vertical", color=btn_color))
+        btn.setIconSize(QSize(20, 20))
         btn.setToolTip("More Tools")
         btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        btn.setFixedSize(26, 26)
+        btn.setFixedSize(32, 28) # Standardized with other toolbar actions
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(self._get_toolbar_btn_style(self.property("theme_mode") or "light"))
+        btn.setStyleSheet(self._get_toolbar_btn_style(mode))
+        
+        # Store for theme refreshing
+        btn.setProperty("icon_name", "more_vertical")
         
         menu = QMenu(btn)
+        menu.setStyleSheet(self._get_menu_style(mode))
         
         # Populate with hidden items
         for item in hidden_items:
-            if isinstance(item, QAction):
-                menu.addAction(item)
-            elif isinstance(item, QWidget):
-            # Wrap widget in a persistent QWidgetAction
-            # This prevents the widget from being deleted when the menu is closed/destroyed
-            # because the Action (owned by self) holds the widget, not the temporary menu.
+            item_id = self._get_item_id(item)
+            action = QWidgetAction(self)
             
-            # Check if we already have an action for this widget
-                action = self.widget_actions.get(item)
-                if action is None:
-                    action = QWidgetAction(self) # Parent to TitleBar to persist
-                    action.setDefaultWidget(item)
-                    self.widget_actions[item] = action
-                    
-                menu.addAction(action)
+            row = ToolbarActionWidget(item, item_id, True, self._toggle_pin, self)
+            row._apply_theme(mode)
+            
+            action.setDefaultWidget(row)
+            menu.addAction(action)
                 
         menu.addSeparator()
         cust_action = QAction("Customize Toolbar...", self)
@@ -424,13 +470,6 @@ class CustomTitleBar(QWidget):
         is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         
         # Opacities for Zen feel
-        hover_bg = f"{c['primary']}20" # 12% opacity roughly (hex alpha) - assuming valid hex. 
-        # Actually styles.py uses some rgba, some hex. Let's be safe and use existing vars if possible or construct rgba.
-        # But styles.py hashes are like #7B9E87.
-        
-        # Let's use the 'active_item_bg' from styles if available, or construct it.
-        # styles.py has 'active_item_bg': "rgba(123, 158, 135, 0.15)"
-        
         active_bg = c.get('active_item_bg', "rgba(0,0,0,0.1)")
         accent_bg = c['accent']
         
@@ -438,9 +477,9 @@ class CustomTitleBar(QWidget):
             QPushButton, QToolButton {{
                 background: transparent;
                 border: 1px solid transparent;
-                border-radius: 6px; /* Soften corners */
+                border-radius: 10px; /* Enhanced Rounded Box */
                 padding: 4px;
-                margin: 2px;
+                margin: 0px 1px;
             }}
             QPushButton::menu-indicator, QToolButton::menu-indicator {{
                 image: none;
@@ -474,7 +513,7 @@ class CustomTitleBar(QWidget):
                 background-color: {c['card']}; /* Card background for depth */
                 color: {c['foreground']};
                 border: 1px solid {c['input']};
-                border-radius: 6px;
+                border-radius: 10px;
                 padding: 4px 8px;
                 font-family: "Inter", sans-serif;
                 font-size: 12px;
@@ -495,6 +534,34 @@ class CustomTitleBar(QWidget):
             QSpinBox::up-button:hover, QSpinBox::down-button:hover {{
                 background-color: {c['accent']};
                 border-radius: 2px;
+            }}
+        """
+    
+    def _get_menu_style(self, mode="light"):
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        return f"""
+            QMenu {{
+                background-color: {c['background']};
+                color: {c['foreground']};
+                border: 1px solid {c['border']};
+                border-radius: 8px;
+                padding: 4px;
+            }}
+            QMenu::item {{
+                padding: 6px 20px 6px 12px;
+                border-radius: 6px;
+                margin: 2px 4px;
+                font-family: "Inter", sans-serif;
+                font-size: 13px;
+            }}
+            QMenu::item:selected {{
+                background-color: {c['accent']};
+                color: {c['accent_foreground']};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background-color: {c['border']};
+                margin: 4px 8px;
             }}
         """
 
@@ -522,6 +589,13 @@ class CustomTitleBar(QWidget):
             QScrollArea {{
                 border: none;
                 background: transparent;
+            }}
+            QMenu {{
+                background-color: {c['background']};
+                color: {c['foreground']};
+                border: 1px solid {c['border']};
+                border-radius: 8px;
+                padding: 4px;
             }}
         """)
         
@@ -586,6 +660,9 @@ class CustomTitleBar(QWidget):
             
             if isinstance(widget, (QPushButton, QToolButton)):
                 widget.setStyleSheet(toolbar_style)
+                # Refresh icon if name is stored (e.g. for More Tools btn)
+                if isinstance(widget, QToolButton) and widget.property("icon_name"):
+                    widget.setIcon(get_premium_icon(widget.property("icon_name"), color=btn_color))
             elif isinstance(widget, (QComboBox, QSpinBox)):
                 widget.setStyleSheet(input_style)
             elif widget.property("class") == "ToolbarSeparator":

@@ -1,0 +1,17 @@
+﻿2026-02-11 21:25:39,863 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 351, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 459, in _setup_header
+    self.theme_btn.clicked.connect(self.themeToggleRequest.emit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'themeToggleRequest'. Did you mean: 'panelToggleRequest'?

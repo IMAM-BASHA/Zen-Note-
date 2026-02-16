@@ -7,35 +7,30 @@ import ui.styles as styles
 import os
 
 class NoteCardDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None, theme_mode="light"):
+    def __init__(self, parent=None, theme_mode="light", is_grid=False):
         super().__init__(parent)
         self.theme_mode = theme_mode
+        self.is_grid = is_grid
         self.cover_cache = {} # path -> QPixmap
 
     def set_theme_mode(self, mode):
         self.theme_mode = mode
 
     def sizeHint(self, option, index):
-        # Optimized for "Vertical Grid" (Card List) within constrained sidebar width
         if option.widget:
             viewport = option.widget.viewport()
             total_width = viewport.width()
             
-            # Margins (Standardized for Zen aesthetic)
-            margin = 24 
+            # Margins
+            margin = 16 
             available_width = total_width - margin
             
-            # Enforce Vertical Layout (1 Column) for Grid View as requested.
-            # This ensures cards fill the sidebar width properly up to the 450px limit.
-            card_width = available_width
-            card_width = min(420, card_width)
+            # Clamp width but keep it responsive
+            card_width = min(420, max(200, available_width))
             
-            # Minimum width clamp
-            card_width = max(200, card_width)
-            
-            # 120px height for improved multi-line metadata visibility
-            return QSize(int(card_width), 120)
-        return QSize(250, 120)
+            # 110px height is consistent for horizontal layout
+            return QSize(int(card_width), 110)
+        return QSize(250, 110)
 
     def paint(self, painter, option, index):
         painter.save()
@@ -80,14 +75,11 @@ class NoteCardDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        # 4. Layout: Left (Image/Placeholder) / Right (Text)
-        img_width = 80 # Fixed width for image/placeholder
         content_rect = card_rect.adjusted(10, 10, -10, -10)
         
-        # Image Rect (Left)
+        # Consistent Horizontal Layout for all modes
+        img_width = 70 if self.is_grid else 80
         image_rect = QRectF(content_rect.x(), content_rect.y(), img_width, content_rect.height())
-        
-        # Text Rect (Right)
         text_x = content_rect.x() + img_width + 12
         text_width = content_rect.width() - img_width - 12
         text_rect = QRectF(text_x, content_rect.y(), text_width, content_rect.height())
@@ -206,11 +198,11 @@ class NoteCardDelegate(QStyledItemDelegate):
         # Calculate bounding rect but limit height
         title_bound = painter.boundingRect(QRectF(text_rect), Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop | Qt.TextFlag.TextWordWrap, title_text)
         
-        # Clamp title height to max 3 lines (approx 42px) -> standard line height for 9pt is ~14px
-        max_title_height = 42 
+        # Clamp title height to max 2 lines (approx 28px) for more compact look
+        max_title_height = 28 
         actual_title_height = min(title_bound.height(), max_title_height)
         
-        title_rect_draw = QRectF(text_rect.x(), text_rect.y(), text_rect.width(), actual_title_height)
+        title_rect_draw = QRectF(text_rect.x(), text_rect.y(), text_rect.width() - 25, actual_title_height)
         
         # Use ElideRight if it exceeds max height?
         # DrawText doesn't support vertical elision easily with TextWordWrap. 
@@ -300,7 +292,7 @@ class NoteCardDelegate(QStyledItemDelegate):
             painter.drawPixmap(QPointF(icon_x, icon_y + 1), trash_icon)
             
             r = QRectF(icon_x + 14, icon_y, text_rect.width() - 14, 12)
-            painter.drawText(r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, f"Original: {orig_folder}")
+            painter.drawText(r, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, f"Originally in: {orig_folder}")
 
         painter.restore()
 

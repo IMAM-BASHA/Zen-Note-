@@ -1,15 +1,13 @@
 {
-    "theme_mode": "noir_ember",
+    "theme_mode": "ocean_depth",
     "whiteboard_split_view": true,
     "notebooks": [
         {
-            "id": "279d6ef2-7d99-4515-82cf-a06c8a794e0d",
-            "name": "Personal Notebook",
+            "id": "d775fd47-07d8-484b-b86e-c7c62fec539b",
+            "name": "hello",
             "folder_ids": [
-                "Recent",
-                "Trash",
-                "sdf",
-                "yes"
+                "news",
+                "Trash"
             ],
             "is_expanded": true
         }
@@ -53,9 +51,6 @@
             "description": null,
             "view_mode": "list"
         },
-        "hes": {
-            "last_note_id": "2f554847-d7eb-4d7d-8b7f-06b094fff5eb"
-        },
         "sd": {
             "last_note_id": "a8c63f02-c0c1-4aa0-b6f4-21493e59bee0"
         },
@@ -67,9 +62,6 @@
         },
         "hars": {
             "last_note_id": "1a0a9417-a399-48e8-a3e6-53975e1d36e8"
-        },
-        "sdf": {
-            "last_note_id": "c3bc1af7-f7c0-4c29-bbae-8157bcd44b1c"
         },
         "few things": {
             "last_note_id": "4b813ecb-30b3-4f18-9d84-717654f0fcb2"
@@ -105,9 +97,6 @@
         },
         "sdf4": {
             "last_note_id": "0492b439-12e5-45cc-9768-0ef933d280c5"
-        },
-        "we want": {
-            "last_note_id": "c8bd90a4-bbd9-4390-87be-28495d04bfcc"
         },
         "internal working of python": {
             "last_note_id": "84f3228f-8c95-4329-a92a-5216e20243be"
@@ -248,11 +237,6 @@
         },
         "new3": {
             "last_note_id": "788a1a43-db22-473f-b1c6-58b83f95b044"
-        },
-        "working": {
-            "last_note_id": "a6d93af5-95b4-4665-9fb7-bc108dee7d60",
-            "is_pinned": false,
-            "priority": 3
         },
         "nese": {
             "is_pinned": false,
@@ -504,13 +488,6 @@
         "hello_6": {
             "last_note_id": "94b13458-adc3-48b2-a244-780eab0b17a4"
         },
-        "sdfd": {
-            "is_pinned": false,
-            "priority": 0,
-            "is_archived": false,
-            "color": "#55ff00",
-            "is_locked": false
-        },
         "dfsdf": {
             "is_pinned": false,
             "priority": 0,
@@ -569,7 +546,7 @@
             "view_mode": "list"
         },
         "TRASH_ROOT": {
-            "last_note_id": "yss]"
+            "last_note_id": "6edcc1e6-2df9-4aff-b95b-7cacdab41756"
         },
         "fixing": {
             "is_pinned": false,
@@ -580,17 +557,6 @@
             "cover_image": null,
             "description": null,
             "view_mode": "list"
-        },
-        "Recent": {
-            "is_pinned": false,
-            "priority": 0,
-            "is_archived": false,
-            "color": null,
-            "is_locked": false,
-            "cover_image": null,
-            "description": null,
-            "view_mode": "list",
-            "last_note_id": "3efffe3e-8dbe-4bab-ae7c-ab2afdf01bb8"
         },
         "List": {
             "is_pinned": false,
@@ -627,11 +593,37 @@
             "description": null,
             "view_mode": "list"
         },
+        "dsd": {
+            "is_pinned": true,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list",
+            "last_note_id": "11b06163-5b24-4982-848f-f2cfa135b361"
+        },
+        "news": {
+            "last_note_id": "900941ba-6d3e-4d28-a675-f47e86084709",
+            "is_pinned": false,
+            "priority": 0,
+            "is_archived": false,
+            "color": null,
+            "is_locked": false,
+            "cover_image": null,
+            "description": null,
+            "view_mode": "list",
+            "editor_background_color": "#ff00ff"
+        },
+        "ns": {
+            "last_note_id": "6a6e276d-18be-4d4c-8658-756e892d5a34"
+        },
         "Trash": {
-            "last_note_id": "yss]"
+            "last_note_id": "6a6e276d-18be-4d4c-8658-756e892d5a34"
         }
     },
-    "last_selected_folder_id": "Recent",
+    "last_selected_folder_id": "Trash",
     "last_image_dir": "C:/Users/IMAM/Desktop",
     "wrap_mode": true,
     "whiteboard_settings": {
@@ -646,8 +638,8 @@
     },
     "hr_thickness": 1,
     "hr_color": "#00aaff",
-    "last_export_dir": "C:/Users/IMAM/Desktop",
-    "custom_highlight_color": "#ffaa00",
+    "last_export_dir": "C:/Users/IMAM/Desktop/s",
+    "custom_highlight_color": "#55ff00",
     "shortcuts": {
         "global_new_note": "Ctrl+N",
         "global_new_folder": "Ctrl+Shift+N",
@@ -677,7 +669,7 @@
     "level1_color": "#ff5500",
     "level2_color": "#00007f",
     "show_toc": "true",
-    "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots1",
+    "last_image_import_dir": "C:/Users/IMAM/Pictures/Screenshots",
     "hidden_toolbar_actions": [
         "action_check",
         "action_super",
@@ -701,5 +693,9 @@
                 "type": "youtube"
             }
         ]
-    }
+    },
+    "notebooks_initialized": true,
+    "editor_text_color": "#000000",
+    "editor_font_family": "Courier New",
+    "last_export_custom_color": "#55FF00"
 }

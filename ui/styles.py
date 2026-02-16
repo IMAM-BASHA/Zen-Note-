@@ -231,15 +231,15 @@ def get_stylesheet(mode="light"):
     c = ZEN_THEME.get(mode, ZEN_THEME["light"])
     
     # Common radius and font settings
-    radius = "12px" # Rounded styling from reference
+    radius = "10px" # Refined rounded styling
     
-    # Premium Typography System
-    # 1. Inter: engineered for screens, neutral and efficient.
-    font = 'font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", sans-serif;'
-    # 2. Playfair Display: academic, sophisticated, and traditional.
-    display_font = 'font-family: "Playfair Display", "Constantia", "Sitka Heading", "Cambria", "Georgia", serif;'
-    # 3. IBM Plex Mono: technical precision and offline craftsmanship.
-    mono_font = 'font-family: "IBM Plex Mono", "JetBrains Mono", "Consolas", "Monaco", monospace;'
+    # Premium Typography System (Neutral & Professional)
+    # 1. Inter: engineered for screens, neutral and efficient (ChatGPT Style).
+    font = 'font-family: "Inter", "Segoe UI", sans-serif;'
+    # 2. Playfair Display: luxury serif for branding.
+    display_font = 'font-family: "Playfair Display", serif;'
+    # 3. IBM Plex Mono: technical precision.
+    mono_font = 'font-family: "IBM Plex Mono", "JetBrains Mono", monospace;'
     
     return f"""
         /* GLOBAL RESET & TYPOGRAPHY */
@@ -282,26 +282,30 @@ def get_stylesheet(mode="light"):
             background-color: transparent;
             color: {c['sidebar_fg']};
             border: none;
-            padding: 4px;
-            selection-background-color: {c['active_item_bg']};
-            selection-color: {c['primary'] if mode == 'light' else '#ffffff'};
+            padding: 2px 4px;
+            selection-background-color: transparent;
+            selection-color: {c['sidebar_fg']};
+            outline: none;
         }}
         QTreeWidget::item {{
-            padding: 10px 16px;
-            border-radius: {radius};
-            margin-bottom: 4px;
+            padding: 0px;
+            border-radius: 10px;
+            margin: 1px 4px;
             color: {c['sidebar_fg']};
-            font-family: "Inter", sans-serif;
-            font-size: 14px;
+            font-family: "DM Sans", "Inter", sans-serif;
+            font-size: 13px;
         }}
         QTreeWidget::item:hover {{
-            background-color: {c['accent']};
-            color: {c['accent_foreground']};
+            background-color: transparent;
         }}
         QTreeWidget::item:selected {{
-            background-color: {c['active_item_bg']};
-            color: {c['primary'] if mode == 'light' else '#ffffff'};
-            font-weight: 600;
+            background-color: transparent;
+            color: {c['sidebar_fg']};
+        }}
+        
+        /* Hide default branch selection highlights (Blue Block fix) */
+        QTreeWidget::branch:selected, QTreeWidget::branch:hover {{
+            background: transparent;
         }}
         
         /* NOTE LIST - CARD STYLE */
@@ -379,9 +383,10 @@ def get_stylesheet(mode="light"):
             background-color: {c['primary']};
             color: {c['primary_foreground']};
             border: 1px solid {c['primary']};
+            border-radius: 10px;
         }}
         QPushButton#PrimaryBtn:hover, QPushButton#NewNoteBtn:hover, QPushButton#NewFolderBtn:hover {{
-            background-color: {c['primary']}; /* Shadcn usually typically opacity change, we'll shift slightly */
+            background-color: {c['primary']};
             border: 1px solid {c['primary']};
             opacity: 0.9;
         }}
@@ -396,11 +401,11 @@ def get_stylesheet(mode="light"):
         QPushButton#ViewToggleBtn {{
             background-color: {c['secondary']};
             border: 1px solid {c['border']};
-            border-radius: 8px;
+            border-radius: 10px; /* Rounded Box Interaction */
             padding: 4px;
         }}
         QPushButton#ViewToggleBtn:hover {{
-            background-color: {c['accent']};
+            background-color: {c['elevated']};
             border: 1px solid {c['primary']};
         }}
 
@@ -458,16 +463,19 @@ def get_stylesheet(mode="light"):
 
         /* --- SCROLLBARS --- */
         QScrollBar:vertical {{
-            background: {c['scrollbar_bg']};
-            width: 10px;
-            margin: 0px;
-            border-radius: 0px;
+            background: transparent;
+            width: 6px;
+            margin: 2px;
+            border-radius: 3px;
         }}
         QScrollBar::handle:vertical {{
             background: {c['scrollbar_handle']};
             min-height: 24px;
-            border-radius: 5px;
-            margin: 2px;
+            border-radius: 3px;
+            margin: 0px;
+        }}
+        QScrollBar::handle:vertical:hover {{
+            background: {c.get('muted_foreground', c['scrollbar_handle'])};
         }}
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
             height: 0px;

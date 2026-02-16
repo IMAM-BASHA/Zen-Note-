@@ -1,0 +1,32 @@
+﻿DEBUG: SpeedReaderBar.__init__ CALLED
+DEBUG: TTSWorker.init_engine CALLED
+DEBUG: Initializing pyttsx3 with sapi5...
+DEBUG: _refresh_toolbar_icons called with mode='ocean_depth', color='#E8F4F8'
+DEBUG: get_toolbar_actions -> L1: <PyQt6.QtWidgets.QToolButton object at 0x000001551CCDF110>, Visible: False
+DEBUG: Adding Toolbar Item: <PyQt6.QtWidgets.QToolButton object at 0x000001551CCDF110> (ToolTip: Level 1 Box) - Visible? False - Size: PyQt6.QtCore.QSize(48, 28)
+DEBUG: Adding Toolbar Item: <PyQt6.QtWidgets.QToolButton object at 0x000001551CCDF430> (ToolTip: Level 2 Box) - Visible? False - Size: PyQt6.QtCore.QSize(48, 28)
+DEBUG: apply_theme propagating mode='ocean_depth' to components
+2026-02-11 21:29:21,057 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 793, in set_theme_mode
+    self.refresh_list()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 907, in refresh_list
+    search_text = self.search_bar.text().lower()
+                  ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'search_bar'. Did you mean: 'search_inner'?
+DEBUG: pyttsx3 initialized successfully.
+DEBUG: System voices found: 2
+DEBUG: Voice 0: Microsoft David Desktop - English (United States) (ID: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0)
+DEBUG: Voice 1: Microsoft Zira Desktop - English (United States) (ID: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_ZIRA_11.0)

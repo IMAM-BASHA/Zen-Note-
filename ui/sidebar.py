@@ -1,3 +1,4 @@
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QTreeWidget, QTreeWidgetItem, 
     QLineEdit, QPushButton, QHBoxLayout, QMenu, QMessageBox, QFileDialog,
@@ -5,14 +6,14 @@ from PyQt6.QtWidgets import (
     QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QRect, QRectF
-from PyQt6.QtGui import QFont, QColor, QAction, QPainter, QIcon, QBrush, QPen, QPainterPath
-from ui.color_delegate import ColorDelegate, COLOR_ROLE
+from PyQt6.QtGui import QFont, QColor, QAction, QPainter, QIcon, QBrush, QPen, QPainterPath, QLinearGradient, QPixmap
 import ui.styles as styles
 from util.icon_factory import get_premium_icon, get_combined_indicators
 from ui.zen_dialog import ZenInputDialog
 from ui.theme_chooser import ThemeChooserDialog
 from ui.focus_mode import FocusModeDialog
 from ui.animations import pulse_button
+from models.folder import Folder
 
 VIEW_MODE_LIST = "list"
 VIEW_MODE_GRID = "grid"
@@ -21,16 +22,25 @@ class FolderCardDelegate(QStyledItemDelegate):
     def __init__(self, parent=None, theme_mode="light"):
         super().__init__(parent)
         self.theme_mode = theme_mode
+        self.cover_cache = {} # path -> QPixmap
 
     def set_theme_mode(self, mode):
         self.theme_mode = mode
 
     def sizeHint(self, option, index):
-        # Folder cards should be rich and match the Note Grid aesthetic
+        # Match NoteCardDelegate responsive aesthetic
         if option.widget:
-            width = option.widget.viewport().width() - 20
-            # If width is too large, we could do 2 columns, but for sidebar 1 is safer
-            return QSize(int(width), 110)
+            viewport = option.widget.viewport()
+            total_width = viewport.width()
+            
+            # Margins (Standardized for Zen aesthetic)
+            margin = 16 
+            available_width = total_width - margin
+            
+            # Clamp width but keep it responsive
+            card_width = min(420, max(200, available_width))
+            
+            return QSize(int(card_width), 110)
         return QSize(250, 110)
 
     def paint(self, painter, option, index):
@@ -53,7 +63,6 @@ class FolderCardDelegate(QStyledItemDelegate):
             rect = option.rect.adjusted(16, 10, -16, 0)
             painter.setPen(muted_color)
             font = QFont("Inter", 8, QFont.Weight.Bold)
-            font.setStretch(100)
             painter.setFont(font)
             name = index.data(Qt.ItemDataRole.DisplayRole) or ""
             painter.drawText(rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, name.upper())
@@ -76,10 +85,20 @@ class FolderCardDelegate(QStyledItemDelegate):
         painter.drawPath(path)
         
         # 4. Data Extraction (DEFENSIVE)
+        folder = index.data(Qt.ItemDataRole.UserRole + 1)
         folder_color_raw = getattr(folder, 'color', None) if folder else None
         # Use theme foreground as default for better contrast
         default_icon_color = c.get('sidebar_fg', c.get('foreground', '#3D3A38'))
         folder_color_str = folder_color_raw if folder_color_raw else default_icon_color
+        
+        # Determine Icon properties early to avoid NameError
+        folder_name = index.data(Qt.ItemDataRole.DisplayRole) or ""
+        icon_name = "folder"
+        if "Trash" in folder_name: icon_name = "trash_2"
+        elif "Archived" in folder_name: icon_name = "archive"
+        elif "Recent" in folder_name: icon_name = "clock"
+        elif "Ideas" in folder_name: icon_name = "heart"
+        icon_size = 40
         
         # 5. Layout: Left (Icon/Image) / Right (Content)
         img_width = 80
@@ -88,34 +107,64 @@ class FolderCardDelegate(QStyledItemDelegate):
         inner_rect = rect.adjusted(content_margin, content_margin, -content_margin, -content_margin)
         icon_rect = QRectF(inner_rect.x(), inner_rect.y(), img_width, inner_rect.height())
         
-        # Draw Placeholder (Like notes)
-        painter.save()
-        placeholder_color = QColor(c.get('muted', "#F2F0ED"))
-        p_path = QPainterPath()
-        p_path.addRoundedRect(icon_rect, 8, 8)
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(placeholder_color)
-        painter.drawPath(p_path)
-        
-        # Determine Icon based on Folder Type/Name
-        folder_name = index.data(Qt.ItemDataRole.DisplayRole) or ""
-        icon_name = "folder"
-        if "Trash" in folder_name: icon_name = "trash_2"
-        elif "Archived" in folder_name: icon_name = "archive"
-        elif "Recent" in folder_name: icon_name = "clock"
-        elif "Ideas" in folder_name: icon_name = "heart"
-        
-        # Draw Icon
-        icon_size = 40
-        folder_icon = get_premium_icon(icon_name, color=folder_color_str)
-        icon_pixmap = folder_icon.pixmap(icon_size, icon_size)
-        icon_draw_rect = QRectF(
-            icon_rect.center().x() - icon_size/2,
-            icon_rect.center().y() - icon_size/2,
-            icon_size, icon_size
-        )
-        painter.drawPixmap(icon_draw_rect.toRect(), icon_pixmap)
-        painter.restore()
+        # 5. Draw Image or Placeholder
+        has_image = False
+        if getattr(folder, 'cover_image', None) and os.path.exists(folder.cover_image):
+            pixmap = self.cover_cache.get(folder.cover_image)
+            if not pixmap:
+                pixmap = QPixmap(folder.cover_image)
+                if not pixmap.isNull():
+                    pixmap = pixmap.scaled(QSize(200, 200), 
+                                         Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
+                                         Qt.TransformationMode.SmoothTransformation)
+                    self.cover_cache[folder.cover_image] = pixmap
+            
+            if pixmap and not pixmap.isNull():
+                has_image = True
+                painter.save()
+                
+                # Aspect Fill logic for Folder Icon
+                target_rect = icon_rect
+                target_ratio = target_rect.width() / target_rect.height() if target_rect.height() > 0 else 1
+                source_ratio = pixmap.width() / pixmap.height() if pixmap.height() > 0 else 1
+                
+                source_rect = QRectF(pixmap.rect())
+                if source_ratio > target_ratio:
+                    new_width = source_rect.height() * target_ratio
+                    x_offset = (source_rect.width() - new_width) / 2
+                    source_rect = QRectF(x_offset, 0, new_width, source_rect.height())
+                else:
+                    new_height = source_rect.width() / target_ratio
+                    y_offset = (source_rect.height() - new_height) / 2
+                    source_rect = QRectF(0, y_offset, source_rect.width(), new_height)
+                
+                # Rounded clip
+                img_path = QPainterPath()
+                img_path.addRoundedRect(target_rect, 8, 8) # Inner radius
+                painter.setClipPath(img_path)
+                painter.drawPixmap(target_rect, pixmap, source_rect)
+                painter.restore()
+
+        if not has_image:
+            # Draw Placeholder (Like notes)
+            painter.save()
+            placeholder_color = QColor(c.get('muted', "#F2F0ED"))
+            p_path = QPainterPath()
+            p_path.addRoundedRect(icon_rect, 8, 8)
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(placeholder_color)
+            painter.drawPath(p_path)
+            
+            # Draw Icon
+            folder_icon = get_premium_icon(icon_name, color=folder_color_str)
+            icon_pixmap = folder_icon.pixmap(icon_size, icon_size)
+            icon_draw_rect = QRectF(
+                icon_rect.center().x() - icon_size/2,
+                icon_rect.center().y() - icon_size/2,
+                icon_size, icon_size
+            )
+            painter.drawPixmap(icon_draw_rect.toRect(), icon_pixmap)
+            painter.restore()
         
         # Text Area
         text_x = icon_rect.right() + 12
@@ -126,7 +175,6 @@ class FolderCardDelegate(QStyledItemDelegate):
         name_text = folder_name if folder_name else "Untitled"
         painter.setPen(text_color)
         title_font = QFont("Inter", 10, QFont.Weight.Bold)
-        title_font.setStretch(100)
         painter.setFont(title_font)
         
         elided_title = painter.fontMetrics().elidedText(name_text, Qt.TextElideMode.ElideRight, int(text_rect.width()))
@@ -186,136 +234,231 @@ class FolderListDelegate(QStyledItemDelegate):
         self.theme_mode = mode
 
     def sizeHint(self, option, index):
-        # Header or Standard Item?
-        if index.data(Qt.ItemDataRole.UserRole + 2) == "SECTION_HEADER":
-            return QSize(option.rect.width(), 40) # Headers more breathable
-        return QSize(option.rect.width(), 48) # Premium item height
+        item_type = index.data(Qt.ItemDataRole.UserRole + 2)
+        if item_type == "SECTION_HEADER":
+            return QSize(option.rect.width(), 28)
+        if item_type == "SPACER":
+            return QSize(option.rect.width(), 6)
+        return QSize(option.rect.width(), 36)
 
     def paint(self, painter, option, index):
         painter.save()
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        is_dark = self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hover = option.state & QStyle.StateFlag.State_MouseOver
         
-        bg_color = QColor(c.get('card', "#FFFFFF"))
         text_color = QColor(c.get('foreground', "#3D3A38"))
         muted_color = QColor(c.get('muted_foreground', "#8D8682"))
         primary_color = QColor(c.get('primary', "#7B9E87"))
         
         rect = option.rect
-        
-        # 1. Determine Type
         item_type = index.data(Qt.ItemDataRole.UserRole + 2)
         
+        # ── SECTION HEADER ──
         if item_type == "SECTION_HEADER":
-            # Just Draw Text
             header_text = index.data(Qt.ItemDataRole.DisplayRole) or ""
-            painter.setPen(muted_color)
-            font = QFont("Inter", 8, QFont.Weight.Bold)
-            font.setStretch(100)
+            
+            # Check for Minimized State
+            if rect.width() < 80:
+                # Draw Icon Centered
+                icon_name = "folder"
+                if "Favorites" in header_text: icon_name = "heart"
+                elif "Recent" in header_text: icon_name = "clock"
+                elif "Trash" in header_text: icon_name = "trash_2"
+                elif "Notebooks" in header_text: icon_name = "book"
+                
+                # Use muted, slightly transparent color
+                icon_color = QColor(c.get('muted_foreground', '#8D8682'))
+                icon = get_premium_icon(icon_name, color=icon_color.name())
+                
+                icon_size = 20
+                icon_rect = QRectF(
+                    rect.center().x() - icon_size/2,
+                    rect.center().y() - icon_size/2,
+                    icon_size, icon_size
+                )
+                painter.drawPixmap(icon_rect.toRect(), icon.pixmap(icon_size, icon_size))
+                painter.restore()
+                return
+
+            # JetBrains Mono, 9px, weight 500, letter-spacing 0.16em
+            font = QFont("JetBrains Mono", 7)
+            font.setWeight(QFont.Weight.Medium)
+            font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 116)
             painter.setFont(font)
             
-            # Align bottom-left for headers
-            text_rect = rect.adjusted(16, 8, -4, -4)
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, header_text.upper())
+            # Check for toggle (Chevron)
+            section_key = index.data(Qt.ItemDataRole.UserRole + 3)
+            # Fetch explicitly as bool/int because sometimes it might be None if not set
+            is_expanded_val = index.data(Qt.ItemDataRole.UserRole + 4)
+            is_expanded = bool(is_expanded_val) if is_expanded_val is not None else True
+            
+            # Use muted color matching --text-muted
+            label_color = QColor(c.get('muted_foreground', '#4d5370'))
+            label_color.setAlpha(160)
+
+            if section_key:
+                # Draw Chevron
+                painter.save()
+                arrow_size = 8
+                # Center vertically based on text baseline approx or rect center
+                arrow_y = rect.center().y() - arrow_size / 2
+                arrow_rect = QRectF(rect.left() + 8, arrow_y, arrow_size, arrow_size)
+                
+                path = QPainterPath()
+                if is_expanded:
+                    # Down Arrow
+                    path.moveTo(arrow_rect.left(), arrow_rect.top() + 3)
+                    path.lineTo(arrow_rect.center().x(), arrow_rect.bottom() - 3)
+                    path.lineTo(arrow_rect.right(), arrow_rect.top() + 3)
+                else:
+                    # Right Arrow
+                    path.moveTo(arrow_rect.left() + 2, arrow_rect.top())
+                    path.lineTo(arrow_rect.right() - 2, arrow_rect.center().y())
+                    path.lineTo(arrow_rect.left() + 2, arrow_rect.bottom())
+                
+                painter.setPen(QPen(label_color, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawPath(path)
+                painter.restore()
+            
+            # Draw label text
+            label_text = header_text.upper()
+            fm = painter.fontMetrics()
+            text_w = fm.horizontalAdvance(label_text)
+            
+            text_left = rect.left() + 20
+            text_rect = QRectF(text_left, rect.top(), text_w + 4, rect.height())
+            # Use muted color matching --text-muted
+            label_color = QColor(c.get('muted_foreground', '#4d5370'))
+            label_color.setAlpha(160)
+            painter.setPen(label_color)
+            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom, label_text)
+            
+            # Trailing gradient line (like ::after in zen-notes.html)
+            line_x_start = text_left + text_w + 10
+            line_x_end = rect.right() - 20
+            if line_x_end > line_x_start:
+                line_y = int(rect.bottom() - fm.descent() - fm.height() / 2 + 2)
+                gradient = QLinearGradient(line_x_start, line_y, line_x_end, line_y)
+                line_base = QColor(c.get('border', '#E0DDD9'))
+                line_base.setAlpha(30 if is_dark else 50)
+                gradient.setColorAt(0, line_base)
+                gradient.setColorAt(1, QColor(0, 0, 0, 0))
+                painter.setPen(QPen(QBrush(gradient), 1))
+                painter.drawLine(int(line_x_start), line_y, int(line_x_end), line_y)
+            
             painter.restore()
             return
             
         elif item_type == "SPACER":
-            # Draw nothing
+            # Draw a subtle divider line
+            line_y = rect.center().y()
+            line_color = QColor(c.get('border', '#E0DDD9'))
+            line_color.setAlpha(40 if is_dark else 60)
+            painter.setPen(QPen(line_color, 1))
+            painter.drawLine(int(rect.left() + 18), int(line_y), int(rect.right() - 18), int(line_y))
             painter.restore()
             return
 
-        # 2. Draw Background (Hover/Select) - No card bg by default!
-        # In this "Clean List" mode, we only highlight on hover/select.
+        # ── FOLDER ITEM ──
+        item_rect = rect.adjusted(6, 2, -6, -2)
         
         if is_selected:
-            # Subtle selection background
-            sel_bg = QColor(c.get('selection_bg', c['secondary']))
-            # sel_bg.setAlpha(150)
+            # Subtle accent background with rounded rect
+            sel_bg = QColor(c.get('active_item_bg', c.get('accent', 'rgba(0,0,0,0.05)')))
             painter.setBrush(QBrush(sel_bg))
             painter.setPen(Qt.PenStyle.NoPen)
-            # Rounded pill shape for selection? Or full width?
-            # User image shows highlighting. Let's do rounded pill with margins.
-            # Change text color?
-            sel_rect = rect.adjusted(4, 3, -4, -3)
-            painter.drawRoundedRect(sel_rect, 10, 10)
+            painter.drawRoundedRect(QRectF(item_rect), 8, 8)
             
-            # Usually stays foreground in Zen, maybe Primary?
-            # text_color = primary_color 
+            # Left accent bar (teal/primary gradient)
+            bar_h = 18
+            bar_y = item_rect.center().y() - bar_h / 2
+            bar_rect = QRectF(item_rect.left(), bar_y, 3, bar_h)
+            accent_color = primary_color
+            painter.setBrush(QBrush(accent_color))
+            painter.setPen(Qt.PenStyle.NoPen)
+            bar_path = QPainterPath()
+            bar_path.addRoundedRect(bar_rect, 1.5, 1.5)
+            painter.drawPath(bar_path)
             
         elif is_hover:
             hover_bg = QColor(c.get('secondary', "#F5F5F4"))
-            hover_bg.setAlpha(120)
+            hover_bg.setAlpha(80 if is_dark else 100)
             painter.setBrush(QBrush(hover_bg))
             painter.setPen(Qt.PenStyle.NoPen)
-            sel_rect = rect.adjusted(4, 3, -4, -3)
-            painter.drawRoundedRect(sel_rect, 10, 10)
-            
-        # 3. Icon
+            painter.drawRoundedRect(QRectF(item_rect), 8, 8)
+
+        # ── Layout: [num] [icon] [text] ──
+        content_x = item_rect.left() + 10
+        
+        # Number label (index prefix like "1.", "2.")
+        display_text = index.data(Qt.ItemDataRole.DisplayRole) or ""
+        num_text = ""
+        folder_name = display_text
+        
+        # Extract number prefix if present (e.g. "1. ddsdfd" -> num="1", folder_name="ddsdfd")
+        if display_text and len(display_text) > 2 and display_text[0].isdigit():
+            parts = display_text.split('. ', 1)
+            if len(parts) == 2 and parts[0].strip().isdigit():
+                num_text = parts[0].strip()
+                folder_name = parts[1]
+        
+        # Draw number
+        if num_text:
+            # JetBrains Mono, 10px, weight 500, opacity 0.4
+            num_font = QFont("JetBrains Mono", 8)
+            num_font.setWeight(QFont.Weight.Medium)
+            painter.setFont(num_font)
+            num_color = QColor(c.get('muted_foreground', '#4d5370'))
+            if is_selected:
+                num_color = QColor(primary_color)
+                num_color.setAlpha(200)
+            else:
+                num_color.setAlpha(100)  # opacity ~0.4
+            painter.setPen(num_color)
+            num_rect = QRectF(content_x, rect.top(), 16, rect.height())
+            painter.drawText(num_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, num_text)
+            content_x += 22
+        
+        # Icon
         icon = index.data(Qt.ItemDataRole.DecorationRole)
-        icon_size = 18
-        icon_x = rect.left() + 14
-        
+        icon_size = 17
         if icon:
-            # We want to use the QIcon but maybe recolor it if selected?
-            # The icon passed in is already colored (premium icon).
-            icon_rect = QRectF(icon_x, rect.center().y() - icon_size/2, icon_size, icon_size)
+            icon_rect = QRectF(content_x, rect.center().y() - icon_size / 2, icon_size, icon_size)
             icon.paint(painter, icon_rect.toRect(), Qt.AlignmentFlag.AlignCenter, QIcon.Mode.Normal, QIcon.State.On)
+        content_x += icon_size + 10
         
-        # 4. Text
-        text = index.data(Qt.ItemDataRole.DisplayRole)
-        text_x = icon_x + icon_size + 12
-        text_w = rect.width() - text_x - 40 # Reserve space for count
-        
-        if text:
-            painter.setPen(text_color)
-            font = QFont("Inter", 10) # Using 10pt/13px for cleaner look
-            font.setStretch(100)
-            if is_selected: font.setBold(True)
+        # Text — DM Sans 13.5px, weight 400 (500 when active)
+        text_w = item_rect.right() - content_x - 8
+        if folder_name:
+            # Text — DM Sans 10px, weight 500 (600 when active) for "thick" look
+            # Color: Use foreground (bright) instead of muted to make it "glow" against dark
+            txt_color = QColor(c.get('foreground', '#E8EAF2')) 
+            if is_selected:
+                txt_color = QColor(c.get('primary_foreground', '#FFFFFF'))
+            
+            painter.setPen(txt_color)
+            # Use Inter SemiBold 11pt for "smooth bold" look (less thick than Bold)
+            font = QFont("Inter", 11)
+            font.setWeight(QFont.Weight.DemiBold) # Weight 600
+            if is_selected:
+                font.setPointSize(11) 
+                
             painter.setFont(font)
             
-            text_rect = QRectF(text_x, rect.top(), text_w, rect.height())
-            elided = painter.fontMetrics().elidedText(text, Qt.TextElideMode.ElideRight, int(text_rect.width()))
-            painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided)
-            
-        # 5. Badge (Right Aligned)
-        # Check UserRole + 5 for Count Data
-        count_data = index.data(Qt.ItemDataRole.UserRole + 5)
-        if count_data:
-            count_str = str(count_data)
-            
-            # Badge Rect
-            badge_font = QFont("Inter", 8, QFont.Weight.Bold)
-            painter.setFont(badge_font)
-            fm = painter.fontMetrics()
-            txt_w = fm.horizontalAdvance(count_str)
-            pad_h = 8
-            badge_w = max(20, txt_w + 12)
-            badge_h = 16
-            
-            badge_x = rect.right() - badge_w - 12
-            badge_y = rect.center().y() - badge_h/2
-            badge_rect = QRectF(badge_x, badge_y, badge_w, badge_h)
-            
-            # Badge style
-            is_active_badge = is_selected or "Ideas" in str(text) # Maybe highlight popular items?
-            badge_bg = primary_color if is_active_badge else QColor(c.get('muted', "#F2F0ED"))
-            badge_fg = QColor("#FFFFFF") if is_active_badge else muted_color
-            
-            painter.setBrush(QBrush(badge_bg))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(badge_rect, 8, 8)
-            
-            painter.setPen(badge_fg)
-            painter.drawText(badge_rect, Qt.AlignmentFlag.AlignCenter, count_str)
+            text_rect_f = QRectF(content_x, rect.top(), text_w, rect.height())
+            elided = painter.fontMetrics().elidedText(folder_name, Qt.TextElideMode.ElideRight, int(text_rect_f.width()))
+            painter.drawText(text_rect_f, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided)
             
         painter.restore()
 
 class Sidebar(QWidget):
     folderSelected = pyqtSignal(str) # Emits folder ID
+    noteSelected = pyqtSignal(str)   # NEW: Emits note ID
     createFolder = pyqtSignal(str, str) # folder_name, notebook_id
     deleteFolder = pyqtSignal(str)   # Emits folder ID
     renameFolder = pyqtSignal(str, str)  # Emits folder ID, new name
@@ -324,6 +467,10 @@ class Sidebar(QWidget):
     exportWhiteboard = pyqtSignal(str) # Emits folder ID for whiteboard export
     updateFolder = pyqtSignal(str, dict) # Emits folder ID, updates dict
     reorderFolder = pyqtSignal(str, int) # Emits folder ID, new position (index)
+    restoreFolder = pyqtSignal(str, str) # Emits folder ID, trash_path
+    restoreNote = pyqtSignal(str, str)   # NEW: note_id, trash_path
+    permanentDeleteFolder = pyqtSignal(str) # Emits trash_path
+    permanentDeleteNote = pyqtSignal(str)   # NEW: trash_path
     requestHighlightPreview = pyqtSignal(str) # folder_id
     requestPdfPreview = pyqtSignal(str) # folder_id
     toggleTheme = pyqtSignal(str)  # Emits chosen theme key
@@ -332,6 +479,11 @@ class Sidebar(QWidget):
     deleteNotebook = pyqtSignal(str)
     lockToggled = pyqtSignal(bool)
     panelToggleRequest = pyqtSignal() # Phase 46
+    sectionChanged = pyqtSignal(str) # Emits active section key (FOLDERS, RECENT, etc)
+    removeFromRecentRequested = pyqtSignal(str)
+    deleteNoteRequested = pyqtSignal(str)
+    clearRecentRequested = pyqtSignal()
+    emptyTrashRequest = pyqtSignal() # NEW: Phase 46.2
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -342,15 +494,29 @@ class Sidebar(QWidget):
         
         self.all_folders = []
         self.all_notebooks = []
+        self.trashed_folders = []
+        self.independent_trash_notes = [] # NEW: Notes directly in .trash
         self.sort_descending = True
         self.showing_archived = False
         self.theme_mode = "light" # Track current theme
         self.view_mode = VIEW_MODE_LIST
         self.current_icon_color = "#3D3A38" # Default for light
+        
+        # Collapsible Section State
+        self.section_expanded = {
+            "FAVORITES": True,
+            "RECENT": True,
+            "FOLDERS": True,
+            "SYSTEM": False
+        }
+        
+        self.active_section = "FOLDERS" # Current horizontal toggle section
 
         self._setup_header()
         self._setup_search()
+        self._setup_view_toggles() # Horizontal Segmented Control
         self._setup_list()
+        self._setup_internal_note_list() # NEW: For Recent/Trash direct views
         self._setup_bottom()
 
     def resizeEvent(self, event):
@@ -402,11 +568,53 @@ class Sidebar(QWidget):
             else:
                 self.title_label.hide()
 
+        # Update Toggle Buttons (Text vs Icon)
+        if hasattr(self, 'toggle_buttons'):
+            # Switch to icons when narrow (< 160px)
+            is_mini = width < 160
+            
+            c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+            icon_color = c.get('sidebar_fg', c.get('foreground', '#3D3A38'))
+            
+            for key, btn in self.toggle_buttons.items():
+                if is_mini:
+                    if btn.text(): btn.setText("")
+                    icon_name = "folder"
+                    if key == "FAVORITES": icon_name = "heart"
+                    elif key == "RECENT": icon_name = "clock"
+                    elif key == "TRASH": icon_name = "trash_2"
+                    
+                    btn.setIcon(get_premium_icon(icon_name, color=icon_color))
+                    btn.setIconSize(QSize(20, 20))
+                    btn.setToolTip(key.title())
+                    # Minimal padding for mini mode
+                    btn.setStyleSheet(btn.styleSheet() + " QPushButton { padding: 6px 2px; }")
+                else:
+                    if not btn.text(): btn.setText(key.title())
+                    btn.setIcon(QIcon())
+                    btn.setToolTip("")
+                    btn.setStyleSheet(btn.styleSheet().replace(" QPushButton { padding: 6px 2px; }", ""))
+
+        # Hide search bar and controls if very narrow
+        if hasattr(self, 'search_bar'):
+            self.search_bar.setVisible(width > 140)
+        if hasattr(self, 'nb_row'): # Container for selector
+            self.nb_row.setVisible(width > 170)
+        if hasattr(self, 'add_btn'):
+            # Maybe show only icon for add button if narrowed?
+            if width < 160:
+                if self.add_btn.text(): self.add_btn.setText("")
+                self.add_btn.setFixedWidth(36)
+            else:
+                if not self.add_btn.text(): self.add_btn.setText(" New Folder")
+                self.add_btn.setMinimumWidth(100)
+                self.add_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+
     def _setup_header(self):
         header_container = QWidget()
         header_container.setObjectName("SidebarHeader") # For Global Styling
         self.header_layout = QVBoxLayout(header_container)
-        self.header_layout.setContentsMargins(16, 20, 16, 16) # More breathing room
+        self.header_layout.setContentsMargins(20, 20, 20, 16) # Exact zen-notes.html: 20px 20px 16px
         self.header_layout.setSpacing(16)
         
         # --- ROW 1: BRANDING ---
@@ -432,9 +640,10 @@ class Sidebar(QWidget):
         self.brand_layout.addWidget(self.logo_container)
         
         # Title - constrain to text width so it doesn't absorb extra space
-        self.title_label = QLabel("Zen Notes")
+        self.title_label = QLabel("ZEN NOTES")
         self.title_label.setObjectName("SidebarTitle")
         self.title_label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
+        self.title_label.setStyleSheet("font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: #3D3A38;")
         self.brand_layout.addWidget(self.title_label)
         
         # Theme Toggle (Top Right)
@@ -473,8 +682,8 @@ class Sidebar(QWidget):
         self.header_layout.addWidget(brand_row)
         
         # --- ROW 2: NOTEBOOK SELECTOR & CONTROLS ---
-        nb_row = QWidget()
-        nb_layout = QHBoxLayout(nb_row)
+        self.nb_row = QWidget()
+        nb_layout = QHBoxLayout(self.nb_row)
         nb_layout.setContentsMargins(0,0,0,0)
         nb_layout.setSpacing(8)
         
@@ -492,58 +701,52 @@ class Sidebar(QWidget):
         
         nb_layout.addWidget(self.nb_selector)
 
-        # Vertical Controls (Small)
-        controls_layout = QVBoxLayout()
+        # Horizontal Controls (Small & Clean)
+        self.nb_controls = QWidget()
+        controls_layout = QHBoxLayout(self.nb_controls)
         controls_layout.setContentsMargins(0, 0, 0, 0)
-        controls_layout.setSpacing(0)
+        controls_layout.setSpacing(4)
         
         # 1. Add Notebook
         self.add_folder_btn = QPushButton()
-        self.add_folder_btn.setIcon(get_premium_icon("plus"))
-        self.add_folder_btn.setFixedSize(24, 18)
-        self.add_folder_btn.setIconSize(QSize(12, 12))
+        self.add_folder_btn.setFixedSize(28, 28)
+        self.add_folder_btn.setIconSize(QSize(14, 14))
         self.add_folder_btn.setToolTip("New Notebook")
         self.add_folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_folder_btn.clicked.connect(lambda: (pulse_button(self.add_folder_btn), self.prompt_new_notebook()))
-        # Style flat
-        self.add_folder_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
         
         # 2. Delete Notebook
         self.delete_nb_btn = QPushButton()
-        self.delete_nb_btn.setIcon(get_premium_icon("trash")) 
-        self.delete_nb_btn.setFixedSize(24, 18)
-        self.delete_nb_btn.setIconSize(QSize(12, 12))
+        self.delete_nb_btn.setFixedSize(28, 28)
+        self.delete_nb_btn.setIconSize(QSize(14, 14))
         self.delete_nb_btn.setToolTip("Delete Notebook")
         self.delete_nb_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.delete_nb_btn.clicked.connect(self._on_delete_notebook_clicked)
-        self.delete_nb_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(239, 68, 68, 0.2); }")
 
         # 3. Lock
         self.lock_btn = QPushButton()
-        self.lock_btn.setIcon(get_premium_icon("unlock"))
         self.lock_btn.setCheckable(True)
-        self.lock_btn.setFixedSize(24, 18)
-        self.lock_btn.setIconSize(QSize(12, 12))
+        self.lock_btn.setFixedSize(28, 28)
+        self.lock_btn.setIconSize(QSize(14, 14))
         self.lock_btn.setToolTip("Lock Navigation")
         self.lock_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.lock_btn.toggled.connect(self._on_lock_toggled)
-        self.lock_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
 
         controls_layout.addWidget(self.add_folder_btn)
         controls_layout.addWidget(self.delete_nb_btn)
         controls_layout.addWidget(self.lock_btn)
         
-        nb_layout.addLayout(controls_layout)
+        nb_layout.addWidget(self.nb_controls)
         
         # --- End of Header --
-        self.header_layout.addWidget(nb_row)
+        self.header_layout.addWidget(self.nb_row)
         self.layout.addWidget(header_container)
 
     def _setup_search(self):
         # Horizontal Layout: [ Search Bar ] [Sort] [Wrap] [Eye] [Mark]
         container = QWidget()
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(16, 0, 16, 10) # Match header margin width, bottom spacing
+        layout.setContentsMargins(16, 14, 16, 10) # zen-notes.html: padding: 14px 16px 0
         layout.setSpacing(6)
         layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
@@ -558,17 +761,17 @@ class Sidebar(QWidget):
         
         self.search_bar.setStyleSheet("""
             QLineEdit {
-                border-radius: 8px;
-                padding-left: 5px;
-                padding-right: 10px;
-                font-size: 11px;
+                border-radius: 10px;
+                padding: 6px 10px;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
                 background: rgba(0,0,0,0.03);
-                border: 1px solid rgba(0,0,0,0.05);
+                border: 1px solid rgba(0,0,0,0.04);
                 color: #3D3A38;
             }
             QLineEdit:focus {
                 background: #FFFFFF;
-                border: 1px solid rgba(0,0,0,0.1);
+                border: 1px solid rgba(123, 158, 135, 0.4);
             }
         """)
         self.search_bar.textChanged.connect(self.refresh_list)
@@ -585,7 +788,7 @@ class Sidebar(QWidget):
         self.wrap_btn.setIconSize(QSize(18, 18))
         self.wrap_btn.setCheckable(True)
         self.wrap_btn.clicked.connect(lambda: self.wrapToggled.emit(self.wrap_btn.isChecked()))
-        self.wrap_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 6px; } QPushButton:hover { background: rgba(0,0,0,0.05); } QPushButton:checked { background: rgba(0,0,0,0.1); }")
+        self.wrap_btn.setObjectName("ViewToggleBtn") # Standardize styling
         layout.addWidget(self.wrap_btn)
         
         # 2. Preview
@@ -595,7 +798,7 @@ class Sidebar(QWidget):
         self.preview_btn.setFixedSize(icon_size, icon_size)
         self.preview_btn.setIconSize(QSize(16, 16))
         self.preview_btn.clicked.connect(lambda: self.requestPdfPreview.emit(str(self._get_active_folder_id()))) 
-        self.preview_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
+        self.preview_btn.setObjectName("ViewToggleBtn") # Standardize styling
         layout.addWidget(self.preview_btn)
 
         # 3. Highlight
@@ -605,10 +808,197 @@ class Sidebar(QWidget):
         self.highlight_preview_btn.setFixedSize(icon_size, icon_size)
         self.highlight_preview_btn.setIconSize(QSize(16, 16))
         self.highlight_preview_btn.clicked.connect(lambda: self.requestHighlightPreview.emit(str(self._get_active_folder_id())))
-        self.highlight_preview_btn.setStyleSheet("QPushButton { border: none; background: transparent; border-radius: 4px; } QPushButton:hover { background: rgba(0,0,0,0.1); }")
+        self.highlight_preview_btn.setObjectName("ViewToggleBtn") # Standardize styling
         layout.addWidget(self.highlight_preview_btn)
 
         self.layout.addWidget(container)
+
+    def _setup_view_toggles(self):
+        """Create a horizontal segmented control for switching categories."""
+        container = QWidget()
+        container.setObjectName("SidebarToggleContainer")
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(16, 4, 16, 10)
+        layout.setSpacing(4)
+        
+        self.toggle_buttons = {}
+        sections = [
+            ("Folders", "FOLDERS"),
+            ("Favorites", "FAVORITES"),
+            ("Recent", "RECENT"),
+            ("Trash", "TRASH")
+        ]
+        
+        # Style for the segmented buttons
+        button_style = """
+            QPushButton {
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                color: #64748B;
+                background: transparent;
+            }
+            QPushButton:hover {
+                background: rgba(0,0,0,0.03);
+            }
+            QPushButton[active="true"] {
+                color: #3D3A38;
+                background: rgba(0,0,0,0.06);
+                font-weight: 600;
+            }
+        """
+        
+        for label, key in sections:
+            btn = QPushButton(label)
+            btn.setCheckable(False)
+            btn.setProperty("section_key", key)
+            btn.setProperty("active", "true" if key == self.active_section else "false")
+            btn.setStyleSheet(button_style)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.clicked.connect(lambda checked, k=key: self.set_active_section(k))
+            
+            layout.addWidget(btn)
+            self.toggle_buttons[key] = btn
+            
+        self.layout.addWidget(container)
+        
+        # Trigger initial update
+        self.resizeEvent(None)
+
+    def _setup_internal_note_list(self):
+        """Hidden note list for Recent/Trash 'Zen' views."""
+        from ui.note_card_delegate import NoteCardDelegate
+        
+        # 1. Internal Stacked Widget to support List/Grid inside the Zen View
+        self.internal_stack = QStackedWidget()
+        
+        # List Mode
+        self.internal_notes_list = QListWidget()
+        self.internal_notes_list.setObjectName("SidebarNoteItems")
+        self.internal_notes_list.setSpacing(4)
+        self.internal_notes_list.itemClicked.connect(self._on_internal_note_clicked)
+        self.internal_notes_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.internal_notes_list.customContextMenuRequested.connect(self.show_internal_notes_context_menu)
+        
+        from ui.note_card_delegate import NoteCardDelegate
+        self.note_delegate = NoteCardDelegate(self.internal_notes_list)
+        self.internal_notes_list.setItemDelegate(self.note_delegate)
+        
+        # Grid Mode
+        self.internal_notes_grid = QListWidget()
+        self.internal_notes_grid.setObjectName("SidebarNoteGrid")
+        self.internal_notes_grid.setViewMode(QListWidget.ViewMode.IconMode)
+        self.internal_notes_grid.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.internal_notes_grid.setSpacing(8)
+        self.internal_notes_grid.itemClicked.connect(self._on_internal_note_clicked)
+        self.internal_notes_grid.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.internal_notes_grid.customContextMenuRequested.connect(self.show_internal_notes_context_menu)
+        
+        self.grid_delegate = NoteCardDelegate(self.internal_notes_grid, is_grid=True)
+        self.internal_notes_grid.setItemDelegate(self.grid_delegate)
+        
+        self.internal_stack.addWidget(self.internal_notes_list)
+        self.internal_stack.addWidget(self.internal_notes_grid)
+        
+        # Add to main stack as index 2
+        self.stacked_list.addWidget(self.internal_stack)
+
+    def show_internal_notes_context_menu(self, pos):
+        """Context menu for Recent/Trash notes in sidebar."""
+        widget = self.sender()
+        item = widget.itemAt(pos)
+        if not item: return
+        
+        note_id = item.data(Qt.ItemDataRole.UserRole)
+        if not note_id: return
+        
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+        
+        menu = QMenu(self)
+        
+        if self.active_section == "RECENT":
+            remove_act = menu.addAction("Remove from Recent")
+            remove_act.triggered.connect(lambda: self.removeFromRecentRequested.emit(note_id))
+            
+            menu.addSeparator()
+            
+            delete_act = menu.addAction("Move to Trash")
+            delete_act.triggered.connect(lambda: self.deleteNoteRequested.emit(note_id))
+            
+            menu.addSeparator()
+            
+            clear_act = menu.addAction("Clear All Recent")
+            clear_act.triggered.connect(lambda: self.clearRecentRequested.emit())
+            
+        elif self.active_section == "TRASH":
+            restore_act = menu.addAction(get_premium_icon("rotate_ccw", color="#10B981"), "Restore Note")
+            delete_perm_act = menu.addAction(get_premium_icon("delete", color="#EF4444"), "Delete Permanently")
+            
+            menu.addSeparator()
+            empty_trash_act = menu.addAction(get_premium_icon("trash", color="#EF4444"), "Empty Trash")
+            
+            action = menu.exec(widget.mapToGlobal(pos))
+            if action == restore_act:
+                self.restoreNote.emit(note_id, "") # Trash path lookup happens in MainWindow
+            elif action == delete_perm_act:
+                # We need trash path for permanent delete
+                # Simple notes in sidebar have it in UserRole+1 or we search
+                note = item.data(Qt.ItemDataRole.UserRole + 1)
+                t_path = getattr(note, '_trash_path', None)
+                if t_path: self.permanentDeleteNote.emit(t_path)
+            elif action == empty_trash_act:
+                self.emptyTrashRequest.emit()
+
+    def _on_internal_note_clicked(self, item):
+        note_id = item.data(Qt.ItemDataRole.UserRole)
+        if note_id:
+            self.noteSelected.emit(note_id)
+
+    def set_active_section(self, section_key):
+        """Update active button state and refresh the list."""
+        if self.active_section == section_key:
+            return
+            
+        self.active_section = section_key
+        
+        # Update button properties for styling
+        for key, btn in self.toggle_buttons.items():
+            btn.setProperty("active", "true" if key == self.active_section else "false")
+            btn.style().unpolish(btn)
+            btn.style().polish(btn)
+            btn.update()
+            
+        self.sectionChanged.emit(section_key)
+        self.refresh_list()
+
+    def populate_internal_notes(self, notes):
+        """Update the sidebar's note list/grid (Index 2)."""
+        self.internal_notes_list.clear()
+        self.internal_notes_grid.clear()
+        
+        from PyQt6.QtWidgets import QListWidgetItem
+        from ui.color_delegate import COLOR_ROLE
+        
+        for idx, note in enumerate(notes, 1):
+            # 1. List Item
+            item_list = QListWidgetItem(f"{idx}. {note.title}")
+            item_list.setData(Qt.ItemDataRole.UserRole, note.id)
+            item_list.setData(Qt.ItemDataRole.UserRole + 1, note) # For delegate
+            if getattr(note, 'color', None):
+                item_list.setData(COLOR_ROLE, note.color)
+            self.internal_notes_list.addItem(item_list)
+            
+            # 2. Grid Item
+            item_grid = QListWidgetItem(f"{idx}. {note.title}")
+            item_grid.setData(Qt.ItemDataRole.UserRole, note.id)
+            item_grid.setData(Qt.ItemDataRole.UserRole + 1, note)
+            if getattr(note, 'color', None):
+                item_grid.setData(COLOR_ROLE, note.color)
+            self.internal_notes_grid.addItem(item_grid)
 
     def _get_active_folder_id(self):
         """Helper to get currently selected folder ID regardless of view mode."""
@@ -629,10 +1019,10 @@ class Sidebar(QWidget):
         self.list_tree = QTreeWidget()
         self.list_tree.setObjectName("FolderTree")
         self.list_tree.setHeaderHidden(True)
-        self.list_tree.setIndentation(20)
+        self.list_tree.setIndentation(0) # Remove default branch area (fixes blue block artifact)
         self.list_tree.setAnimated(True)
-        self.list_tree.setRootIsDecorated(True)
-        self.list_tree.setUniformRowHeights(True)
+        self.list_tree.setRootIsDecorated(False) # We draw our own chevrons in the delegate
+        self.list_tree.setUniformRowHeights(False) # REQUIRED for variable height items (spacers/headers)
         self.list_tree.itemClicked.connect(self.on_item_clicked)
         self.list_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.list_tree.customContextMenuRequested.connect(self.show_context_menu)
@@ -724,6 +1114,7 @@ class Sidebar(QWidget):
         """Updates the sidebar header and components for the given theme mode."""
         self.theme_mode = mode
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
         # DYNAMIC COLOR lookup instead of binary check
         self.current_icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
         icon_color = self.current_icon_color
@@ -740,17 +1131,46 @@ class Sidebar(QWidget):
         self.focus_btn.setIcon(get_premium_icon("headphones", color=icon_color))
         self.settings_btn.setIcon(get_premium_icon("settings", color=icon_color))
         
+        # Update Brand Typography
+        self.title_label.setStyleSheet(f"font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: {icon_color};")
+        
         # Update Bottom Icons
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
         
         # Update View Toggle Icon
-        if self.view_mode == VIEW_MODE_GRID:
+        if getattr(self, 'view_mode', VIEW_MODE_LIST) == VIEW_MODE_GRID:
             self.view_toggle_btn.setIcon(get_premium_icon("layout_list", color=icon_color))
         else:
             self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=icon_color))
             
         # Selectors & Input
-        self.nb_selector.setStyleSheet(f"QComboBox {{ background: {c.get('input', '#FFFFFF')}; color: {c['foreground']}; border: 1px solid {c.get('border', '#E0DDD9')}; border-radius: 6px; padding: 4px; }}")
+        self.nb_selector.setStyleSheet(f"""
+            QComboBox {{ 
+                background: {c.get('card', '#FFFFFF')}; 
+                color: {c['foreground']}; 
+                border: 1px solid {c.get('border', '#E0DDD9')}; 
+                border-radius: 12px; 
+                padding: 6px 12px; 
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                min-height: 34px;
+                max-height: 34px;
+            }}
+            QComboBox:hover {{
+                border-color: {c.get('primary', '#7B9E87')};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+        """)
+
+        # Sidebar Header Separation
+        self.sidebar_header_widget = self.header_layout.parentWidget()
+        if self.sidebar_header_widget:
+            self.sidebar_header_widget.setStyleSheet(f"#SidebarHeader {{ border-bottom: 1px solid {c.get('border', '#E0DDD9')}44; }}") # Subtle 44 alpha
+
         # FIXED: Preserve compact search bar sizing (32px height, 8px radius, 11px font)
         search_icon_color = c.get('muted_foreground', '#94A3B8')
         if hasattr(self, 'search_action'):
@@ -787,6 +1207,10 @@ class Sidebar(QWidget):
         self.wrap_btn.setIcon(get_premium_icon("filter", color=icon_color))
         self.preview_btn.setIcon(get_premium_icon("eye", color=icon_color))
         self.highlight_preview_btn.setIcon(get_premium_icon("sparkle", color=icon_color))
+        
+        # POLISH: Ensure the header container itself has a subtle separation line if needed
+        # but Zen mode usually prefers clean space. Let's add a very subtle border-bottom.
+        # self.header_layout.parentWidget().setStyleSheet(f"border-bottom: 1px solid {c.get('border', '#EEE')};")
         
         # Refresh to apply theme to icons in list
         self.refresh_list()
@@ -829,8 +1253,44 @@ class Sidebar(QWidget):
         self.view_toggle_btn.setIcon(get_premium_icon(view_icon, color=icon_color))
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
         
-        # Add Button Icon (Usually white for Primary)
-        self.add_btn.setIcon(get_premium_icon("plus", color="#FFFFFF"))
+        # Add Button icon - dark on bright gradient for dark themes, white on solid primary for light
+        add_icon_color = "#0d1219" if is_dark else "#FFFFFF"
+        self.add_btn.setIcon(get_premium_icon("plus", color=add_icon_color))
+        
+        # New Folder Button - Premium Zen look (teal-to-blue gradient)
+        primary = c.get('primary', '#7B9E87')
+        primary_fg = c.get('primary_foreground', '#FFFFFF')
+        
+        # Use a gradient for dark themes, solid primary for light themes
+        if is_dark:
+            btn_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3dd6c4, stop:0.5 #4db8e8, stop:1 #5b9cf6)'
+            btn_fg = '#0d1219'
+            btn_hover_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #35c4b3, stop:0.5 #44a8d8, stop:1 #518ce6)'
+        else:
+            btn_bg = primary
+            btn_fg = primary_fg
+            btn_hover_bg = f'{primary}DD'
+        
+        self.add_btn.setStyleSheet(f"""
+            QPushButton#NewFolderBtn {{
+                background: {btn_bg};
+                color: {btn_fg};
+                border: none;
+                border-radius: 12px;
+                padding: 8px 16px;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
+                font-weight: 600;
+            }}
+            QPushButton#NewFolderBtn:hover {{
+                background: {btn_hover_bg};
+            }}
+            QPushButton#NewFolderBtn:pressed {{
+                background: {btn_bg};
+                margin-top: 0px;
+                margin-left: 0px;
+            }}
+        """)
         
         # Final refresh to apply everything
         self.refresh_list()
@@ -845,7 +1305,7 @@ class Sidebar(QWidget):
         bottom_container = QWidget()
         # Main layout for bottom - vertical to stack rows if needed
         bottom_main_layout = QVBoxLayout(bottom_container)
-        bottom_main_layout.setContentsMargins(10, 10, 10, 15)
+        bottom_main_layout.setContentsMargins(16, 14, 16, 18) # zen-notes.html: padding: 14px 16px 18px
         bottom_main_layout.setSpacing(10)
 
         # Control Row (Panel Toggle, Grid Toggle, New Button)
@@ -889,6 +1349,16 @@ class Sidebar(QWidget):
     def set_view_mode(self, mode):
         """Standardize view mode and update UI."""
         if self.view_mode == mode: return
+        
+        # Capture current selection for sync
+        current_id = None
+        if self.list_widget == self.list_tree:
+            item = self.list_tree.currentItem()
+            if item: current_id = item.data(0, Qt.ItemDataRole.UserRole)
+        elif self.list_widget == self.list_grid:
+            item = self.list_grid.currentItem()
+            if item: current_id = item.data(Qt.ItemDataRole.UserRole)
+
         self.view_mode = mode
         
         # Use theme-aware color for icons
@@ -909,6 +1379,10 @@ class Sidebar(QWidget):
         
         # Refresh current view
         self.refresh_list()
+        
+        # Restore selection
+        if current_id:
+            self.select_folder_by_id(current_id)
 
     def set_wrap_mode(self, enabled):
         self.wrap_btn.setChecked(enabled)
@@ -923,6 +1397,12 @@ class Sidebar(QWidget):
 
     def load_folders(self, folders):
         self.all_folders = folders
+        self.refresh_list()
+        
+    def load_trash(self, folders, independent_notes):
+        """Update the list of trashed folders and independent notes, then refresh UI."""
+        self.trashed_folders = folders
+        self.independent_trash_notes = independent_notes
         self.refresh_list()
         
     def refresh_list(self):
@@ -942,6 +1422,10 @@ class Sidebar(QWidget):
         ideas_folder = None
         
         for f in self.all_folders:
+            # Note: load_data already filters out folders starting with '.' (like .trash)
+            # We don't need to manually exclude "trash" here anymore as it prevents users
+            # from managing folders they named "Trash".
+
             if f.name == "Ideas & Sparks" and f.id in nb_folder_ids:
                 ideas_folder = f
                 continue
@@ -968,6 +1452,9 @@ class Sidebar(QWidget):
         
         active_folders.sort(key=sort_key)
         archived_folders.sort(key=sort_key)
+        
+        # Define favorites for use in both Grid and Tree views
+        fav_folders = [f for f in active_folders if f.is_pinned]
 
         # Build Lists for the Grid View too (Flat representation for Grid)
         all_display_folders = []
@@ -977,106 +1464,117 @@ class Sidebar(QWidget):
 
         # --- UI BUILDING ---
         
-        # Prepare Unified Display List (Favorites -> Active -> System)
-        all_display_items = []
-        
-        # 1. Favorites
-        all_display_items.append(("Favorites", "FAVORITES", "HEADER"))
-        if ideas_folder: all_display_items.append(("Ideas & Sparks", ideas_folder, "FAVORITES"))
-        fav_folders = [f for f in active_folders if f.is_pinned]
-        for f in fav_folders:
-            all_display_items.append((f.name, f, "FAVORITES"))
-            
-        # 2. Recent (Special)
-        all_display_items.append(("Recent", "RECENT_ROOT", "RECENT"))
-        
-        # 3. Active
-        all_display_items.append(("", "", "SPACER"))
-        all_display_items.append(("Folders", "FOLDERS", "HEADER"))
-        for i, f in enumerate(active_folders, 1):
-            all_display_items.append((f.name, f, "FOLDERS", i))
-            
-        # 4. System
-        all_display_items.append(("", "", "SPACER"))
-        all_display_items.append(("System", "SYSTEM", "HEADER"))
-        all_display_items.append(("Trash", "TRASH_ROOT", "SYSTEM"))
-        if archived_folders:
-            all_display_items.append((f"Archived ({len(archived_folders)})", "ARCHIVED_ROOT", "SYSTEM"))
+        # 0. Header/Footer Visibility Controls (Hide for TRASH)
+        is_trash_section = self.active_section == "TRASH"
+        if hasattr(self, 'nb_controls'):
+            self.nb_controls.setVisible(not is_trash_section)
+        if hasattr(self, 'add_btn'):
+            self.add_btn.setVisible(not is_trash_section)
+
+        # Recent is handled via internal note stack
+        if self.active_section == "RECENT":
+            self.stacked_list.setCurrentIndex(2) 
+            internal_idx = 1 if self.view_mode == VIEW_MODE_GRID else 0
+            self.internal_stack.setCurrentIndex(internal_idx)
+            self.list_tree.clear()
+            self.list_grid.clear()
+            return
 
         if self.view_mode == VIEW_MODE_GRID:
-            # GRID VIEW POPULATION
-            for name, data, section, *idx in all_display_items:
-                if name == "": continue # Skip spacers
+            self.stacked_list.setCurrentIndex(1)
+            self.list_widget = self.list_grid
+            
+            # Population logic for Grid
+            display_folders = []
+            if self.active_section == "FAVORITES": display_folders = fav_folders
+            elif self.active_section == "FOLDERS": display_folders = active_folders
+            elif self.active_section == "TRASH": display_folders = self.trashed_folders
+            else: display_folders = active_folders
+
+            for f in display_folders:
+                item = QListWidgetItem(f.name)
+                item.setData(Qt.ItemDataRole.UserRole, f.id)
+                item.setData(Qt.ItemDataRole.UserRole + 1, f)
                 
-                item = QListWidgetItem(name)
+                is_trashed = getattr(f, '_trash_path', None) is not None
+                icon_color = getattr(f, 'color', self.current_icon_color)
+                if is_trashed: icon_color = "#94A3B8"
                 
-                # Check for count data provided in a tuple like ("Ideas & Sparks", folder, "FAVORITES", count)
-                # Helper to extract count if present in *idx
-                count_val = idx[1] if len(idx) > 1 else None # enumerated index is idx[0]
-                
-                # ... Grid doesn't use badges heavily, but we can standard logic
-                
-                # Set icon based on section or object
-                i_color = getattr(data, 'color', "#7B9E87") if not isinstance(data, str) else None
-                item.setIcon(get_premium_icon("folder", color=i_color))
-                
-                is_heading = data in ["FAVORITES", "FOLDERS", "SYSTEM"]
-                if is_heading:
-                    item.setData(Qt.ItemDataRole.UserRole + 2, "SECTION_HEADER")
-                    item.setSizeHint(QSize(0, 40))
-                
-                if isinstance(data, str): # Roots or Headings
-                    item.setData(Qt.ItemDataRole.UserRole, data)
-                else: # Folder Object
-                    item.setData(Qt.ItemDataRole.UserRole, data.id)
-                    item.setData(Qt.ItemDataRole.UserRole + 1, data)
-                
+                item.setIcon(get_premium_icon("trash_2" if is_trashed else "folder", color=icon_color))
                 self.list_grid.addItem(item)
-            return # Exit early after grid population
-
-        # LIST VIEW (TREE) POPULATION (New Clean Style)
-        # Use addTopLevelItem directly with data roles for the delegate
-        
-        # 1. Favorites
-        self._add_list_node("FAVORITES", is_header=True)
-        if ideas_folder:
-            # Get count of ideas? For now use a dummy or calculated if available
-            # Note count not readily available on folder obj unless calculated
-            # Assuming Ideas count is meaningful. 
-            # In user request image: "Ideas & Sparks   4"
-            # Let's fake it or look it up if possible. For now, pass None or hardcode if we knew.
-            # Using '4' as placeholder? No, better not to show WRONG data.
-            # If we have note_count on folder:
-            note_count = getattr(ideas_folder, 'note_count', None) 
-            self._add_list_node("Ideas & Sparks", ideas_folder, icon="heart", icon_color="#f472b6", count=note_count)
+        else:
+            # Tree View (List Mode)
+            self.stacked_list.setCurrentIndex(0)
+            self.list_widget = self.list_tree
             
-        for f in fav_folders:
-            self._add_list_node(f.name, f, count=getattr(f, 'note_count', None))
+            if self.active_section == "TRASH":
+                # Hierarchical Trash View
+                folder_items = {} # Map folder_id -> QTreeWidgetItem
+                folder_name_map = {} # Fallback: Map folder_name.lower() -> QTreeWidgetItem
+                
+                for folder in self.trashed_folders:
+                    folder_item = QTreeWidgetItem(self.list_tree)
+                    folder_item.setText(0, folder.name)
+                    folder_item.setData(0, Qt.ItemDataRole.UserRole, folder.id)
+                    folder_item.setData(0, Qt.ItemDataRole.UserRole + 1, folder)
+                    folder_item.setIcon(0, get_premium_icon("trash_2", color="#94A3B8"))
+                    folder_item.setExpanded(True) # NEW: Auto-expand trashed folders
+                    folder_items[folder.id] = folder_item
+                    folder_name_map[folder.name.lower().strip()] = folder_item
+                    
+                    for note in getattr(folder, 'notes', []):
+                        note_item = QTreeWidgetItem(folder_item)
+                        note_item.setText(0, note.title)
+                        note_item.setData(0, Qt.ItemDataRole.UserRole, note.id)
+                        note_item.setData(0, Qt.ItemDataRole.UserRole + 1, note)
+                        note_item.setIcon(0, get_premium_icon("note", color="#94A3B8"))
+                
+                # Independent Trashed Notes (Check for trashed parent folders)
+                for note in self.independent_trash_notes:
+                    parent_id = getattr(note, 'trash_original_folder_id', None)
+                    parent_name = getattr(note, 'trash_original_folder_name', '').lower().strip()
+                    
+                    parent_item = folder_items.get(parent_id)
+                    if not parent_item and parent_name:
+                        parent_item = folder_name_map.get(parent_name) # Fallback to name match
+                    
+                    if parent_item:
+                        # Nest under trashed folder
+                        note_item = QTreeWidgetItem(parent_item)
+                        note_item.setText(0, note.title)
+                    else:
+                        # Keep at top level (Independent/Orphan)
+                        note_item = QTreeWidgetItem(self.list_tree)
+                        orig_nb = getattr(note, 'trash_original_folder_name', 'Personal')
+                        note_item.setText(0, f"{note.title} (from {orig_nb})")
+                        
+                    note_item.setData(0, Qt.ItemDataRole.UserRole, note.id)
+                    note_item.setData(0, Qt.ItemDataRole.UserRole + 1, note)
+                    note_item.setIcon(0, get_premium_icon("note", color="#94A3B8"))
+                    
+                if archived_folders:
+                    arch_head = QTreeWidgetItem(self.list_tree)
+                    arch_head.setText(0, f"Archived ({len(archived_folders)})")
+                    arch_head.setIcon(0, get_premium_icon("archive", color="#F59E0B"))
+                    for af in archived_folders:
+                        item = QTreeWidgetItem(arch_head)
+                        item.setText(0, af.name)
+                        item.setData(0, Qt.ItemDataRole.UserRole, af.id)
+                        item.setData(0, Qt.ItemDataRole.UserRole + 1, af)
+                        item.setIcon(0, get_premium_icon("folder", color="#94A3B8"))
+            else:
+                # Standard Sidebar Population Logic
+                if self.active_section == "FAVORITES":
+                    if ideas_folder:
+                        self._add_list_node("Ideas & Sparks", ideas_folder, icon="heart", icon_color="#f472b6", count=getattr(ideas_folder, 'note_count', None))
+                    for f in fav_folders:
+                        self._add_list_node(f.name, f, count=getattr(f, 'note_count', None))
+                elif self.active_section == "FOLDERS":
+                    for i, f in enumerate(active_folders, 1):
+                        self._add_list_node(f.name, f, index_prefix=f"{i}. ", count=getattr(f, 'note_count', None))
 
-        # 2. Recent
-        # Use semantic blue that adapts to theme luminance
-        recent_color = "#60A5FA" if is_dark else "#3b82f6"
-        self._add_list_node("Recent", "RECENT_ROOT", icon="clock", icon_color=recent_color)
 
-        # 3. Folders
-        self._add_list_node("", is_spacer=True)
-        self._add_list_node("FOLDERS", is_header=True)
-        for i, f in enumerate(active_folders, 1):
-            self._add_list_node(f.name, f, index_prefix=f"{i}. ", count=getattr(f, 'note_count', None))
-            
-        # 4. System
-        self._add_list_node("", is_spacer=True)
-        self._add_list_node("SYSTEM", is_header=True)
-        trash_color = "#9CA3AF" if is_dark else "#64748b"
-        self._add_list_node("Trash", "TRASH_ROOT", icon="trash_2", icon_color=trash_color)
-        
-        if archived_folders:
-            arch_count = len(archived_folders)
-            # Pass count explicitly
-            self._add_list_node("Archived", "ARCHIVED_ROOT", icon="archive", icon_color="#F59E0B", count=arch_count)
-
-
-    def _add_list_node(self, text, data=None, is_header=False, is_spacer=False, icon="folder", icon_color=None, count=None, index_prefix=""):
+    def _add_list_node(self, text, data=None, is_header=False, is_spacer=False, icon="folder", icon_color=None, count=None, index_prefix="", section_key=None, is_expanded=True):
         item = QTreeWidgetItem([text])
         
         if is_spacer:
@@ -1087,7 +1585,22 @@ class Sidebar(QWidget):
 
         if is_header:
             item.setData(0, Qt.ItemDataRole.UserRole + 2, "SECTION_HEADER")
-            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            # Enable item so it can be clicked, but maybe not selectable? 
+            # We handle selection manually.
+            item.setFlags(Qt.ItemFlag.ItemIsEnabled) 
+            
+            if section_key:
+                item.setData(0, Qt.ItemDataRole.UserRole + 3, section_key)
+                item.setData(0, Qt.ItemDataRole.UserRole + 4, is_expanded)
+            
+            item.setText(0, text.upper())
+            # Premium Header Styling — JetBrains Mono matching delegate
+            font = item.font(0)
+            font.setFamily("JetBrains Mono")
+            font.setPointSize(7)
+            font.setWeight(500)
+            font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 116)
+            item.setFont(0, font)
             self.list_tree.addTopLevelItem(item)
             return
 
@@ -1100,9 +1613,11 @@ class Sidebar(QWidget):
             item.setData(0, Qt.ItemDataRole.UserRole, data.id)
             item.setData(0, Qt.ItemDataRole.UserRole + 1, data)
             final_icon = icon
-            final_color = getattr(data, 'color', self.current_icon_color) if not icon_color else icon_color
+            # CRITICAL FALLBACK: Use current_icon_color if folder has no color
+            folder_color = getattr(data, 'color', None)
+            final_color = icon_color if icon_color else (folder_color if folder_color else self.current_icon_color)
         
-        item.setIcon(0, get_premium_icon(final_icon, color=final_color))
+        item.setIcon(0, get_premium_icon(final_icon, color=final_color, size=QSize(36, 36), thick=True))
         
         # Display Text
         display_text = f"{index_prefix}{text}"
@@ -1156,13 +1671,25 @@ class Sidebar(QWidget):
 
     def on_item_clicked(self, item, column):
         if isinstance(item, QTreeWidgetItem):
+            # Check for Section Header Toggle
+            item_type = item.data(0, Qt.ItemDataRole.UserRole + 2)
+            if item_type == "SECTION_HEADER":
+                section_key = item.data(0, Qt.ItemDataRole.UserRole + 3)
+                if section_key:
+                    self.section_expanded[section_key] = not self.section_expanded.get(section_key, True)
+                    self.refresh_list()
+                    return
+
             data = item.data(0, Qt.ItemDataRole.UserRole)
+            note_obj = item.data(0, Qt.ItemDataRole.UserRole + 1) # NEW
         else:
             data = item.data(Qt.ItemDataRole.UserRole)
+            note_obj = item.data(Qt.ItemDataRole.UserRole + 1) # NEW
             
         if not data: return
         
         if isinstance(data, str) and data.startswith("NOTEBOOK:"):
+            # ... (nb logic) ...
             nb_id = data.split(":")[1]
             idx = self.nb_selector.findData(nb_id)
             if idx >= 0:
@@ -1174,8 +1701,20 @@ class Sidebar(QWidget):
                 item.setExpanded(not item.isExpanded())
             return
             
-        # Emit folder selection
-        self.folderSelected.emit(str(data))
+        # Emit folder or note selection
+        from models.note import Note
+        if isinstance(note_obj, Note):
+            self.noteSelected.emit(note_obj.id)
+        else:
+            # If in Trash, clicking a folder should just toggle expansion and NOT emit folderSelected
+            # because we want the middle panel to remain empty for trashed items.
+            if self.active_section == "TRASH":
+                if isinstance(item, QTreeWidgetItem):
+                    item.setExpanded(not item.isExpanded())
+                # Still emit a fake select_folder event to clear MainWindow middle panel
+                self.folderSelected.emit("TRASH_ROOT") 
+            else:
+                self.folderSelected.emit(str(data))
 
     def on_rows_moved(self, parent, start, end, dest_parent, dest_row):
         pass # Placeholder for Drag & Drop reordering if implemented for Tree
@@ -1232,6 +1771,15 @@ class Sidebar(QWidget):
                 QMessageBox.warning(self, "Incorrect Name", "The name entered did not match. Deletion cancelled.")
 
     def confirm_delete_folder(self, folder_id):
+        # Check if it's a trashed folder
+        folder = next((f for f in self.trashed_folders if f.id == folder_id), None)
+        if folder:
+            trash_path = getattr(folder, '_trash_path', None)
+            if trash_path:
+                if QMessageBox.question(self, "Delete Permanently", f"Are you sure you want to permanently delete folder '{folder.name}'?\nAll its notes will be gone forever.", QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes:
+                    self.permanentDeleteFolder.emit(trash_path)
+            return
+
         folder = next((f for f in self.all_folders if f.id == folder_id), None)
         if not folder: return
         
@@ -1251,6 +1799,26 @@ class Sidebar(QWidget):
         initial = QColor(initial_color)
         color = QColorDialog.getColor(initial, self, "Select Folder Color")
         if color.isValid(): self.updateFolder.emit(folder_id, {"color": color.name()})
+
+    def prompt_change_folder_bg_color(self, folder_id):
+        """Open color picker for folder editor background."""
+        from PyQt6.QtWidgets import QColorDialog
+        from PyQt6.QtGui import QColor
+        
+        folder = next((f for f in self.all_folders if f.id == folder_id), None)
+        # Check trashed too just in case
+        if not folder:
+             folder = next((f for f in self.trashed_folders if f.id == folder_id), None)
+             
+        if not folder: return
+        
+        initial_color = getattr(folder, 'editor_background_color', '#FFFFFF') or '#FFFFFF'
+        initial = QColor(initial_color)
+        
+        col = QColorDialog.getColor(initial, self, "Select Folder Editor Background")
+        if col.isValid():
+            # Emit signal to update folder metadata
+            self.updateFolder.emit(folder_id, {"editor_background_color": col.name()})
 
     def show_context_menu(self, pos):
         item = self.list_widget.itemAt(pos)
@@ -1284,43 +1852,89 @@ class Sidebar(QWidget):
                 self.confirm_delete_notebook(nb_id)
             return
 
+        from models.note import Note
+        if isinstance(data, Note):
+            # Special Context Menu for Trashed Notes in Sidebar
+            m_color = self.current_icon_color
+            restore_act = menu.addAction(get_premium_icon("rotate_ccw", color="#10B981"), "Restore Item")
+            delete_act = menu.addAction(get_premium_icon("delete", color="#EF4444"), "Permanently Delete Item")
+            
+            action = menu.exec(active_widget.mapToGlobal(pos))
+            if action == restore_act:
+                # We need a special signal for note restoration or reuse existing ones
+                # For now, let's assume we might need self.restoreNote.emit(data.id, data._trash_path)
+                # But let's check if Sidebar has restoreNote. If not, add it.
+                if hasattr(self, 'restoreNote'):
+                    self.restoreNote.emit(data.id, getattr(data, '_trash_path', ""))
+            elif action == delete_act:
+                if hasattr(self, 'permanentDeleteNote'):
+                    self.permanentDeleteNote.emit(getattr(data, '_trash_path', ""))
+            return
+
         # Folder Context Menu (Standard)
-        if data in ["ALL_NOTEBOOKS_ROOT", "ARCHIVED_ROOT", "RECENT_ROOT", "TRASH_ROOT"]: # Added RECENT_ROOT, TRASH_ROOT
+        if data in ["ALL_NOTEBOOKS_ROOT", "ARCHIVED_ROOT", "RECENT_ROOT"]: 
+            return
+            
+        if data == "TRASH_ROOT":
+            empty_trash_act = menu.addAction(get_premium_icon("trash", color="#EF4444"), "Empty Trash")
+            action = menu.exec(active_widget.mapToGlobal(pos))
+            if action == empty_trash_act:
+                self.emptyTrashRequest.emit()
             return
 
         folder_id = data
         folder = next((f for f in self.all_folders if f.id == folder_id), None)
+        # Check trashed folders too
+        if not folder:
+            folder = next((f for f in self.trashed_folders if f.id == folder_id), None)
+            
         if not folder: return
 
-        # Reproduce existing folder options
-        rename_act = menu.addAction(get_premium_icon("edit"), "Rename Folder")
-        
-        set_cover_act = menu.addAction(get_premium_icon("image"), "Set Cover Image...")
-        edit_desc_act = menu.addAction(get_premium_icon("align_left"), "Edit Description...")
+        # Use current themed icon color for context menu icons
+        m_color = self.current_icon_color
 
-        color_act = menu.addAction(get_premium_icon("palette"), "Change Color")
+        # Reproduce existing folder options
+        rename_act = menu.addAction(get_premium_icon("edit", color=m_color), "Rename Folder")
+        
+        set_cover_act = menu.addAction(get_premium_icon("image", color=m_color), "Set Cover Image...")
+        edit_desc_act = menu.addAction(get_premium_icon("align_left", color=m_color), "Edit Description...")
+
+        color_act = menu.addAction(get_premium_icon("palette", color=m_color), "Change Color")
+        
+        # NEW: Folder Background Color
+        bg_color_act = menu.addAction(get_premium_icon("layout", color=m_color), "Set Editor Background")
+        bg_color_act.triggered.connect(lambda: self.prompt_change_folder_bg_color(folder_id))
         
         # Priority Submenu
-        prio_menu = menu.addMenu(get_premium_icon("flag"), "Set Priority")
+        prio_menu = menu.addMenu(get_premium_icon("flag", color=m_color), "Set Priority")
         p0 = prio_menu.addAction("None")
         p1 = prio_menu.addAction("❶ High")
         p2 = prio_menu.addAction("❷ Medium")
         p3 = prio_menu.addAction("❸ Low")
 
         pin_text = "Remove from Favorites" if folder.is_pinned else "Add to Favorites"
-        pin_icon = "heart_off" if folder.is_pinned else "heart"
         # Fallback if heart_off not exists, use heart
-        pin_act = menu.addAction(get_premium_icon("heart"), pin_text)
+        pin_act = menu.addAction(get_premium_icon("heart", color=m_color), pin_text)
         
         arch_text = "Unarchive Folder" if folder.is_archived else "Archive Folder"
-        arch_act = menu.addAction(get_premium_icon("folder_archived"), arch_act_text := arch_text) # Fix for name overlap
+        arch_act = menu.addAction(get_premium_icon("folder_archived", color=m_color), arch_text)
         
         menu.addSeparator()
-        export_act = menu.addAction(get_premium_icon("export"), "Export Folder to PDF")
-        export_word_act = menu.addAction(get_premium_icon("doc"), "Export Folder to Word") # NEW
+        export_act = menu.addAction(get_premium_icon("export", color=m_color), "Export Folder to PDF")
+        export_word_act = menu.addAction(get_premium_icon("doc", color=m_color), "Export Folder to Word") # NEW
         
         menu.addSeparator()
-        delete_act = menu.addAction(get_premium_icon("delete"), "Delete Folder")
+        
+        is_trashed = getattr(folder, '_trash_path', None) is not None
+        if is_trashed:
+            restore_act = menu.addAction(get_premium_icon("rotate_ccw", color=m_color), "Restore Folder")
+            delete_act = menu.addAction(get_premium_icon("delete", color="#EF4444"), "Permanently Delete Folder")
+            menu.addSeparator()
+            empty_trash_act = menu.addAction(get_premium_icon("trash", color="#EF4444"), "Empty Trash")
+        else:
+            restore_act = None
+            empty_trash_act = None
+            delete_act = menu.addAction(get_premium_icon("delete", color=m_color), "Move to Trash")
 
         action = menu.exec(self.list_widget.mapToGlobal(pos))
         if action == rename_act:
@@ -1343,22 +1957,36 @@ class Sidebar(QWidget):
             self.exportFolderWord.emit(folder_id)
         elif action == delete_act:
             self.confirm_delete_folder(folder_id)
+        elif empty_trash_act and action == empty_trash_act:
+            self.emptyTrashRequest.emit()
+        elif restore_act and action == restore_act:
+            trash_path = getattr(folder, '_trash_path', None)
+            if trash_path:
+                self.restoreFolder.emit(folder_id, trash_path)
         elif action in [p0, p1, p2, p3]:
             p_val = [p0, p1, p2, p3].index(action)
             self.updateFolder.emit(folder_id, {"priority": p_val})
 
     def select_folder_by_id(self, folder_id):
         self.list_widget.clearSelection()
-        from PyQt6.QtWidgets import QTreeWidgetItemIterator
-        iterator = QTreeWidgetItemIterator(self.list_widget)
-        while iterator.value():
-            item = iterator.value()
-            if item.data(0, Qt.ItemDataRole.UserRole) == folder_id:
-                self.list_widget.setCurrentItem(item)
-                if item.parent():
-                    item.parent().setExpanded(True)
-                break
-            iterator += 1
+        
+        if self.list_widget == self.list_tree:
+            from PyQt6.QtWidgets import QTreeWidgetItemIterator
+            iterator = QTreeWidgetItemIterator(self.list_tree)
+            while iterator.value():
+                item = iterator.value()
+                if item.data(0, Qt.ItemDataRole.UserRole) == folder_id:
+                    self.list_tree.setCurrentItem(item)
+                    if item.parent():
+                        item.parent().setExpanded(True)
+                    break
+                iterator += 1
+        elif self.list_widget == self.list_grid:
+            for i in range(self.list_grid.count()):
+                item = self.list_grid.item(i)
+                if item.data(Qt.ItemDataRole.UserRole) == folder_id:
+                    self.list_grid.setCurrentItem(item)
+                    break
 
     def toggle_archived_view(self):
         self.showing_archived = not self.showing_archived

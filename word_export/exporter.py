@@ -36,28 +36,20 @@ def html_to_docx(doc, html_content, theme=0):
     if not html_content: return
 
     soup = BeautifulSoup(html_content, 'html.parser')
+
+    # Determine base text color for theme
+    def get_theme_rgb():
+        if theme == 1: return RGBColor(255, 255, 255)
+        if theme == 2: return RGBColor(67, 52, 34)
+        if isinstance(theme, str) and theme.startswith("#"):
+            brightness = get_brightness(theme)
+            return RGBColor(255, 255, 255) if brightness < 128 else RGBColor(0, 0, 0)
+        return RGBColor(0, 0, 0)
     
-    # Pre-process: fix image src if relative or base64
-    # (Assuming images are already handled/embedded mostly, but we need to decode base64)
+    base_rgb = get_theme_rgb()
 
     def process_node(node, parent_container=None):
-        """
-        Recursive function to process HTML nodes.
-        parent_container: The docx object to add to (doc or table cell).
-        If None, adds to 'doc'.
-        """
         container = parent_container if parent_container else doc
-
-        if isinstance(node, NavigableString):
-            text = str(node).strip()
-            if text:
-                # If we are inside a paragraph context in HTML (like <span>), 
-                # python-docx doesn't easily support inline appending to *current* paragraph 
-                # without passing the paragraph object down.
-                # For simplicity in this v1, we treats top-level text as paragraph.
-                # If parent is a paragraph-like tag (p, span), we might need logic.
-                pass 
-            return
 
         if isinstance(node, Tag):
             tag = node.name.lower()
@@ -66,7 +58,9 @@ def html_to_docx(doc, html_content, theme=0):
                 level = int(tag[1])
                 text = node.get_text(strip=True)
                 if text:
-                    container.add_heading(text, level=level)
+                    h = container.add_heading(text, level=level)
+                    if theme != 0:
+                        for run in h.runs: run.font.color.rgb = base_rgb
             
             elif tag == 'p':
                 p = container.add_paragraph()
@@ -92,51 +86,49 @@ def html_to_docx(doc, html_content, theme=0):
 
             elif tag == 'table':
                 handle_table(container, node)
-                
+            
             elif tag == 'div':
                  # Treat div as container, just recurse
                  for child in node.children:
                      process_node(child, container)
             
             elif tag == 'hr':
-                # Add horizontal rule (border bottom on paragraph)
                 p = container.add_paragraph()
                 pPr = p._element.get_or_add_pPr()
-                # pBdr might not be exposed, create manually
                 pBdr = OxmlElement('w:pBdr')
                 bottom = OxmlElement('w:bottom')
                 bottom.set(qn('w:val'), 'single')
                 bottom.set(qn('w:sz'), '6')
                 bottom.set(qn('w:space'), '1')
-                bottom.set(qn('w:color'), 'auto')
+                if theme == 1:
+                    bottom.set(qn('w:color'), 'FFFFFF')
+                elif theme == 2:
+                    bottom.set(qn('w:color'), 'DCD1BC')
+                elif isinstance(theme, str) and theme.startswith("#"):
+                    # Use text color for HR in custom theme
+                    bottom.set(qn('w:color'), 'FFFFFF' if get_brightness(theme) < 128 else '444444')
+                else:
+                    bottom.set(qn('w:color'), 'auto')
                 pBdr.append(bottom)
                 pPr.append(pBdr)
 
     def process_inline_content(paragraph, html_element):
-        """
-        Extracts text and applies inline styles (bold, italic, color) to runs.
-        """
         for child in html_element.children:
             if isinstance(child, NavigableString):
                 text = str(child)
-                # Naive cleanup of excessive whitespace if needed, but keep some
                 if text:
-                    paragraph.add_run(text)
+                    run = paragraph.add_run(text)
+                    if theme != 0:
+                        run.font.color.rgb = base_rgb
             elif isinstance(child, Tag):
                 tag = child.name.lower()
                 if tag == 'br':
                     paragraph.add_run().add_break()
                 elif tag == 'img':
-                    # Inline images are tricky in docx, often added as separate block
-                    # For now, treat as block for stability
                     handle_image(doc, child) 
                 else:
-                    # Recursive for nested spans/b/i
-                    # Capture the start of this run to apply styles
                     run = paragraph.add_run()
-                    run.text = child.get_text() # Flatten text for now to avoid huge complexity?
-                    # Ideally we recurse, but python-docx runs are linear.
-                    # Simple version:
+                    run.text = child.get_text() 
                     
                     if tag in ['b', 'strong']:
                         run.bold = True
@@ -147,84 +139,77 @@ def html_to_docx(doc, html_content, theme=0):
                     if tag in ['s', 'del', 'strike']:
                         run.font.strike = True
                     
-                    # Color handling
                     style = child.get('style', '')
                     color_match = re.search(r'color:\s*#([0-9a-fA-F]{6})', style)
                     if color_match:
-                         # apply color
                          hex_color = color_match.group(1)
                          run.font.color.rgb = RGBColor(int(hex_color[:2], 16), int(hex_color[2:4], 16), int(hex_color[4:], 16))
+                    elif theme != 0:
+                         run.font.color.rgb = base_rgb
 
     def handle_image(container, img_tag):
         src = img_tag.get('src')
         if not src: return
-
         try:
             image_stream = None
             if src.startswith('data:image'):
-                # Base64
                 header, encoded = src.split(',', 1)
                 data = base64.b64decode(encoded)
                 image_stream = BytesIO(data)
             elif src.startswith('http'):
-                # URL
                 resp = requests.get(src, timeout=5)
                 if resp.status_code == 200:
                    image_stream = BytesIO(resp.content)
-            
             if image_stream:
-                # Add picture with reasonable width limit
                 container.add_picture(image_stream, width=Inches(5.0))
         except Exception as e:
-            print(f"Error adding image: {e}")
-            container.add_paragraph(f"[Image: {src[:20]}...]")
+            p = container.add_paragraph(f"[Image: {src[:20]}...]")
+            if theme != 0:
+                for run in p.runs: run.font.color.rgb = base_rgb
 
     def handle_table(container, table_tag):
-        # Check if this is a "Note Box" or Code Block (often 1x1 table style)
         rows = table_tag.find_all('tr')
         if not rows: return
-        
-        # Create Docx Table
         num_rows = len(rows)
-        # Find max cols
         max_cols = 0
         for r in rows:
             cols = r.find_all(['td', 'th'])
             max_cols = max(max_cols, len(cols))
-        
         if max_cols == 0: return
 
         docx_table = container.add_table(rows=num_rows, cols=max_cols)
         docx_table.style = 'Table Grid'
-        
-        # Check for background color in style (Note Box detection)
         style = table_tag.get('style', '')
         bg_color = None
         if 'background-color' in style:
              match = re.search(r'background-color:\s*#([0-9a-fA-F]{6})', style)
-             if match:
-                 bg_color = match.group(1)
+             if match: bg_color = match.group(1).upper()
 
         for i, row in enumerate(rows):
             cols = row.find_all(['td', 'th'])
             for j, col in enumerate(cols):
+                if j >= max_cols: break
                 cell = docx_table.cell(i, j)
-                # Recurse process content into cell
-                # We can just process children into the cell's paragraphs
-                # Clear default paragraph
                 cell._element.clear_content()
-                
                 for child in col.children:
                     process_node(child, cell)
                 
-                # Apply Cell Background if needed
                 if bg_color:
                     set_cell_background(cell, bg_color)
+                elif theme == 1:
+                    set_cell_background(cell, "2D2D2D")
+                elif theme == 2:
+                    set_cell_background(cell, "EDE6D9")
+                elif isinstance(theme, str) and theme.startswith("#"):
+                    # Lighten or darken cell based on background
+                    if get_brightness(theme) < 128:
+                        set_cell_background(cell, "333333")
+                    else:
+                        set_cell_background(cell, "EEEEEE")
 
-    # Start processing soup
-    # Iterate over top-level elements
     for child in soup.body.children if soup.body else soup.children:
         process_node(child)
+
 
 def set_cell_background(cell, hex_color):
     """
@@ -237,32 +222,118 @@ def set_cell_background(cell, hex_color):
     shd.set(qn('w:fill'), hex_color)
     tcPr.append(shd)
 
-def export_note_to_docx(note, output_path):
+def set_docx_background(doc, fill_color):
+    """
+    Sets the page background color for the Word document.
+    """
+    # 1. Add background element to document
+    shd = OxmlElement('w:background')
+    shd.set(qn('w:color'), fill_color)
+    # Removing themeColor as it overrides the custom hex color
+    # shd.set(qn('w:themeColor'), 'background1')
+    
+    # Clear background
+    shd_child = OxmlElement('w:shd')
+    shd_child.set(qn('w:val'), 'clear')
+    shd_child.set(qn('w:color'), 'auto')
+    shd_child.set(qn('w:fill'), fill_color)
+    shd.append(shd_child)
+    
+    doc.element.insert(0, shd)
+    
+    # 2. Tell Word to display background shapes (crucial for visibility)
+    settings = doc.settings.element
+    display_bg = settings.find(qn('w:displayBackgroundShape'))
+    if display_bg is None:
+        display_bg = OxmlElement('w:displayBackgroundShape')
+        settings.append(display_bg)
+
+def get_brightness(hex_color):
+    """Calculate relative brightness of a hex color (0-255)."""
+    hex_color = hex_color.lstrip('#')
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return (r * 299 + g * 587 + b * 114) / 1000
+
+def export_note_to_docx(note, output_path, theme=0):
     doc = Document()
     
+    rgb_text = RGBColor(0, 0, 0)
+    # Apply background color
+    if theme == 1:
+        set_docx_background(doc, "1E1E1E")
+        rgb_text = RGBColor(255, 255, 255)
+    elif theme == 2:
+        set_docx_background(doc, "F5F0E8")
+        rgb_text = RGBColor(67, 52, 34)
+    elif isinstance(theme, str) and theme.startswith("#"):
+        set_docx_background(doc, theme.lstrip('#'))
+        brightness = get_brightness(theme)
+        # Choose text color based on background brightness
+        rgb_text = RGBColor(0, 0, 0) if brightness > 128 else RGBColor(255, 255, 255)
+    
+    if theme != 0:
+        style = doc.styles['Normal']
+        style.font.color.rgb = rgb_text
+    
     # Title
-    doc.add_heading(note.title, 0)
+    h = doc.add_heading(note.title, 0)
+    if theme != 0:
+        for run in h.runs: run.font.color.rgb = rgb_text
     
     # Metadata
     p = doc.add_paragraph()
     run = p.add_run(f"Created: {note.created_at}")
     run.italic = True
     run.font.size = Pt(9)
-    run.font.color.rgb = RGBColor(128, 128, 128)
+    if theme == 1:
+        run.font.color.rgb = RGBColor(200, 200, 200)
+    elif theme == 2:
+        run.font.color.rgb = RGBColor(142, 92, 46)
+    elif theme != 0:
+        # Subtle metadata color for custom theme
+        if rgb_text == RGBColor(255, 255, 255):
+            run.font.color.rgb = RGBColor(200, 200, 200)
+        else:
+            run.font.color.rgb = RGBColor(100, 100, 100)
+    else:
+        run.font.color.rgb = RGBColor(128, 128, 128)
     
     doc.add_paragraph() # Spacer
     
     # Content
-    html_to_docx(doc, note.content)
+    html_to_docx(doc, note.content, theme=theme)
     
     doc.save(output_path)
     return True
 
-def export_folder_to_docx(folder, output_path, progress_callback=None):
+def export_folder_to_docx(folder, output_path, progress_callback=None, theme=0):
     doc = Document()
     
+    rgb_text = RGBColor(0, 0, 0)
+    # Apply background color
+    if theme == 1:
+        set_docx_background(doc, "1E1E1E")
+        rgb_text = RGBColor(255, 255, 255)
+    elif theme == 2:
+        set_docx_background(doc, "F5F0E8")
+        rgb_text = RGBColor(67, 52, 34)
+    elif isinstance(theme, str) and theme.startswith("#"):
+        set_docx_background(doc, theme.lstrip('#'))
+        brightness = get_brightness(theme)
+        # Choose text color based on background brightness
+        rgb_text = RGBColor(0, 0, 0) if brightness > 128 else RGBColor(255, 255, 255)
+    
+    if theme != 0:
+        style = doc.styles['Normal']
+        style.font.color.rgb = rgb_text
+    
     # Folder Title Page
-    doc.add_heading(folder.name, 0)
+    h = doc.add_heading(folder.name, 0)
+    if theme != 0:
+        for run in h.runs: run.font.color.rgb = rgb_text
+        
     doc.add_paragraph("Folder Export").alignment = WD_ALIGN_PARAGRAPH.CENTER
     doc.add_page_break()
     
@@ -273,8 +344,11 @@ def export_folder_to_docx(folder, output_path, progress_callback=None):
     for i, note in enumerate(notes):
         if progress_callback: progress_callback(i, total)
         
-        doc.add_heading(note.title, 1)
-        html_to_docx(doc, note.content)
+        h = doc.add_heading(note.title, 1)
+        if theme != 0:
+            for run in h.runs: run.font.color.rgb = rgb_text
+            
+        html_to_docx(doc, note.content, theme=theme)
         doc.add_page_break()
         
     doc.save(output_path)

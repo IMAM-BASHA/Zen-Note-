@@ -32,12 +32,12 @@ class DataManager:
         """Return all notes across all folders, sorted by most recently modified (or created)."""
         all_notes = []
         for folder in self.folders:
-            # Skip archived folders? Maybe include them but mark them?
-            # For now, include everything that isn't explicitly in trash (folders are active/archived)
+            if folder.id.startswith('.'): continue # Skip system folders
             for note in folder.notes:
-                # Attach parent folder reference for context (runtime only)
-                note._parent_folder = folder
-                all_notes.append(note)
+                if not getattr(note, 'hide_from_recent', False):
+                    # Attach parent folder reference for context (runtime only)
+                    note._parent_folder = folder
+                    all_notes.append(note)
             
         # Sort by last match of date. Currently only created_at is strictly tracked on Note.
         # Ideally we'd have modified_at. using created_at for now as proxy or if available.
@@ -45,7 +45,26 @@ class DataManager:
         all_notes.sort(key=lambda n: n.created_at, reverse=True)
         return all_notes[:limit]
 
-    def get_trash_notes(self):
+    def hide_note_from_recent(self, note_id):
+        """Set hide_from_recent flag for a specific note."""
+        for folder in self.folders:
+            note = next((n for n in folder.notes if n.id == note_id), None)
+            if note:
+                note.hide_from_recent = True
+                self.save_note(folder, note)
+                return True
+        return False
+
+    def clear_all_recent(self):
+        """Hide all currently visible recent notes."""
+        for folder in self.folders:
+            for note in folder.notes:
+                if not getattr(note, 'hide_from_recent', False):
+                    note.hide_from_recent = True
+                    self.save_note(folder, note)
+        return True
+
+    def get_trash_notes(self, include_folders=True):
         """Parse items from .trash directory (Notes and Folders)."""
         trash_items = []
         if not os.path.exists(TRASH_DIR):
@@ -64,7 +83,37 @@ class DataManager:
             except Exception as e:
                 logger.error(f"Failed to load trash note {f_path}: {e}")
 
-        # 2. Trashed Folders (Directories)
+        # 2. Trashed Folders (Directories) - Restored as pseudo-notes for central management
+        if include_folders:
+            for entry in os.scandir(TRASH_DIR):
+                if entry.is_dir():
+                    meta_path = os.path.join(entry.path, ".trash_meta.json")
+                    if os.path.exists(meta_path):
+                        try:
+                            with open(meta_path, 'r', encoding='utf-8') as f:
+                                mdata = json.load(f)
+                                # Create a dummy note to represent the folder in the list
+                                pseudo_note = Note(
+                                    title=f"Folder: {mdata.get('name', 'Untitled')}",
+                                    description=f"Contains folder and all its notes.",
+                                    note_id=mdata.get('id'),
+                                    trash_original_folder_name=mdata.get('orig_nb_name', 'Notebook')
+                                )
+                                pseudo_note._is_trash_folder = True
+                                pseudo_note._trash_path = entry.path
+                                # Ensure created_at for sorting
+                                pseudo_note.created_at = time.strftime("%Y-%m-%dT%H:%M:%S", time.localtime(os.path.getctime(entry.path)))
+                                trash_items.append(pseudo_note)
+                        except Exception as e:
+                            logger.error(f"Failed to load trash folder pseudo-note: {e}")
+                
+        # Sort by creation logic (or we could use ctime for deletion date)
+        trash_items.sort(key=lambda n: n.created_at, reverse=True) 
+        return trash_items
+
+    def get_trashed_folder_by_id(self, folder_id):
+        """Return a Folder object from the trash if its original ID matches."""
+        if not os.path.exists(TRASH_DIR): return None
         for entry in os.scandir(TRASH_DIR):
             if entry.is_dir():
                 meta_path = os.path.join(entry.path, ".trash_meta.json")
@@ -72,22 +121,66 @@ class DataManager:
                     try:
                         with open(meta_path, 'r', encoding='utf-8') as f:
                             mdata = json.load(f)
-                            # Create a dummy note to represent the folder in the list
-                            pseudo_note = Note(
-                                title=f"Folder: {mdata.get('name', 'Untitled')}",
-                                description=f"Contains folder and all its notes.",
-                                note_id=mdata.get('id'),
-                                trash_original_folder_name=mdata.get('orig_nb_name', 'Notebook')
-                            )
-                            pseudo_note._is_trash_folder = True
-                            pseudo_note._trash_path = entry.path
-                            trash_items.append(pseudo_note)
+                            if mdata.get('id') == folder_id:
+                                # Found it! Reconstruct and load its notes
+                                folder = Folder(name=mdata.get('name'), folder_id=mdata.get('id'))
+                                folder._trash_path = entry.path
+                                folder.trash_original_notebook_id = mdata.get('orig_nb_id')
+                                folder.trash_original_notebook_name = mdata.get('orig_nb_name')
+                                
+                                # Load notes from THIS trash directory
+                                notes = []
+                                for jf in glob(os.path.join(entry.path, "*.json")):
+                                    if os.path.basename(jf).startswith("."): continue
+                                    with open(jf, 'r', encoding='utf-8') as nfile:
+                                        notes.append(Note.from_dict(json.load(nfile)))
+                                folder.notes = notes
+                                return folder
+                    except: pass
+        return None
+
+    def get_trashed_folders(self):
+        """Return a list of Folder objects reconstructed from TRASH_DIR subdirectories."""
+        trashed_folders = []
+        if not os.path.exists(TRASH_DIR):
+            return []
+            
+        for entry in os.scandir(TRASH_DIR):
+            if entry.is_dir():
+                meta_path = os.path.join(entry.path, ".trash_meta.json")
+                if os.path.exists(meta_path):
+                    try:
+                        with open(meta_path, 'r', encoding='utf-8') as f:
+                            mdata = json.load(f)
+                            if mdata.get('type') == 'folder':
+                                # Reconstruct folder for UI display
+                                folder = Folder(
+                                    name=mdata.get('name', 'Untitled Folder'),
+                                    folder_id=mdata.get('id')
+                                )
+                                # Attach trash path for UI operations
+                                folder._trash_path = entry.path
+                                folder.trash_original_notebook_id = mdata.get('orig_nb_id')
+                                folder.trash_original_notebook_name = mdata.get('orig_nb_name')
+
+                                # NEW: Load nested notes from this trashed folder
+                                nested_notes = []
+                                note_files = glob(os.path.join(entry.path, "*.json"))
+                                for nf in note_files:
+                                    try:
+                                        with open(nf, 'r', encoding='utf-8') as f:
+                                            ndata = json.load(f)
+                                            note = Note.from_dict(ndata)
+                                            note._trash_path = nf 
+                                            nested_notes.append(note)
+                                    except Exception as e:
+                                        logger.error(f"Failed to load nested trash note {nf}: {e}")
+                                folder.notes = nested_notes
+                                
+                                trashed_folders.append(folder)
                     except Exception as e:
-                        logger.error(f"Failed to load trash folder meta {meta_path}: {e}")
-                
-        # Sort by creation logic (or we could use ctime for deletion date)
-        trash_items.sort(key=lambda n: n.created_at, reverse=True) 
-        return trash_items
+                        logger.error(f"Failed to load trashed folder {meta_path}: {e}")
+        return trashed_folders
 
     def restore_note(self, note_id, trash_path):
         """Restore a single note to its original folder."""
@@ -129,6 +222,12 @@ class DataManager:
             orig_id = mdata.get('id')
             target_path = os.path.join(NOTES_DIR, self._sanitize(orig_id))
             
+            # Robustness: If target path exists, use a unique name
+            if os.path.exists(target_path):
+                target_path += "_" + str(int(time.time()))
+                # Update the ID to match the new folder name
+                orig_id = os.path.basename(target_path)
+
             # Remove meta file before moving back
             os.remove(meta_path)
             shutil.move(trash_path, target_path)
@@ -294,13 +393,13 @@ class DataManager:
                     except Exception as e:
                         logger.error(f"Failed to load note {jf}: {e}")
 
-                # Delete garbage files
-                for gjf in garbage_files:
-                    try:
-                        logger.info(f"Deleting empty temporary note: {gjf}")
-                        os.remove(gjf)
-                    except Exception as e:
-                        logger.error(f"Failed to delete {gjf}: {e}")
+                # Delete garbage files [DISABLED: Caused data loss during restoration]
+                # for gjf in garbage_files:
+                #     try:
+                #         logger.info(f"Deleting empty temporary note: {gjf}")
+                #         os.remove(gjf)
+                #     except Exception as e:
+                #         logger.error(f"Failed to delete {gjf}: {e}")
 
                 # Only process notes if there are any
                 if notes:
@@ -331,6 +430,7 @@ class DataManager:
                     folder.priority = meta.get("priority", 0)
                     folder.color = meta.get("color", None)
                     folder.is_locked = meta.get("is_locked", False)
+                    folder.editor_background_color = meta.get("editor_background_color", None)
                 
                 self.folders.append(folder)
 
@@ -376,8 +476,8 @@ class DataManager:
 
     def delete_folder(self, folder_id, permanent=False):
         """Delete folder, either moving to trash (default) or permanently."""
-        # Prevent deleting the trash directory itself or hidden folders
-        if folder_id.startswith('.') or "trash" in folder_id.lower():
+        # Prevent deleting the system trash directory itself or hidden folders
+        if folder_id.startswith('.'):
              logger.warning(f"Attempted to delete protected folder: {folder_id}")
              return
 
@@ -386,6 +486,15 @@ class DataManager:
 
         path = os.path.join(NOTES_DIR, self._sanitize(folder_id))
         
+        # 1. Clean up Notebook assignments (Shared logic)
+        orig_nb = None
+        for nb in self.notebooks:
+            if folder_id in nb.folder_ids:
+                orig_nb = nb
+                nb.folder_ids.remove(folder_id)
+        
+        self.save_settings()
+
         if permanent:
             if os.path.exists(path):
                 try:
@@ -403,13 +512,7 @@ class DataManager:
                 del folders_meta[folder_id]
                 self.set_setting("folders_meta", folders_meta)
         else:
-            # Find original notebook for restoration context
-            orig_nb = None
-            for nb in self.notebooks:
-                if folder_id in nb.folder_ids:
-                    orig_nb = nb
-                    break
-
+            # Soft Delete (Move to Trash)
             folder.trash_original_notebook_id = orig_nb.id if orig_nb else None
             folder.trash_original_notebook_name = orig_nb.name if orig_nb else "Personal Notebook"
 
@@ -437,6 +540,7 @@ class DataManager:
                     shutil.rmtree(path)
                     
         self.folders = [f for f in self.folders if f.id != folder_id]
+        self.save_settings() # Final save to ensure self.folders removal is noted in meta if needed
 
     def delete_note(self, folder, note_id):
         """Move note file to trash (Soft Delete)."""
@@ -659,13 +763,26 @@ class DataManager:
         notebook_data = self.get_setting("notebooks", [])
         self.notebooks = [Notebook.from_dict(d) for d in notebook_data]
         
-        # If no notebooks, create a default one
-        if not self.notebooks:
+        # Auto-detect initialization: if notebooks exist, we are initialized
+        if self.notebooks and not self.get_setting("notebooks_initialized", False):
+            self.settings["notebooks_initialized"] = True
+            self.save_settings()
+
+        # If no notebooks and never initialized, create a default one
+        if not self.notebooks and not self.get_setting("notebooks_initialized", False):
             default_nb = self.add_notebook("Personal Notebook")
             # Put all non-archived folders in it
             default_nb.folder_ids = [f.id for f in self.folders if not getattr(f, 'is_archived', False)]
+            self.settings["notebooks_initialized"] = True 
             self.save_settings()
         else:
+            if not self.notebooks:
+                # User has no notebooks; ensure flag is set to respect this state if not already
+                if not self.get_setting("notebooks_initialized", False):
+                    self.settings["notebooks_initialized"] = True
+                    self.save_settings()
+                return 
+
             # Fix: Ensure every folder belongs to AT LEAST one notebook
             assigned_ids = set()
             for nb in self.notebooks:
@@ -673,7 +790,7 @@ class DataManager:
             
             # Now includes archived folders too
             missing_ids = [f.id for f in self.folders if f.id not in assigned_ids]
-            if missing_ids:
+            if missing_ids and self.notebooks:
                 # Add to the first notebook
                 self.notebooks[0].folder_ids.extend(missing_ids)
                 self.save_settings()
@@ -681,6 +798,7 @@ class DataManager:
     def add_notebook(self, name):
         nb = Notebook(name=name)
         self.notebooks.append(nb)
+        self.set_setting("notebooks_initialized", True) # Mark as initialized
         self.save_settings()
         return nb
 

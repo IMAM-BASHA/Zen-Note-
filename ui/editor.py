@@ -11,7 +11,7 @@ from PyQt6.QtGui import (
 from util.icon_factory import get_premium_icon
 from util.tts_engine import TTSWorker # Import TTS Worker
 import ui.styles as styles
-from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent, QThread
+from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QIODevice, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent, QThread
 import time
 from ui.markdown_highlighter import MarkdownHighlighter
 
@@ -668,12 +668,16 @@ class MarkdownTextEdit(QTextEdit):
         start_pos = self.textCursor().position()
         is_markdown = False
         
-        # Priority 1: Image data
-        if source.hasImage():
-            # Let parent handle images normally
-            super().insertFromMimeData(source)
-            return
-            
+        # Priority 1: Delegate to parent TextEditor for robust image/RichText handling
+        p = self.parent()
+        while p:
+            if hasattr(p, 'insertFromMimeData'):
+                # Call the wrapper's implementation which has priority logic
+                if p.insertFromMimeData(source):
+                     return # Handled by parent
+                break
+            p = p.parent()
+        
         # Priority 2: Check for Markdown patterns in text
         if source.hasText():
             text = source.text()
@@ -1101,6 +1105,7 @@ class TextEditor(QWidget):
     request_open_link_dialog = pyqtSignal()
     requestShortcutDialog = pyqtSignal()
     exportWordRequest = pyqtSignal() # NEW
+    page_color_changed = pyqtSignal(str) # NEW: For background color persistence
 
     def __init__(self, parent=None, data_manager=None, shortcut_manager=None):
         super().__init__(parent)
@@ -1126,7 +1131,8 @@ class TextEditor(QWidget):
 
         # Editor Area
         self.editor = MarkdownTextEdit()
-        self.editor.setFont(QFont("Segoe UI", 12))
+        # default font is handled by _init_actions loading persistence
+        # self.editor.setFont(QFont("Segoe UI", 12)) 
         # Replace layout-breaking setTextWidth with proper viewport margins
         # self.editor.setViewportMargins(30, 20, 30, 20) # REMOVED: Too much padding requested
         # Provide proper Zen-style padding (Asymmetric: 50px left for space, 5px right for scrollbar)
@@ -1306,18 +1312,39 @@ class TextEditor(QWidget):
         # 1. Font Family
         self.combo_font = QComboBox()
         self.combo_font.addItems(["Segoe UI", "Arial", "Times New Roman", "Courier New", "Verdana", "Georgia", "Tahoma", "Trebuchet MS"])
-        self.combo_font.setCurrentText("Segoe UI")
+        
+        # Load persisted font
+        default_font = "Segoe UI"
+        if self.data_manager:
+            default_font = self.data_manager.get_setting("editor_font_family", "Segoe UI")
+        self.combo_font.setCurrentText(default_font)
+        
         self.combo_font.currentTextChanged.connect(self.set_font_family)
-        self.combo_font.setFixedWidth(120)
+        self.combo_font.setFixedSize(145, 30) # Standardized height
         self.combo_font.setToolTip("Font Family")
+        
+        # Trigger initial Font Set
+        self.set_font_family(default_font)
 
         # 2. Font Size
         self.spin_size = QSpinBox()
         self.spin_size.setRange(8, 72)
-        self.spin_size.setValue(12)
+        
+        # Load persisted size
+        default_size = 12
+        if self.data_manager:
+            try:
+                default_size = int(self.data_manager.get_setting("editor_font_size", 12))
+            except:
+                default_size = 12
+        self.spin_size.setValue(default_size)
+        
         self.spin_size.valueChanged.connect(self.text_size)
-        self.spin_size.setFixedWidth(42) # Optimized width
+        self.spin_size.setFixedSize(60, 30) # Standardized height
         self.spin_size.setToolTip("Font Size")
+        
+        # Trigger initial Size Set
+        self.text_size(default_size)
         
         # 0. Search Action (Restored)
         self.action_search = self.find_action # Alias existing Ctrl+F action
@@ -1392,13 +1419,10 @@ class TextEditor(QWidget):
         self.btn_custom_hl.setMenu(custom_hl_menu)
 
         self.action_color = QAction(get_premium_icon("color"), "Text Color", self)
-        self.action_color.triggered.connect(self.text_color)
+        self.action_color.triggered.connect(self.text_color_picker)
         self.action_color.setToolTip("Text Color")
 
         # 5. Headings & Lists (RESTORED BUTTONS)
-        self.action_paragraph = QAction(get_premium_icon("paragraph"), "Par", self)
-        self.action_paragraph.setToolTip("Paragraph Format")
-        self.action_paragraph.triggered.connect(lambda: self.text_heading(0))
 
         self.action_h1 = QAction(get_premium_icon("h1"), "H1", self)
         self.action_h1.setToolTip("Heading 1")
@@ -1408,6 +1432,10 @@ class TextEditor(QWidget):
         self.action_h2.setToolTip("Heading 2")
         self.action_h2.triggered.connect(lambda: self.text_heading(2))
 
+        self.action_h3 = QAction(get_premium_icon("h3"), "H3", self)
+        self.action_h3.setToolTip("Heading 3")
+        self.action_h3.triggered.connect(lambda: self.text_heading(3))
+
         # Keep combo as hidden logic or secondary, but user wants buttons.
         self.combo_header = QComboBox() 
         self.combo_header.addItems(["Par", "H1", "H2", "H3", "L1", "L2"])
@@ -1416,7 +1444,7 @@ class TextEditor(QWidget):
 
         self.combo_list = QComboBox()
         self.combo_list.addItems(["List", "•", "1.", "A.", "I.", "☑", "Ω"])
-        self.combo_list.setFixedWidth(55)
+        self.combo_list.setFixedSize(70, 30) # Standardized height
         self.combo_list.setToolTip("List Style")
         self.combo_list.currentIndexChanged.connect(self.change_list_style)
         
@@ -1438,6 +1466,14 @@ class TextEditor(QWidget):
         self.action_bullet.setCheckable(True)
         self.action_bullet.triggered.connect(self.text_bullet)
 
+        self.action_arrow_list = QAction(get_premium_icon("chevron_right"), "Arrow List", self)
+        self.action_arrow_list.triggered.connect(self.insert_arrow_list)
+        self.action_arrow_list.setToolTip("Insert Arrow List item")
+
+        self.action_check_circle_list = QAction(get_premium_icon("check_circle"), "Check Circle List", self)
+        self.action_check_circle_list.triggered.connect(self.insert_check_circle_list)
+        self.action_check_circle_list.setToolTip("Insert Check Circle List item")
+
         # 6. Navigation
         self.action_scroll_top = QAction(get_premium_icon("top"), "Scroll to Top", self)
         self.action_scroll_top.triggered.connect(self.scroll_to_top)
@@ -1455,10 +1491,10 @@ class TextEditor(QWidget):
         # Level 1 Button
         self.lvl1_btn = QToolButton()
         self.lvl1_btn.setIcon(get_premium_icon("level1"))
-        self.lvl1_btn.setIconSize(QSize(18, 18))
+        self.lvl1_btn.setIconSize(QSize(20, 20)) # Standardized size
         self.lvl1_btn.setToolTip("Level 1 Box")
         self.lvl1_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl1_btn.setFixedSize(40, 28) # Fixed dimensions for toolbar stability
+        self.lvl1_btn.setFixedSize(48, 28) # Adjusted for Menu Indicator
         self.lvl1_btn.clicked.connect(self.apply_level_1)
         
         lvl1_menu = QMenu(self.lvl1_btn)
@@ -1470,10 +1506,10 @@ class TextEditor(QWidget):
         # Level 2 Button
         self.lvl2_btn = QToolButton()
         self.lvl2_btn.setIcon(get_premium_icon("level2"))
-        self.lvl2_btn.setIconSize(QSize(18, 18))
+        self.lvl2_btn.setIconSize(QSize(20, 20)) # Standardized size
         self.lvl2_btn.setToolTip("Level 2 Box")
         self.lvl2_btn.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
-        self.lvl2_btn.setFixedSize(40, 28) # Fixed dimensions for toolbar stability
+        self.lvl2_btn.setFixedSize(48, 28) # Adjusted for Menu Indicator
         self.lvl2_btn.clicked.connect(self.apply_level_2)
         
         lvl2_menu = QMenu(self.lvl2_btn)
@@ -1486,17 +1522,19 @@ class TextEditor(QWidget):
         self.action_code_block.triggered.connect(self.insert_code_block)
         self.action_code_block.setToolTip("Rectangular Box")
 
-        self.action_note_box = QAction(get_premium_icon("bookmark"), "Insert Note Box", self)
+        self.action_note_box = QAction(get_premium_icon("pin_note"), "Insert Note Box", self)
         self.action_note_box.triggered.connect(self.insert_note_box)
         self.action_note_box.setToolTip("Insert Note Box")
 
         self.btn_hr = QToolButton()
         self.btn_hr.setIcon(get_premium_icon("hr"))
+        self.btn_hr.setIconSize(QSize(20, 20))
         self.action_hr = QAction(get_premium_icon("hr"), "", self)
         self.action_hr.setShortcut(self._get_shortcut("editor_insert_hr", "Ctrl+L"))
         self.action_hr.triggered.connect(self.insert_hr)
         self.btn_hr.setToolTip(f"Horizontal Line ({self._get_shortcut('editor_insert_hr', 'Ctrl+L')})")
         self.btn_hr.setPopupMode(QToolButton.ToolButtonPopupMode.MenuButtonPopup)
+        self.btn_hr.setFixedSize(48, 28) # Standardized with other menu buttons
         self.btn_hr.setDefaultAction(self.action_hr)
         
         hr_menu = QMenu(self.btn_hr)
@@ -1509,6 +1547,8 @@ class TextEditor(QWidget):
         col_action.triggered.connect(self.set_hr_color)
         hr_menu.addAction(col_action)
         self.btn_hr.setMenu(hr_menu)
+        menu_style = self._get_menu_style(self.theme_mode) if hasattr(self, '_get_menu_style') else ""
+        if menu_style: hr_menu.setStyleSheet(menu_style)
 
         self.action_draw = QAction(get_premium_icon("palette"), "Drawing (Whiteboard)", self)
         self.action_draw.triggered.connect(self.insert_drawing)
@@ -1548,6 +1588,12 @@ class TextEditor(QWidget):
         self.action_speed_read.triggered.connect(self.toggle_speed_reader)
         self.action_speed_read.setToolTip("Speed Reader Mode")
 
+        # 5. Page Background Color (REMOVED from Toolbar, kept in Context Menu)
+        # self.btn_page_color = QToolButton()
+        # self.btn_page_color.setIcon(get_premium_icon("layout")) 
+        # self.btn_page_color.setToolTip("Page Background Color")
+        # self.btn_page_color.clicked.connect(self.choose_page_color)
+
 
     def get_toolbar_actions(self):
         """Returns ordered list of widgets/actions for the Main Window Title Bar."""
@@ -1574,15 +1620,18 @@ class TextEditor(QWidget):
             self.action_highlight,
             self.btn_custom_hl,
             self.action_color,
+            # self.btn_page_color, # REMOVED per user request
             "SEPARATOR",
             
             # Group 4: Headings & Lists (Restored Buttons)
-            self.action_paragraph,
             self.action_h1,
             self.action_h2,
+            self.action_h3,
             self.action_bullet,
             self.action_numbering,
             self.action_check,
+            self.action_arrow_list,
+            self.action_check_circle_list,
             "SEPARATOR",
             
             # Group 5: Indentation & Insert
@@ -1718,7 +1767,14 @@ class TextEditor(QWidget):
         set_icon('action_super', 'superscript')
         set_icon('action_sub', 'subscript')
         set_icon('action_highlight', 'highlight')
-        set_icon('action_color', 'color')
+        set_icon('action_highlight', 'highlight')
+        
+        # Text Color (Use saved color if available, else default)
+        if getattr(self, 'current_text_color', None):
+             self._update_text_color_icon(self.current_text_color)
+        else:
+             set_icon('action_color', 'color')
+             
         set_icon('action_font_inc', 'plus_circle')
         set_icon('action_font_dec', 'minus_circle')
         set_icon('action_indent', 'indent')
@@ -1726,19 +1782,23 @@ class TextEditor(QWidget):
         set_icon('action_bullet', 'list')
         set_icon('action_numbering', 'list_ordered')
         set_icon('action_check', 'check_square')
+        set_icon('action_arrow_list', 'chevron_right')
+        set_icon('action_check_circle_list', 'check_circle')
         
         # Headings
-        set_icon('action_paragraph', 'paragraph')
         set_icon('action_h1', 'h1')
         set_icon('action_h2', 'h2')
+        set_icon('action_h3', 'h3')
         
         # Scroll
         set_icon('action_scroll_top', 'top')
         set_icon('action_scroll_bottom', 'bottom')
         
-        # Insert
         set_icon('action_code_block', 'square')
-        set_icon('action_note_box', 'bookmark')
+        set_icon('action_note_box', 'pin_note')
+        set_icon('action_bookmark', 'bookmark')
+        set_icon('action_export', 'export')
+        set_icon('action_export_word', 'doc')
         set_icon('action_hr', 'hr')
         if hasattr(self, 'btn_hr'):
             self.btn_hr.setIcon(get_premium_icon("hr", color=color))
@@ -1846,13 +1906,15 @@ class TextEditor(QWidget):
             QPushButton {{
                 background: transparent;
                 border: 1px solid transparent;
-                border-radius: 4px;
+                border-radius: 10px;
+                padding: 4px;
             }}
             QPushButton:hover {{
-                background: {hover_bg};
+                background-color: {hover_bg};
+                border: 1px solid {header_border};
             }}
             QPushButton:checked {{
-                background: {selected_bg};
+                background-color: {selected_bg};
                 border: 1px solid {c['primary']};
             }}
         """
@@ -2090,27 +2152,112 @@ class TextEditor(QWidget):
         fmt.setFontWeight(target_weight)
         self.editor.mergeCurrentCharFormat(fmt)
 
-    def set_font_family(self, font_name):
-        """Apply font family to selection."""
+    def set_font_family(self, family):
+        """Set font family for the editor and highlighter."""
+        font = self.editor.font()
+        font.setFamily(family)
+        self.editor.setFont(font)
+        
+        # Update highlighter font family
+        if hasattr(self.editor, 'highlighter') and self.editor.highlighter:
+            self.editor.highlighter.document().setDefaultFont(font)
+        
+        # Update font family for the document itself
+        doc_font = self.editor.document().defaultFont()
+        doc_font.setFamily(family)
+        self.editor.document().setDefaultFont(doc_font)
+        
+        # Selection format
         fmt = QTextCharFormat()
-        fmt.setFontFamily(font_name)
+        fmt.setFontFamily(family)
         self.editor.mergeCurrentCharFormat(fmt)
+        
+        # Save persistence
+        if self.data_manager:
+            self.data_manager.set_setting("editor_font_family", family)
+            
         self.editor.setFocus()
 
     def set_highlight_color(self, color_name):
         """Quickly apply a specific highlight color."""
         self.text_highlight(color=color_name)
 
+    def set_background_color(self, color):
+        """Sets the background color of the editor content area."""
+        if not color:
+            # Reset to current theme background if no color provided
+            if hasattr(self, "theme_mode"):
+                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                self.editor.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+            return
+
+        # Apply the specific color
+        try:
+            # We must preserve the foreground color from the theme to avoid text disappearing.
+            fg_color = "black"
+            if hasattr(self, "theme_mode"):
+                 c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                 fg_color = c['foreground']
+            
+            self.editor.setStyleSheet(f"background-color: {color}; color: {fg_color};")
+        except Exception as e:
+            logger.error(f"Error setting background color: {e}")
+
+    def choose_page_color(self):
+        """Open color picker for page background."""
+        # Get current bg if possible, else default white
+        current_bg = QColor(255, 255, 255) 
+        
+        col = QColorDialog.getColor(current_bg, self, "Select Page Background")
+        if not col.isValid(): return
+        
+        # Apply locally
+        self.set_background_color(col.name())
+        
+        # Signal to save this preference to the Note
+        # We emit a custom signal that MainWindow connects to
+        if hasattr(self, 'page_color_changed'):
+            self.page_color_changed.emit(col.name())
+            # self.contentChanged.emit() # Also mark as dirty? Maybe separate signal is better usually.
+
+    def set_background_color(self, color):
+        """Sets the background color of the editor content area."""
+        if not color:
+            # Reset to current theme background if no color provided
+            if hasattr(self, "theme_mode"):
+                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                self.editor.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+            return
+
+        # Apply the specific color
+        try:
+            # Ensure text color contrasts well or remains theme-based? 
+            # For now, we only change background, assuming user picks a light bg for light mode logic usually.
+            # But better to just set background-color on the widget.
+            # We must preserve the foreground color from the theme to avoid text disappearing.
+            fg_color = "black"
+            if hasattr(self, "theme_mode"):
+                 c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                 fg_color = c['foreground']
+            
+            self.editor.setStyleSheet(f"background-color: {color}; color: {fg_color};")
+        except Exception as e:
+            logger.error(f"Error setting background color: {e}")
+
     # --- New Formatting Handlers ---
 
     def text_strike(self):
-        fmt = self.editor.currentCharFormat()
-        fmt.setFontStrikeOut(not fmt.fontStrikeOut())
+        """Toggle strikethrough."""
+        current_fmt = self.editor.currentCharFormat()
+        fmt = QTextCharFormat()
+        fmt.setFontStrikeOut(not current_fmt.fontStrikeOut())
         self.editor.mergeCurrentCharFormat(fmt)
 
     def text_super(self):
-        fmt = self.editor.currentCharFormat()
-        align = fmt.verticalAlignment()
+        """Toggle superscript."""
+        current_fmt = self.editor.currentCharFormat()
+        fmt = QTextCharFormat()
+        align = current_fmt.verticalAlignment()
         if align == QTextCharFormat.VerticalAlignment.AlignSuperScript:
             fmt.setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignNormal)
         else:
@@ -2118,8 +2265,10 @@ class TextEditor(QWidget):
         self.editor.mergeCurrentCharFormat(fmt)
 
     def text_sub(self):
-        fmt = self.editor.currentCharFormat()
-        align = fmt.verticalAlignment()
+        """Toggle subscript."""
+        current_fmt = self.editor.currentCharFormat()
+        fmt = QTextCharFormat()
+        align = current_fmt.verticalAlignment()
         if align == QTextCharFormat.VerticalAlignment.AlignSubScript:
             fmt.setVerticalAlignment(QTextCharFormat.VerticalAlignment.AlignNormal)
         else:
@@ -2129,13 +2278,31 @@ class TextEditor(QWidget):
     def text_color(self):
         col = QColorDialog.getColor(self.editor.textColor(), self)
         if not col.isValid(): return
-        fmt = self.editor.currentCharFormat()
+        fmt = QTextCharFormat()
         fmt.setForeground(col)
         self.editor.mergeCurrentCharFormat(fmt)
 
+    def choose_page_color(self):
+        """Open color picker for page background."""
+        # Get current bg if possible, else default white
+        current_bg = QColor.fromRgb(255, 255, 255) 
+        
+        col = QColorDialog.getColor(current_bg, self, "Select Page Background")
+        if not col.isValid(): return
+        
+        # Apply locally
+        self.set_background_color(col.name())
+        
+        # Signal to save this preference to the Note (handled by MainWindow usually, 
+        # but Editor doesn't know about Note object directly often. 
+        # We can emit a signal that MainWindow catches.)
+        self.contentChanged.emit() # Mark as dirty to trigger save which might need to check this property?
+        # A better way: Emit specific signal
+        self.page_color_changed.emit(col.name())
+
     def text_size(self, size):
         """Apply font size to selection."""
-        fmt = self.editor.currentCharFormat()
+        fmt = QTextCharFormat()
         fmt.setFontPointSize(size)
         self.editor.mergeCurrentCharFormat(fmt)
         self.editor.setFocus() # Return focus to editor
@@ -2176,9 +2343,7 @@ class TextEditor(QWidget):
             size = fmt.fontPointSize()
             if size > 0:
                 self.spin_size.setValue(int(size))
-            else:
-                 # Default size if none set (usually 12)
-                self.spin_size.setValue(12)
+            # Removed else branch that forced 12, allowing persistence to stay if no specific format is found at cursor
                  
             # 2. Update Header Combo (Basic detection)
             # We check font size/weight to guess header level
@@ -2841,7 +3006,7 @@ class TextEditor(QWidget):
                 print(f"Error parsing metadata for edit: {e}")
 
     def insert_image_from_file(self):
-        # Legacy/Internal usage fallback if needed, but primarily used via signal now
+        # Legacy/internal usage fallback if needed, but primarily used via signal now
         self.requestInsertImage.emit()
 
     whiteboard_active = False
@@ -3267,7 +3432,7 @@ class TextEditor(QWidget):
 
             # 2. Custom Symbol Auto-Continue
             # We check for our defined symbols
-            symbols = ["→", "↑", "↓", "↔", "↕", "★", "☆", "○", "●", "□", "■", "☺", "☹", "♥", "♦", "♣", "♠", "✓", "✗", "∞", "≈", "≠", "≤", "≥", "±", "÷", "×", "°", "π", "Ω", "μ", "Σ", "€", "£", "¥", "©", "®", "™", "§", "¶", "†"]
+            symbols = ["➡️", "✅", "→", "↑", "↓", "↔", "↕", "★", "☆", "○", "●", "□", "■", "☺", "☹", "♥", "♦", "♣", "♠", "✓", "✗", "∞", "≈", "≠", "≤", "≥", "±", "÷", "×", "°", "π", "Ω", "μ", "Σ", "€", "£", "¥", "©", "®", "™", "§", "¶", "†"]
             
             matched_sym = None
             for sym in symbols:
@@ -3811,23 +3976,35 @@ class TextEditor(QWidget):
         self._process_and_insert_image(data, draw_border=True)
 
     def insert_note_box(self):
-        """Insert a styled premium note box (Zen Callout)."""
+        """Insert a styled premium note box (Zen Callout) with custom icon."""
+        import base64
         is_dark = getattr(self, 'theme_mode', 'light') == 'dark'
         
         # Premium Zen Palette
-        accent_color = "#6366f1" if is_dark else "#7B9E87" # Indigo (Dark) / Sage Green (Light)
+        accent_color = "#6366f1" if is_dark else "#7B9E87" 
         bg_color = "#1a1a2e" if is_dark else "#fcfcfd"
         header_bg = "#252545" if is_dark else "#f1f5f9"
         text_color = "#d1d5db" if is_dark else "#334155"
         border_outline = "#2d2d4d" if is_dark else "#e2e8f0"
         
-        # New Modern Structure: Minimalist card with 4-side border and left accent
+        # Custom Icon SVG Integration (Zen Geometric Tape Note)
+        icon_color = accent_color
+        svg_template = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="{icon_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="6" width="16" height="15" rx="2" fill="white"/>
+            <rect x="9" y="3" width="6" height="5" fill="{icon_color}" opacity="0.8"/>
+        </svg>"""
+        
+        b64_svg = base64.b64encode(svg_template.encode('utf-8')).decode('utf-8')
+        # Optimized size and shadow for premium visibility
+        icon_html = f'<img src="data:image/svg+xml;base64,{b64_svg}" width="28" height="28" style="vertical-align: middle; filter: drop-shadow(0px 0px 3px rgba(255,255,255,0.8));">'
+
+        # New Modern Structure
         html = f"""
         <br>
         <table width="100%" cellpadding="12" cellspacing="0" style="border: 1px solid {border_outline}; border-left: 5px solid {accent_color}; background-color: {bg_color}; border-collapse: collapse;">
             <tr style="background-color: {header_bg};">
-                <td style="font-family: 'Segoe UI', 'Outfit', sans-serif; font-weight: bold; color: {accent_color}; font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid {accent_color if not is_dark else border_outline};">
-                    ✨ NOTE
+                <td style="font-family: 'Segoe UI', 'Outfit', sans-serif; font-weight: bold; color: {accent_color}; font-size: 11px; letter-spacing: 1px; border-bottom: 1px solid {accent_color if not is_dark else border_outline}; vertical-align: middle;">
+                    {icon_html} &nbsp; NOTE
                 </td>
                 <td width="30" style="text-align: right; vertical-align: middle; border-bottom: 1px solid {accent_color if not is_dark else border_outline};">
                     <a href="action://delete_level" style="text-decoration: none; color: #94a3b8; font-size: 16px; font-weight: normal;">✕</a>
@@ -4487,6 +4664,20 @@ class TextEditor(QWidget):
         # Insert Checkbox + Space
         cursor.insertText("☐ ")
         self.editor.setFocus()
+
+    def insert_arrow_list(self):
+        """Insert an arrow list item start."""
+        cursor = self.editor.textCursor()
+        # Insert Arrow + Space
+        cursor.insertText("➡️ ")
+        self.editor.setFocus()
+
+    def insert_check_circle_list(self):
+        """Insert a check circle list item start."""
+        cursor = self.editor.textCursor()
+        # Insert Check circle + Space
+        cursor.insertText("✅ ")
+        self.editor.setFocus()
         
     def insert_symbol(self):
         """Show symbol picker."""
@@ -4854,15 +5045,81 @@ class TextEditor(QWidget):
                     return
 
         # Priority 4: Rich Text / HTML (Browser Copy, Notion, Office, etc.)
-        # Only use this if we DIDN'T detect markdown above.
         if source.hasHtml():
-             super().insertFromMimeData(source)
-             return
+            html = source.html()
+            
+            # Robust extraction of <img> tags to handle remote images
+            
+            # 1. Regex to find all img tags and extract their src
+            # We look for src="..." or src='...'
+            img_pattern = re.compile(r'<img[^>]+src=["\']([^"\']+)["\'][^>]*>', re.IGNORECASE)
+            
+            modified_html = html
+            matches = list(img_pattern.finditer(html))
+            
+            if matches:
+                doc = self.editor.document()
+                
+                for match in matches:
+                    full_tag = match.group(0)
+                    src = match.group(1)
+                    
+                    image = None
+                    # Case A: Remote URL
+                    if src.startswith(('http://', 'https://')):
+                         try:
+                             response = requests.get(src, timeout=5, stream=True)
+                             if response.status_code == 200:
+                                 image_data = response.content
+                                 image = QImage.fromData(image_data)
+                         except Exception as e:
+                             print(f"Failed to download remote image {src}: {e}")
+                    
+                    # Case B: Data URI (might have missed if it's nested in HTML)
+                    elif src.startswith('data:image/'):
+                        try:
+                            header, encoded = src.split(",", 1)
+                            image_data = base64.b64decode(encoded)
+                            image = QImage.fromData(image_data)
+                        except Exception as e:
+                            print(f"Failed to decode data URI image: {e}")
+                            
+                    # Register image in our system if found
+                    if image and not image.isNull():
+                        res_name = f"wb_drawing_{uuid.uuid4().hex[:12]}"
+                        
+                        # Convert to base64 for persistence
+                        ba = QByteArray()
+                        buf = QBuffer(ba)
+                        buf.open(QIODevice.OpenModeFlag.WriteOnly)
+                        image.save(buf, "PNG")
+                        b64_data = ba.toBase64().data().decode()
+                        
+                        # Store in source of truth
+                        self.whiteboard_images[res_name] = b64_data
+                        
+                        # Add as resource for rendering
+                        doc.addResource(QTextDocument.ResourceType.ImageResource, QUrl(res_name), image)
+                        
+                        # Cache dimensions for layout stability
+                        self._image_dimensions_cache[res_name] = (image.width(), image.height())
+                        
+                        # Replace old src with our local res_name in the HTML
+                        # We use a non-regex replacement to be safe with escaping
+                        new_tag = full_tag.replace(src, res_name)
+                        modified_html = modified_html.replace(full_tag, new_tag)
+
+                self.editor.insertHtml(modified_html)
+                return True
+            
+            # Fallback if no images found or if we want to let super handle other rich text
+            self.editor.insertHtml(html)
+            return True
 
 
-        # Fallback: Plain Text
-        # Delegate to super to handle normal text insertion properly
-        super().insertFromMimeData(source)
+        # Fallback: Plain Text or other types
+        # Return False to let the inner editor handle it via its own fallback
+        return False
 
 
 
@@ -4870,27 +5127,18 @@ class TextEditor(QWidget):
     def canInsertFromMimeData(self, source):
         """Check if clipboard contains image data or file paths.
         
-        FIXED: Return False when we handle clipboard content to prevent path display fallback.
-        This ensures our enhanced error handling takes precedence over default behavior.
+        CRITICAL: We MUST return True if we handle these types, to inform the OS/Qt
+        that we accept the drop/paste event.
         """
-        # Check all three content types - if any are handled, we take control
-        if source.hasImage():
-            image = source.imageData()
-            if image and isinstance(image, QImage) and not image.isNull():
-                return False  # We can handle this
-        
-        if source.hasUrls():
-            for url in source.urls():
-                if url.isLocalFile():
-                    path = url.toLocalFile()
-                    if path.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')):
-                        return False  # We can handle this
-        
+        if source.hasImage() or source.hasUrls():
+            return True
         if source.hasText() and source.text().startswith("data:image/"):
-            return False  # We can handle this
-        
-        # Only let parent handle if we cannot handle the content
-        # This prevents fallback to showing file path instead of image
+            return True
+        if source.hasHtml():
+            # Check for images in HTML
+            html = source.html()
+            if "<img" in html.lower():
+                return True
         return super().canInsertFromMimeData(source)
 
     def clear(self):
@@ -4987,17 +5235,65 @@ class TextEditor(QWidget):
         if not hasattr(self, 'btn_custom_hl'):
             return
             
-        pixmap = QPixmap(16, 16)
-        pixmap.fill(color)
+        # Use our new premium SVG icon, tinted with the user's color
+        # Glow false for crisp color representation
+        icon = get_premium_icon("custom_highlighter", color=color, glow=False)  
         
-        # Add a light border for visibility if color is light
-        with QPainter(pixmap) as painter:
-            painter.setPen(QPen(QColor("#cccccc")))
-            painter.drawRect(0, 0, 15, 15)
-            
-        self.btn_custom_hl.setIcon(QIcon(pixmap))
+        self.btn_custom_hl.setIcon(icon)
+        self.btn_custom_hl.setText("") # Ensure no text fallback
+        
         # Update tooltip
         self.btn_custom_hl.setToolTip(f"Custom Highlight (Ctrl+J) - {color.name()}")
+
+        self.btn_custom_hl.setToolTip(f"Custom Highlight (Ctrl+J) - {color.name()}")
+
+    def text_color_picker(self):
+        """Pick a new text color and update the icon."""
+        # Get current color if possible
+        curr_fmt = self.editor.currentCharFormat()
+        curr_color = curr_fmt.foreground().color()
+        if not curr_color.isValid():
+            curr_color = QColor(0, 0, 0) # Default to black/theme default
+            
+        dlg = QColorDialog(curr_color, self)
+        dlg.setWindowTitle("Select Text Color")
+        dlg.setWindowFlags(dlg.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        
+        if dlg.exec():
+            color = dlg.selectedColor()
+            if color.isValid():
+                # Apply color to selection AND future typing
+                # setTextColor only affects selection or current word if no selection. 
+                # To ensure valid typing, update char format.
+                self.editor.setTextColor(color)
+                
+                # Force new char format for new typing
+                fmt = self.editor.currentCharFormat()
+                fmt.setForeground(color)
+                self.editor.mergeCurrentCharFormat(fmt)
+                
+                self.editor.setFocus()
+                
+                # Save for persistence
+                self.current_text_color = color
+                if self.data_manager:
+                    self.data_manager.set_setting("editor_text_color", color.name())
+                
+                # Update Icon
+                self._update_text_color_icon(color)
+
+    def _update_text_color_icon(self, color):
+        """Update the text color action icon with the selected color"""
+        if not hasattr(self, 'action_color'):
+            return
+            
+        # Use our new premium SVG icon "color" (the 'A' with bar or similar)
+        # We prefer to tint the whole icon or just part of it? 
+        # For "color" icon which is 'A' with bar, tinting whole icon works best for visibility.
+        icon = get_premium_icon("color", color=color, glow=False)  
+        
+        self.action_color.setIcon(icon)
+        self.action_color.setToolTip(f"Text Color - {color.name()}")
 
     def show_message(self, icon, title, text, details=None, buttons=None):
         """Helper to show messages that stay on top of the whiteboard."""

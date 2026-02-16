@@ -279,8 +279,15 @@ def generate_toc_html(toc_items, theme):
     """Generates HTML block for TOC."""
     if not toc_items: return ""
     
-    color = "#ffffff" if theme == 1 else "#000000"
-    link_color = "#66b3ff" if theme == 1 else "#007ACC"
+    if theme == 1:
+        color = "#ffffff"
+        link_color = "#66b3ff"
+    elif theme == 2:
+        color = "#433422"
+        link_color = "#8e5c2e"
+    else:
+        color = "#000000"
+        link_color = "#007ACC"
     
     html = [f'<div id="toc_anchor" class="pdf-toc" style="margin-bottom: 20px;">']
     html.append(f'<h2 style="color: {color}; border-bottom: 2px solid #ccc;">Table of Contents</h2>')
@@ -338,6 +345,11 @@ def process_internal_links(html_content, available_note_ids, theme=0):
 
 def _print_document_with_footer(doc, printer, footer_text=None, progress_callback=None, theme=0):
     painter = QPainter(printer)
+    # Enable High Sharpness Render Hints
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    painter.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+
     layout_rect = printer.pageRect(QPrinter.Unit.Point)
     device_rect = printer.pageRect(QPrinter.Unit.DevicePixel)
     scale = 1.0
@@ -359,15 +371,24 @@ def _print_document_with_footer(doc, printer, footer_text=None, progress_callbac
         if i > 0:
             printer.newPage()
 
-        if theme == 1:
+        if theme != 0: # Anything other than Light
             painter.save()
             page_rect_dev = printer.pageRect(QPrinter.Unit.DevicePixel)
             paper_rect_dev = printer.paperRect(QPrinter.Unit.DevicePixel)
             left_margin = page_rect_dev.left() - paper_rect_dev.left()
             top_margin = page_rect_dev.top() - paper_rect_dev.top()
             full_page_rect = QRectF(-left_margin, -top_margin, paper_rect_dev.width(), paper_rect_dev.height())
-            dark_bg = QColor("#1e1e1e")
-            painter.fillRect(full_page_rect, QBrush(dark_bg))
+            
+            if theme == 1:
+                bg_color = QColor("#1e1e1e")
+            elif theme == 2:
+                bg_color = QColor("#f5f0e8")
+            elif isinstance(theme, str) and theme.startswith("#"):
+                bg_color = QColor(theme)
+            else:
+                bg_color = Qt.GlobalColor.white
+
+            painter.fillRect(full_page_rect, QBrush(bg_color))
             painter.restore()
 
         painter.save()
@@ -382,6 +403,16 @@ def _print_document_with_footer(doc, printer, footer_text=None, progress_callbac
         painter.setFont(font)
         if theme == 1:
             painter.setPen(Qt.GlobalColor.lightGray)
+        elif theme == 2:
+            painter.setPen(QColor("#8e5c2e")) # Brownish for sepia
+        elif isinstance(theme, str) and theme.startswith("#"):
+            # Auto-detect brightness for footer text
+            c = QColor(theme)
+            brightness = (c.red() * 299 + c.green() * 587 + c.blue() * 114) / 1000
+            if brightness < 128:
+                painter.setPen(Qt.GlobalColor.lightGray)
+            else:
+                painter.setPen(Qt.GlobalColor.darkGray)
         else:
             painter.setPen(Qt.GlobalColor.gray)
 
@@ -605,10 +636,105 @@ def apply_theme_to_html(html, theme=0):
             theme_styles += "\n" + pygments_css
         except ImportError:
             pass
+
+    elif isinstance(theme, str) and theme.startswith("#"):
+        # Custom Color Theme
+        from PyQt6.QtGui import QColor
+        bg_color = theme
+        c = QColor(theme)
+        # Determine text color based on brightness
+        brightness = (c.red() * 299 + c.green() * 587 + c.blue() * 114) / 1000
+        text_color = "#ffffff" if brightness < 128 else "#000000"
+        border_color = "#444444" if brightness < 128 else "#cccccc"
+        code_bg = "#2d2d2d" if brightness < 128 else "#f7f6f3"
+        code_text = "#f8f8f2" if brightness < 128 else "#37352f"
+        
+        theme_styles = f"""
+        * {{ margin: 0; padding: 0; }}
+        html, body {{
+            background-color: {bg_color} !important;
+            color: {text_color} !important;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0 !important; padding: 0 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+        }}
+        .custom-page-wrapper {{
+            background-color: {bg_color} !important; color: {text_color} !important;
+            padding: 15px; min-height: 100vh;
+        }}
+        h1, h2, h3, h4, h5, h6 {{ color: {text_color} !important; border-bottom: 2px solid {border_color} !important; }}
+        p, div, span {{ color: {text_color} !important; }}
+        code, pre {{ background-color: {code_bg} !important; color: {code_text} !important; border: 1px solid {border_color} !important; }}
+        table {{ background-color: transparent !important; color: {text_color} !important; border: 1px solid {border_color} !important; width: 100% !important; border-collapse: collapse !important; }}
+        thead {{ display: table-header-group !important; }}
+        tr {{ page-break-inside: avoid !important; }}
+        td, th {{ background-color: transparent !important; color: {text_color} !important; border: 1px solid {border_color} !important; padding: 8px !important; word-wrap: break-word !important; }}
+        hr {{ border-color: {border_color} !important; }}
+        a {{ color: {"#66b3ff" if brightness < 128 else "#007ACC"} !important; }}
+        img {{ border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }}
+        
+        /* Code Block Specifics */
+        table.code-block-table {{ background-color: {code_bg} !important; border: 1px solid {border_color} !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }}
+        td.code-block-cell {{ background-color: {code_bg} !important; color: {code_text} !important; border: none !important; padding: 15px !important; }}
+        pre.code-block-pre {{ background-color: transparent !important; color: {code_text} !important; border: none !important; }}
+        """
+        try:
+            from pygments.formatters import HtmlFormatter
+            py_style = 'monokai' if brightness < 128 else 'default'
+            formatter = HtmlFormatter(style=py_style, nowrap=True)
+            pygments_css = formatter.get_style_defs('.highlight')
+            pygments_css = pygments_css.replace(";", " !important;")
+            theme_styles += "\n" + pygments_css
+        except ImportError:
+            pass
+            
+    elif theme == 2: # Sepia
+        theme_styles = """
+        * { margin: 0; padding: 0; }
+            background-color: #f5f0e8 !important;
+            color: #433422 !important;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0 !important; padding: 0 !important;
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+        }
+        .sepia-page-wrapper {
+            background-color: #f5f0e8 !important; color: #433422 !important;
+            padding: 15px; min-height: 100vh;
+        }
+        h1, h2, h3, h4, h5, h6 { color: #433422 !important; border-bottom: 2px solid #dcd1bc !important; }
+        p, div, span { color: #433422 !important; }
+        code, pre { background-color: #ede6d9 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; }
+        table { background-color: #f5f0e8 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; width: 100% !important; border-collapse: collapse !important; }
+        thead { display: table-header-group !important; }
+        tr { page-break-inside: avoid !important; }
+        td, th { background-color: #f5f0e8 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; padding: 8px !important; word-wrap: break-word !important; }
+        hr { border-color: #dcd1bc !important; }
+        a { color: #8e5c2e !important; }
+        img { border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        table.code-block-table { background-color: #ede6d9 !important; border: 1px solid #dcd1bc !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }
+        td.code-block-cell { background-color: #ede6d9 !important; color: #433422 !important; border: none !important; padding: 15px !important; }
+        pre.code-block-pre { background-color: transparent !important; color: #433422 !important; border: none !important; }
+        """
+        try:
+            from pygments.formatters import HtmlFormatter
+            formatter = HtmlFormatter(style='friendly', nowrap=True) # Friendly style for sepia
+            pygments_css = formatter.get_style_defs('.highlight')
+            pygments_css = pygments_css.replace(";", " !important;")
+            theme_styles += "\n" + pygments_css
+        except ImportError:
+            pass
             
     else:
         theme_styles = """
-        body { background-color: #ffffff !important; color: #000000 !important; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { 
+            background-color: #ffffff !important; 
+            color: #000000 !important; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            text-rendering: optimizeLegibility !important;
+            -webkit-font-smoothing: antialiased !important;
+        }
         h1, h2, h3, h4, h5, h6 { color: #000000 !important; }
         p, div, span { color: #000000 !important; }
         code, pre { background-color: #f7f6f3 !important; color: #37352f !important; border: 1px solid #e0e0e0 !important; }
@@ -637,6 +763,14 @@ def apply_theme_to_html(html, theme=0):
         if '<head>' in html: html = html.replace('<head>', f'<head>{theme_html}')
         else: html = f'{theme_html}{html}'
         html = f'<div class="dark-page-wrapper">{html}</div>'
+    elif theme == 2:
+        if '<head>' in html: html = html.replace('<head>', f'<head>{theme_html}')
+        else: html = f'{theme_html}{html}'
+        html = f'<div class="sepia-page-wrapper">{html}</div>'
+    elif isinstance(theme, str) and theme.startswith("#"):
+        if '<head>' in html: html = html.replace('<head>', f'<head>{theme_html}')
+        else: html = f'{theme_html}{html}'
+        html = f'<div class="custom-page-wrapper">{html}</div>'
     else:
         if '<head>' in html: html = html.replace('<head>', f'<head>{theme_html}')
         else: html = f'{theme_html}{html}'
@@ -743,6 +877,10 @@ def generate_folder_header_html(folder, theme=0):
         title_style = "font-size: 32pt; font-weight: bold; color: #ffffff;"
         subtitle_style = "color: #cccccc; font-size: 14pt;"
         divider_style = "border-color: #444444;"
+    elif theme == 2:
+        title_style = "font-size: 32pt; font-weight: bold; color: #433422;"
+        subtitle_style = "color: #8e5c2e; font-size: 14pt;"
+        divider_style = "border-color: #dcd1bc;"
     else:
         title_style = "font-size: 32pt; font-weight: bold; color: #000000;"
         subtitle_style = "color: #666666; font-size: 14pt;"
@@ -798,6 +936,10 @@ def generate_folder_html(folder, for_preview=False, theme=0, start_index=1):
         divider_style = "border-color: #444444;"
         toc_title_style = "color: #ffffff;"
         toc_link_style = "text-decoration: underline; color: #66b3ff;"
+    elif theme == 2:
+        divider_style = "border-color: #dcd1bc;"
+        toc_title_style = "color: #433422;"
+        toc_link_style = "text-decoration: underline; color: #8e5c2e;"
     else:
         divider_style = "border-color: #cccccc;"
         toc_title_style = "color: #000000;"

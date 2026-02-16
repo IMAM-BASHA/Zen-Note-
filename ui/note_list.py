@@ -4,11 +4,11 @@ from PyQt6.QtWidgets import (
 from ui.zen_dialog import ZenInputDialog
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from ui.color_delegate import ColorDelegate, COLOR_ROLE
-from ui.color_delegate import ColorDelegate, COLOR_ROLE
 from util.icon_factory import get_premium_icon, get_combined_indicators
 from ui.note_card_delegate import NoteCardDelegate
 from ui.animations import pulse_button
 from PyQt6.QtWidgets import QFileDialog
+import ui.styles as styles
 import os
 
 VIEW_MODE_LIST = "list"
@@ -103,16 +103,7 @@ class NoteList(QWidget):
         self.new_note_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.new_note_btn.clicked.connect(lambda: (pulse_button(self.new_note_btn), self.createNoteRequest.emit()))
         
-        self.empty_trash_btn = QPushButton(" Empty Trash")
-        self.empty_trash_btn.setIcon(get_premium_icon("trash", color="white"))
-        self.empty_trash_btn.setObjectName("EmptyTrashBtn")
-        self.empty_trash_btn.setStyleSheet("background: #ef4444; color: white;") # Destructive red
-        self.empty_trash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.empty_trash_btn.clicked.connect(lambda: (pulse_button(self.empty_trash_btn), self.emptyTrashRequest.emit()))
-        self.empty_trash_btn.setVisible(False)
-        
         controls_layout.addWidget(self.new_note_btn)
-        controls_layout.addWidget(self.empty_trash_btn)
         top_layout.addLayout(controls_layout)
         
         self.layout.addWidget(top_container)
@@ -162,7 +153,6 @@ class NoteList(QWidget):
         # UI Updates based on context
         is_trash = folder_id == "TRASH_ROOT"
         self.new_note_btn.setVisible(not is_trash)
-        self.empty_trash_btn.setVisible(is_trash)
         
         self.filter_notes(self.search_input.text())
         
@@ -216,7 +206,10 @@ class NoteList(QWidget):
         if not self.showing_archived and not text:
             archived_count = sum(1 for n in self.current_notes if getattr(n, 'is_archived', False))
             if archived_count > 0:
-                icon_color = "white" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else None
+                # Use theme-aware foreground color
+                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
+                
                 archived_item = QListWidgetItem(f" Archived Notes ({archived_count})")
                 archived_item.setIcon(get_premium_icon("folder_archived", color=icon_color))
                 archived_item.setData(Qt.ItemDataRole.UserRole, "ARCHIVED_ROOT")
@@ -240,7 +233,8 @@ class NoteList(QWidget):
                 if getattr(note, 'is_locked', False): indicators.append("lock")
                 
                 item = QListWidgetItem(f"{idx}. {prefix}{note_title.strip()}")
-                icon_color = "white" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else None
+                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setIcon(get_combined_indicators(indicators, color=icon_color))
                 item.setData(Qt.ItemDataRole.UserRole, note.id)
@@ -275,8 +269,8 @@ class NoteList(QWidget):
     def set_theme_mode(self, mode):
         """Refreshes icons for theme changes."""
         self.theme_mode = mode
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
-        icon_color = "#FFFFFF" if is_dark else "#09090b"
+        c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
         
         self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
         
@@ -301,7 +295,8 @@ class NoteList(QWidget):
         self.list_widget.setSpacing(4) # Add 4px gap between note cards
         
         # Use theme-aware color for icons
-        icon_color = "#FFFFFF" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else "#09090b"
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
         
         if mode == VIEW_MODE_GRID:
             self.list_widget.setViewMode(QListWidget.ViewMode.IconMode)
@@ -355,6 +350,7 @@ class NoteList(QWidget):
         
         menu.addSeparator()
         color_action = menu.addAction("🎨 Set Color...")
+        bg_color_action = menu.addAction(get_premium_icon("layout"), "Set Page Background...") # NEW
         lock_text = "Unlock Note" if getattr(note, 'is_locked', False) else "Lock Note"
         lock_action = menu.addAction(lock_text)
 
@@ -363,9 +359,9 @@ class NoteList(QWidget):
         is_trash = hasattr(self, 'current_folder_id') and self.current_folder_id == "TRASH_ROOT"
         
         if is_trash:
-            restore_action = menu.addAction("Restore Item")
+            restore_action = menu.addAction(get_premium_icon("rotate_ccw", color="#10B981"), "Restore Item") # Emerald Green
             menu.addSeparator()
-            perm_delete_action = menu.addAction("Delete Permanently")
+            perm_delete_action = menu.addAction(get_premium_icon("delete", color="#EF4444"), "Delete Permanently") # Red
             
             # Disable standard actions in trash
             rename_action = None
@@ -422,6 +418,12 @@ class NoteList(QWidget):
             initial = QColor(initial_color)
             color = QColorDialog.getColor(initial, self, "Select Note Color")
             if color.isValid(): self.updateNote.emit(note_id, {"color": color.name()})
+        elif action == bg_color_action:
+            from PyQt6.QtGui import QColor
+            initial_color = getattr(note, 'background_color', '#FFFFFF') or '#FFFFFF'
+            initial = QColor(initial_color)
+            color = QColorDialog.getColor(initial, self, "Select Page Background")
+            if color.isValid(): self.updateNote.emit(note_id, {"background_color": color.name()})
         elif action == lock_action: self.updateNote.emit(note_id, {"is_locked": not getattr(note, 'is_locked', False)})
         elif action == p1: self.updateNote.emit(note_id, {"priority": 1})
         elif action == p2: self.updateNote.emit(note_id, {"priority": 2})

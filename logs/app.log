@@ -1016,3 +1016,340 @@ NameError: name 'brand_layout' is not defined. Did you mean: 'self.brand_layout'
 2026-02-10 20:49:22,667 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
 2026-02-10 20:49:25,987 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
 2026-02-10 21:32:41,009 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
+2026-02-11 00:18:53,901 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 493, in apply_theme
+    self.note_list.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\note_list.py", line 282, in set_theme_mode
+    c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
+        ^^^^^^
+NameError: name 'styles' is not defined
+2026-02-11 14:40:46,022 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpkv0e8rjc.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 15:34:47,856 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpwq89l8ji.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 17:35:18,597 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpbkxiwbxv.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 18:27:51,815 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpc_7z9cho.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 18:38:01,285 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 311, in setup_ui
+    self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 238, in set_editor_toolbar_actions
+    self.repopulate_toolbar()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 284, in repopulate_toolbar
+    self._add_more_tools_btn(hidden_items)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 399, in _add_more_tools_btn
+    row = ToolbarActionWidget(item, item_id, True, self._toggle_pin, self)
+                                                   ^^^^^^^^^^^^^^^^
+AttributeError: 'CustomTitleBar' object has no attribute '_toggle_pin'
+2026-02-11 18:38:30,773 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 311, in setup_ui
+    self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 238, in set_editor_toolbar_actions
+    self.repopulate_toolbar()
+    ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 284, in repopulate_toolbar
+    self._add_more_tools_btn(hidden_items)
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\title_bar.py", line 399, in _add_more_tools_btn
+    row = ToolbarActionWidget(item, item_id, True, self._toggle_pin, self)
+                                                   ^^^^^^^^^^^^^^^^
+AttributeError: 'CustomTitleBar' object has no attribute '_toggle_pin'
+2026-02-11 19:02:32,090 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpcf5v5_kx.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 19:38:41,236 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmp1xsdh8yi.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 19:58:15,550 - NoteApp - ERROR - [data_manager.py:359] - Error saving note d8e35fd0-668e-4d56-a397-450f015b9429: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\tmpf5_sxl67.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\sdf\\d8e35fd0-668e-4d56-a397-450f015b9429.json'
+2026-02-11 21:18:29,576 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 351, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 481, in _setup_header
+    self.header_layout.addWidget(brand_row)
+                                 ^^^^^^^^^
+NameError: name 'brand_row' is not defined
+2026-02-11 21:19:03,207 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 352, in __init__
+    self._setup_search()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 566, in _setup_search
+    self.search_input.textChanged.connect(self.filter_folders)
+                                          ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'filter_folders'
+2026-02-11 21:19:24,585 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 352, in __init__
+    self._setup_search()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 602, in _setup_search
+    self.highlight_preview_btn.setIcon(get_premium_icon("sparkle"))
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'highlight_preview_btn'
+2026-02-11 21:21:48,944 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 351, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 451, in _setup_header
+    self.icons_tray.addWidget(btn)
+    ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'icons_tray'
+2026-02-11 21:22:37,464 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 351, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 459, in _setup_header
+    self.theme_btn.clicked.connect(self.themeToggleRequest.emit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'themeToggleRequest'. Did you mean: 'panelToggleRequest'?
+2026-02-11 21:25:39,863 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 200, in setup_ui
+    self.sidebar = Sidebar()
+                   ~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 351, in __init__
+    self._setup_header()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 459, in _setup_header
+    self.theme_btn.clicked.connect(self.themeToggleRequest.emit)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'themeToggleRequest'. Did you mean: 'panelToggleRequest'?
+2026-02-11 21:26:06,886 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 777, in set_theme_mode
+    self.search_bar.setStyleSheet(f"""
+    ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'search_bar'. Did you mean: 'search_inner'?
+2026-02-11 21:27:51,169 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 777, in set_theme_mode
+    self.search_bar.setStyleSheet(f"""
+    ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'search_bar'. Did you mean: 'search_inner'?
+2026-02-11 21:28:53,602 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 793, in set_theme_mode
+    self.refresh_list()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 907, in refresh_list
+    search_text = self.search_bar.text().lower()
+                  ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'search_bar'. Did you mean: 'search_inner'?
+2026-02-11 21:29:21,057 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 793, in set_theme_mode
+    self.refresh_list()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 907, in refresh_list
+    search_text = self.search_bar.text().lower()
+                  ^^^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'search_bar'. Did you mean: 'search_inner'?
+2026-02-11 21:30:33,921 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 369, in setup_ui
+    self.sidebar.set_wrap_mode(wrap_enabled)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 892, in set_wrap_mode
+    self.wrap_btn.setChecked(enabled)
+    ^^^^^^^^^^^^^
+AttributeError: 'Sidebar' object has no attribute 'wrap_btn'
+2026-02-11 21:34:51,736 - NoteApp - ERROR - [data_manager.py:359] - Error saving note 8662931b-ce94-4990-90f8-a81557315e12: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Recent\\tmpzr0mbz33.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Recent\\8662931b-ce94-4990-90f8-a81557315e12.json'
+2026-02-11 22:48:44,802 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
+2026-02-11 23:27:37,118 - NoteApp - WARNING - [data_manager.py:381] - Attempted to delete protected folder: Trash
+2026-02-11 23:43:52,084 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 365, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 491, in apply_theme
+    self.sidebar.set_theme_mode(mode)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 897, in set_theme_mode
+    self.refresh_list()
+    ~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\sidebar.py", line 1193, in refresh_list
+    for f in fav_folders:
+             ^^^^^^^^^^^
+NameError: name 'fav_folders' is not defined
+2026-02-11 23:58:00,610 - NoteApp - ERROR - [data_manager.py:359] - Error saving note 11b06163-5b24-4982-848f-f2cfa135b361: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\dsd\\tmpvsxkzyet.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\dsd\\11b06163-5b24-4982-848f-f2cfa135b361.json'
+2026-02-12 00:06:55,066 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 367, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 452, in apply_theme
+    css = styles.get_stylesheet(mode)
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\styles.py", line 308, in get_stylesheet
+    background: transparent;
+    ^^^^^^^^^^
+NameError: name 'background' is not defined
+2026-02-12 00:07:15,981 - NoteApp - CRITICAL - [main.py:24] - FATAL ERROR DETECTED
+Traceback (most recent call last):
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\main.py", line 17, in main
+    window = MainWindow()
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 101, in __init__
+    self.setup_ui()
+    ~~~~~~~~~~~~~^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 367, in setup_ui
+    self.apply_theme(current_theme)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\main_window.py", line 452, in apply_theme
+    css = styles.get_stylesheet(mode)
+  File "C:\Users\IMAM\Desktop\s\Notesapplicationversion2\ui\styles.py", line 308, in get_stylesheet
+    background: transparent;
+    ^^^^^^^^^^
+NameError: name 'background' is not defined
+2026-02-12 00:19:42,881 - NoteApp - ERROR - [data_manager.py:378] - Error saving note b5839091-092e-4960-bcaa-857f469d23f7: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\tmpc1acdmo3.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\b5839091-092e-4960-bcaa-857f469d23f7.json'
+2026-02-12 00:22:23,230 - NoteApp - ERROR - [data_manager.py:378] - Error saving note 53cd1dd1-c7ec-4e9b-81b6-88b7dfe63e42: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\tmpbgee5dye.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\53cd1dd1-c7ec-4e9b-81b6-88b7dfe63e42.json'
+2026-02-12 00:44:57,997 - NoteApp - ERROR - [data_manager.py:378] - Error saving note 53cd1dd1-c7ec-4e9b-81b6-88b7dfe63e42: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\tmpc9jt3o2s.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\53cd1dd1-c7ec-4e9b-81b6-88b7dfe63e42.json'
+2026-02-12 01:11:01,539 - NoteApp - WARNING - [data_manager.py:464] - Attempted to delete protected folder: Trash
+2026-02-12 01:14:36,629 - NoteApp - WARNING - [data_manager.py:464] - Attempted to delete protected folder: Trash
+2026-02-12 01:41:29,402 - NoteApp - ERROR - [data_manager.py:442] - Error saving note 542ebd0f-46fa-45da-8cbe-a17adfcc0456: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Python Internal Working\\tmpmw_suo4y.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Python Internal Working\\542ebd0f-46fa-45da-8cbe-a17adfcc0456.json'
+2026-02-12 01:42:16,090 - NoteApp - ERROR - [data_manager.py:378] - Error saving note b5839091-092e-4960-bcaa-857f469d23f7: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\tmp_2lg5vh2.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\python interal working\\b5839091-092e-4960-bcaa-857f469d23f7.json'
+2026-02-12 01:51:21,380 - NoteApp - WARNING - [data_manager.py:464] - Attempted to delete protected folder: .trash
+2026-02-12 02:35:05,268 - NoteApp - ERROR - [data_manager.py:458] - Error saving note efc29645-e8ff-4583-875c-01f686e7162c: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\maintainece\\tmpncc__nu4.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\maintainece\\efc29645-e8ff-4583-875c-01f686e7162c.json'
+2026-02-12 02:35:05,876 - NoteApp - ERROR - [data_manager.py:458] - Error saving note efc29645-e8ff-4583-875c-01f686e7162c: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\maintainece\\tmp_7p5omag.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\maintainece\\efc29645-e8ff-4583-875c-01f686e7162c.json'
+2026-02-12 03:35:02,031 - NoteApp - ERROR - [data_manager.py:458] - Error saving note 6a6e276d-18be-4d4c-8658-756e892d5a34: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Trash\\tmpaetu_yhg.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Trash\\6a6e276d-18be-4d4c-8658-756e892d5a34.json'
+2026-02-12 13:26:48,440 - NoteApp - ERROR - [data_manager.py:458] - Error saving note 6a6e276d-18be-4d4c-8658-756e892d5a34: [WinError 5] Access is denied: 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Trash\\tmpnjit8og6.tmp' -> 'C:\\Users\\IMAM\\Desktop\\s\\Notesapplicationversion2\\Common Notes\\Trash\\6a6e276d-18be-4d4c-8658-756e892d5a34.json'
+2026-02-16 23:43:24,482 - NoteApp - INFO - [exporter.py:472] - Exporting note 'hs' to C:/Users/IMAM/Desktop/hs.pdf (Native + Footer)...
+2026-02-16 23:50:54,576 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/p.pdf (Native + Footer)...
+2026-02-16 23:52:04,777 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/hsk.pdf (Native + Footer)...
+2026-02-16 23:59:45,667 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/name.pdf (Native + Footer)...
+2026-02-17 00:26:27,282 - NoteApp - DEBUG - [editor.py:3065] - Import Image - Target Dir: C:/Users/IMAM/Pictures/Screenshots1
+2026-02-17 00:26:27,286 - NoteApp - DEBUG - [editor.py:3075] - Found 9 images in directory.
+2026-02-17 00:26:27,286 - NoteApp - DEBUG - [editor.py:3086] - Latest Image Identified: Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png (2026-02-09 13:12:31.642418)
+2026-02-17 00:26:27,286 - NoteApp - DEBUG - [editor.py:3101] - Invoking Native Dialog with selection: C:\Users\IMAM\Pictures\Screenshots1\Gemini_Generated_Image_kmpnlwkmpnlwkmpn.png
+2026-02-17 00:26:36,891 - NoteApp - DEBUG - [editor.py:3110] - User selected: C:/Users/IMAM/Pictures/Screenshots/Screenshot 2026-02-17 002626.png
+2026-02-17 00:30:39,424 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/48.pdf (Native + Footer)...
+2026-02-17 00:44:28,468 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/hsg.pdf (Native + Footer)...
+2026-02-17 00:49:06,775 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/hsd.pdf (Native + Footer)...
+2026-02-17 00:56:29,687 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/gg.pdf (Native + Footer)...
+2026-02-17 00:59:07,153 - NoteApp - INFO - [exporter.py:494] - Exporting note 'sdf' to C:/Users/IMAM/Desktop/sdf.pdf (Native + Footer)...
+2026-02-17 01:53:40,597 - NoteApp - INFO - [exporter.py:494] - Exporting note 'hs' to C:/Users/IMAM/Desktop/s/ss.pdf (Native + Footer)...
