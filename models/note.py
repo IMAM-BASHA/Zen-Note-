@@ -3,7 +3,7 @@ from datetime import datetime
 
 class Note:
     def __init__(self, title="New Note", content="", created_at=None, note_id=None, whiteboard_images=None, order=None, is_pinned=False, is_archived=False, priority=0, color=None, is_locked=False, last_scroll_position=0, content_splitter_sizes=None, cover_image=None, description=None, last_opened=None, closed_at=None,
-                 trash_original_folder_id=None, trash_original_folder_name=None, hide_from_recent=False, background_color=None):
+                 trash_original_folder_id=None, trash_original_folder_name=None, hide_from_recent=False, background_color=None, page_size="free"):
         self.id = note_id if note_id else str(uuid.uuid4())
         self.title = title
         self.content = content  # HTML content
@@ -25,6 +25,7 @@ class Note:
         self.trash_original_folder_name = trash_original_folder_name
         self.hide_from_recent = hide_from_recent
         self.background_color = background_color
+        self.page_size = page_size
 
     def to_dict(self):
         return {
@@ -48,7 +49,8 @@ class Note:
             "trash_original_folder_id": self.trash_original_folder_id,
             "trash_original_folder_name": self.trash_original_folder_name,
             "hide_from_recent": self.hide_from_recent,
-            "background_color": self.background_color
+            "background_color": self.background_color,
+            "page_size": self.page_size
         }
 
     @classmethod
@@ -74,7 +76,8 @@ class Note:
             trash_original_folder_id=data.get("trash_original_folder_id"),
             trash_original_folder_name=data.get("trash_original_folder_name"),
             hide_from_recent=data.get("hide_from_recent", False),
-            background_color=data.get("background_color")
+            background_color=data.get("background_color"),
+            page_size=data.get("page_size", "free")
         )
     
     @staticmethod

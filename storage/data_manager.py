@@ -247,10 +247,24 @@ class DataManager:
             return False
 
     def permanent_delete_item(self, trash_path):
-        """Permanently remove item from disk."""
+        """Permanently remove item from disk and clean up its metadata."""
         if not os.path.exists(trash_path): return
+        
         try:
+            # If it's a folder, check for .trash_meta.json to clean up settings
             if os.path.isdir(trash_path):
+                meta_path = os.path.join(trash_path, ".trash_meta.json")
+                if os.path.exists(meta_path):
+                    try:
+                        with open(meta_path, 'r', encoding='utf-8') as f:
+                            mdata = json.load(f)
+                            fid = mdata.get('id')
+                            if fid:
+                                folders_meta = self.get_setting("folders_meta", {})
+                                if fid in folders_meta:
+                                    del folders_meta[fid]
+                                    self.set_setting("folders_meta", folders_meta)
+                    except: pass
                 shutil.rmtree(trash_path)
             else:
                 os.remove(trash_path)
@@ -283,10 +297,22 @@ class DataManager:
             with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4)
             # Ensure data is flushed to disk
-            os.replace(temp_path, file_path)
+            # Add retry logic for Windows PermissionError (WinError 5)
+            import time
+            for attempt in range(5):
+                try:
+                    os.replace(temp_path, file_path)
+                    break
+                except PermissionError as e:
+                    if attempt == 4:
+                        raise e
+                    time.sleep(0.1)
         except Exception as e:
             if os.path.exists(temp_path):
-                os.remove(temp_path)
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
             raise e
 
     def _sanitize(self, name):
@@ -510,7 +536,13 @@ class DataManager:
             folders_meta = self.get_setting("folders_meta", {})
             if folder_id in folders_meta:
                 del folders_meta[folder_id]
-                self.set_setting("folders_meta", folders_meta)
+                
+            # NEW: Also clean up any potential subfolder metadata (prefix match if they exist)
+            keys_to_del = [k for k in folders_meta.keys() if k.startswith(f"{folder_id}/")]
+            for k in keys_to_del:
+                del folders_meta[k]
+                
+            self.set_setting("folders_meta", folders_meta)
         else:
             # Soft Delete (Move to Trash)
             folder.trash_original_notebook_id = orig_nb.id if orig_nb else None

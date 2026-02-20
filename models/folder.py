@@ -4,7 +4,7 @@ from datetime import datetime
 
 class Folder:
     def __init__(self, name="New Folder", folder_id=None, notes=None, is_pinned=False, is_archived=False, priority=0, created_at=None, color=None, is_locked=False, order=0, cover_image=None, description=None, view_mode="list",
-                 trash_original_notebook_id=None, trash_original_notebook_name=None):
+                 trash_original_notebook_id=None, trash_original_notebook_name=None, page_size="free", editor_background_color=None):
         self.id = folder_id if folder_id else str(uuid.uuid4())
         self.name = name
         self.notes = notes if notes else []
@@ -21,6 +21,8 @@ class Folder:
         self.view_mode = view_mode # "list" or "grid"
         self.trash_original_notebook_id = trash_original_notebook_id
         self.trash_original_notebook_name = trash_original_notebook_name
+        self.page_size = page_size
+        self.editor_background_color = editor_background_color
 
     def add_note(self, note: Note):
         self.notes.append(note)
@@ -49,8 +51,9 @@ class Folder:
             "cover_image": self.cover_image,
             "description": self.description,
             "view_mode": self.view_mode,
-            "trash_original_notebook_id": self.trash_original_notebook_id,
             "trash_original_notebook_name": self.trash_original_notebook_name,
+            "page_size": getattr(self, 'page_size', 'free'),
+            "editor_background_color": getattr(self, 'editor_background_color', None),
             "notes": [note.to_dict() for note in self.notes]
         }
 
@@ -71,6 +74,8 @@ class Folder:
             view_mode=data.get("view_mode", "list"),
             trash_original_notebook_id=data.get("trash_original_notebook_id"),
             trash_original_notebook_name=data.get("trash_original_notebook_name"),
+            page_size=data.get("page_size", "free"),
+            editor_background_color=data.get("editor_background_color"),
             notes=[Note.from_dict(n) for n in data.get("notes", [])]
         )
         return folder

@@ -292,7 +292,7 @@ class NoteList(QWidget):
         self.view_mode = mode
         
         self.list_widget.setItemDelegate(self.list_delegate)
-        self.list_widget.setSpacing(4) # Add 4px gap between note cards
+        self.list_widget.setSpacing(2) # Reduced base gap between note cards
         
         # Use theme-aware color for icons
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
@@ -313,7 +313,7 @@ class NoteList(QWidget):
         else:
             self.list_widget.setViewMode(QListWidget.ViewMode.ListMode)
             self.list_widget.setItemDelegate(self.list_delegate)
-            self.list_widget.setSpacing(4) # Add gap in list mode too
+            self.list_widget.setSpacing(2) # Reduced padding gap in list mode
             # Standard list movement
             self.list_widget.setMovement(QListWidget.Movement.Free)
             self.list_widget.setResizeMode(QListWidget.ResizeMode.Adjust)
@@ -351,6 +351,7 @@ class NoteList(QWidget):
         menu.addSeparator()
         color_action = menu.addAction("🎨 Set Color...")
         bg_color_action = menu.addAction(get_premium_icon("layout"), "Set Page Background...") # NEW
+        page_size_action = menu.addAction(get_premium_icon("file_text"), "Set Page Size...") # NEW
         lock_text = "Unlock Note" if getattr(note, 'is_locked', False) else "Lock Note"
         lock_action = menu.addAction(lock_text)
 
@@ -424,6 +425,11 @@ class NoteList(QWidget):
             initial = QColor(initial_color)
             color = QColorDialog.getColor(initial, self, "Select Page Background")
             if color.isValid(): self.updateNote.emit(note_id, {"background_color": color.name()})
+        elif action == page_size_action:
+            from ui.zen_dialog import PageSizeDialog
+            current_size = getattr(note, 'page_size', 'free')
+            new_size, ok = PageSizeDialog.getPageSize(self, current_size, self.theme_mode)
+            if ok: self.updateNote.emit(note_id, {"page_size": new_size})
         elif action == lock_action: self.updateNote.emit(note_id, {"is_locked": not getattr(note, 'is_locked', False)})
         elif action == p1: self.updateNote.emit(note_id, {"priority": 1})
         elif action == p2: self.updateNote.emit(note_id, {"priority": 2})

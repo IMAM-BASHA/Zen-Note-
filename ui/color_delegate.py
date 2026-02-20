@@ -41,7 +41,8 @@ class ColorDelegate(QStyledItemDelegate):
         font_metrics = option.fontMetrics
         # Calculate bounding rect with WordWrap
         # Fixed stable height for List View items (Card Style)
-        return QSize(width, 54)
+        # Reduced from 54 to 40 for a tighter, more typical list look instead of oversized cards
+        return QSize(int(width), 40)
 
     def paint(self, painter, option, index):
         painter.save()
@@ -61,7 +62,8 @@ class ColorDelegate(QStyledItemDelegate):
         # Consistent width cap for List mode cards (Avoid excessive stretching)
         # Left-aligned for a more standard/anchored list feel as requested
         card_w = min(400, rect.width() - 12)
-        bg_rect = QRect(rect.left() + 6, rect.top() + 4, card_w, rect.height() - 8)
+        # Reduced internal vertical margin to decrease padded look
+        bg_rect = QRect(rect.left() + 6, rect.top() + 2, card_w, rect.height() - 4)
         
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)

@@ -1,13 +1,12 @@
 {
-    "theme_mode": "ocean_depth",
+    "theme_mode": "light",
     "whiteboard_split_view": true,
     "notebooks": [
         {
-            "id": "d775fd47-07d8-484b-b86e-c7c62fec539b",
-            "name": "hello",
+            "id": "a6fe5b51-60c1-4067-ba3d-d4bf3f5cf612",
+            "name": "helo",
             "folder_ids": [
-                "news",
-                "Trash"
+                "whs"
             ],
             "is_expanded": true
         }
@@ -68,14 +67,6 @@
         },
         "his": {
             "last_note_id": "61450b60-1be1-43e9-9977-48fe919754d5"
-        },
-        "hello": {
-            "last_note_id": "e9f2c327-aecc-4b40-b0c7-a6bfcdcce358",
-            "is_pinned": false,
-            "priority": 0,
-            "is_archived": true,
-            "color": null,
-            "is_locked": false
         },
         "python learning": {
             "last_note_id": "2e9d2fe6-b206-459c-9d9c-bb2243aaa5db"
@@ -569,17 +560,6 @@
             "view_mode": "list",
             "last_note_id": "593e0423-16ee-4421-8f34-87596ed5f061"
         },
-        "hs": {
-            "last_note_id": "43a8abce-f706-48ac-8d67-f751b9df677a",
-            "is_pinned": false,
-            "priority": 0,
-            "is_archived": false,
-            "color": null,
-            "is_locked": false,
-            "cover_image": null,
-            "description": null,
-            "view_mode": "grid"
-        },
         "des": {
             "last_note_id": "e1b12abc-1b17-41e7-a67d-01ee53ed77ee"
         },
@@ -604,26 +584,31 @@
             "view_mode": "list",
             "last_note_id": "11b06163-5b24-4982-848f-f2cfa135b361"
         },
-        "news": {
-            "last_note_id": "900941ba-6d3e-4d28-a675-f47e86084709",
+        "ns": {
+            "last_note_id": "6a6e276d-18be-4d4c-8658-756e892d5a34"
+        },
+        "test_recursive_folder": {
+            "color": "red",
+            "last_note_id": "test_note_1"
+        },
+        "test_recursive_folder/subfolder": {
+            "color": "blue"
+        },
+        "whs": {
+            "last_note_id": "64828563-fc80-4ae3-a63b-0286fef63401",
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
             "color": null,
+            "editor_background_color": null,
             "is_locked": false,
+            "page_size": "free",
             "cover_image": null,
             "description": null,
-            "view_mode": "list",
-            "editor_background_color": "#ff00ff"
-        },
-        "ns": {
-            "last_note_id": "6a6e276d-18be-4d4c-8658-756e892d5a34"
-        },
-        "Trash": {
-            "last_note_id": "6a6e276d-18be-4d4c-8658-756e892d5a34"
+            "view_mode": "grid"
         }
     },
-    "last_selected_folder_id": "Trash",
+    "last_selected_folder_id": "whs",
     "last_image_dir": "C:/Users/IMAM/Desktop",
     "wrap_mode": true,
     "whiteboard_settings": {
@@ -638,7 +623,7 @@
     },
     "hr_thickness": 1,
     "hr_color": "#00aaff",
-    "last_export_dir": "C:/Users/IMAM/Desktop/s",
+    "last_export_dir": "C:/Users/IMAM/Desktop",
     "custom_highlight_color": "#55ff00",
     "shortcuts": {
         "global_new_note": "Ctrl+N",
@@ -695,7 +680,8 @@
         ]
     },
     "notebooks_initialized": true,
-    "editor_text_color": "#000000",
-    "editor_font_family": "Courier New",
-    "last_export_custom_color": "#55FF00"
+    "editor_text_color": "#ffffff",
+    "editor_font_family": "Tahoma",
+    "last_export_custom_color": "#55FF00",
+    "editor_font_size": 12
 }

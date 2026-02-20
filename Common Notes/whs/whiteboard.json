@@ -1,0 +1,15 @@
+{
+  "version": "2.0",
+  "pages": [
+    {
+      "name": "Page 1",
+      "section": "sdf",
+      "strokes": [],
+      "shapes": [],
+      "images": [],
+      "background_type": "dots",
+      "background_color": "#1e1e1e"
+    }
+  ],
+  "current_page": 0
+}

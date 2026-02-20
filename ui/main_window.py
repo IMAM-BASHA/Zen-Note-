@@ -333,7 +333,7 @@ class MainWindow(QMainWindow):
         self.main_splitter.setCollapsible(2, False) # Editor
         
         # Enforce width constraints for sidebars
-        self.sidebar.setMinimumWidth(60) # Allow minimal mode
+        self.sidebar.setMinimumWidth(160) # Prevent clipping of 4 icon buttons
         self.sidebar.setMaximumWidth(350) # Prevent Folders from becoming "too big"
         self.note_list.setMinimumWidth(240)
         self.note_list.setMaximumWidth(400) # Hard limit for Notes List to prevent "fat" cards
@@ -564,6 +564,25 @@ class MainWindow(QMainWindow):
         self.data_manager.delete_notebook(nb_id)
         self.refresh_folders()
         
+        # Clear UI state
+        self.current_folder = None
+        self.current_note = None
+        self.note_list.load_notes([], folder_id=None)
+        self.editor.clear()
+        self.editor.editor.setReadOnly(True)
+        self.editor_stack.setCurrentIndex(0) # Show Empty State
+        if hasattr(self, 'whiteboard_widget'):
+            self.whiteboard_widget.set_info(None, None)
+            self.whiteboard_widget.clear()
+        if hasattr(self, 'metadata_bar'):
+            self.metadata_bar.update_stats("")
+            
+        # Select "ALL_NOTEBOOKS_ROOT" if any notebooks are left
+        if self.data_manager.notebooks:
+            self.select_folder("ALL_NOTEBOOKS_ROOT")
+        elif hasattr(self.sidebar, 'clear_selection'):
+            self.sidebar.clear_selection()
+        
     def update_folder(self, folder_id, updates):
         """Update folder attributes (pin, priority) and save."""
         folder = self.data_manager.get_folder_by_id(folder_id)
@@ -597,6 +616,20 @@ class MainWindow(QMainWindow):
                      
                      if not bg:
                           self.editor.set_background_color(folder.editor_background_color)
+            if "page_size" in updates: # NEW
+                folder.page_size = updates["page_size"]
+                # Apply live if Current Folder and note doesn't override
+                if self.current_folder and self.current_folder.id == folder_id:
+                    ps = "free"
+                    if self.current_note:
+                        ps = getattr(self.current_note, 'page_size', 'free')
+                    
+                    # If note is free (default) but folder has a specific size, we might want to follow folder
+                    # or if we add an 'inherit' option. For now, let's assume folder size applies unless note is set to something else.
+                    if ps == "free" and folder.page_size != "free":
+                         self.editor.set_page_size(folder.page_size)
+                    elif ps == "free" and folder.page_size == "free":
+                         self.editor.set_page_size("free")
             
             # Save Metadata to Settings
             folders_meta = self.data_manager.get_setting("folders_meta", {})
@@ -612,6 +645,7 @@ class MainWindow(QMainWindow):
             folders_meta[folder_id]["color"] = folder.color
             folders_meta[folder_id]["editor_background_color"] = getattr(folder, 'editor_background_color', None) # NEW
             folders_meta[folder_id]["is_locked"] = folder.is_locked
+            folders_meta[folder_id]["page_size"] = getattr(folder, 'page_size', 'free') # NEW
             folders_meta[folder_id]["cover_image"] = folder.cover_image
             folders_meta[folder_id]["description"] = folder.description
             folders_meta[folder_id]["view_mode"] = folder.view_mode
@@ -663,6 +697,11 @@ class MainWindow(QMainWindow):
                 # Apply live if current
                 if self.current_note and self.current_note.id == note_id:
                      self.editor.set_background_color(note.background_color)
+            if "page_size" in updates: # NEW
+                note.page_size = updates["page_size"]
+                # Apply live if current
+                if self.current_note and self.current_note.id == note_id:
+                     self.editor.set_page_size(note.page_size)
             if "closed_at" in updates:
                 note.closed_at = updates["closed_at"]
                 
@@ -706,29 +745,44 @@ class MainWindow(QMainWindow):
     def delete_folder(self, folder_id):
         # Check lock status
         folder = self.data_manager.get_folder_by_id(folder_id)
-        if folder and getattr(folder, 'is_locked', False):
-            self.show_message(QMessageBox.Icon.Warning, "Locked", "This folder is locked and cannot be deleted.")
+        if not folder: return
+        
+        # 1. Check if folder itself is locked
+        if getattr(folder, 'is_locked', False):
+            self.show_message(QMessageBox.Icon.Warning, "Locked", f"The folder '{folder.name}' is locked and cannot be deleted.")
             return
 
+        # 2. Check if any notes within the folder are locked (safety feature)
+        locked_notes = [n for n in folder.notes if getattr(n, 'is_locked', False)]
+        if locked_notes:
+            note_titles = ", ".join([n.title for n in locked_notes[:3]])
+            if len(locked_notes) > 3: note_titles += "..."
+            self.show_message(QMessageBox.Icon.Warning, "Locked Content", 
+                             f"This folder contains locked notes ({note_titles}). Please unlock them before deleting the folder.")
+            return
+
+        # Proceed with deletion
         self.data_manager.delete_folder(folder_id)
         self.refresh_folders()
+        
+        # If we are in RECENT view, refresh it
+        if self.sidebar.active_section == "RECENT":
+            self.on_sidebar_section_changed("RECENT")
         
         # If deleted folder was active, clear everything
         if self.current_folder and self.current_folder.id == folder_id:
             self.current_folder = None
             self.current_note = None
-            self.note_list.load_notes([])
-            self.editor.clear()
-            self.note_list.load_notes([])
+            self.note_list.load_notes([], folder_id=None)
             self.editor.clear()
             self.editor.editor.setReadOnly(True)
             self.editor_stack.setCurrentIndex(0) # Show Empty State
             self.whiteboard_widget.set_info(None, None) # Clear WB info
+            if hasattr(self, 'metadata_bar'):
+                self.metadata_bar.update_stats("") # Clear stats
         
-        # If deleted folder wasn't active, we don't need to do anything to the view
-        elif not self.current_folder:
-             # Ensure state key is clean
-             pass
+        # Refresh current view if it was showing this notebook/folder
+        self.sidebar.refresh_list()
 
     def rename_folder(self, folder_id, new_name):
         """Handle folder rename request from sidebar."""
@@ -1379,6 +1433,14 @@ class MainWindow(QMainWindow):
              bg_color = getattr(target_folder, 'editor_background_color', None)
         
         self.editor.set_background_color(bg_color)
+        # Apply Page Size
+        # 1. Note Specific
+        p_size = getattr(self.current_note, 'page_size', 'free')
+        # 2. Folder Specific (if note is free or default)
+        if p_size == "free" and target_folder:
+             p_size = getattr(target_folder, 'page_size', 'free')
+        
+        self.editor.set_page_size(p_size)
         
         # Calculate note's 1-based index for level numbering
         from models.note import Note

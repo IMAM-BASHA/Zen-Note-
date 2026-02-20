@@ -570,8 +570,8 @@ class Sidebar(QWidget):
 
         # Update Toggle Buttons (Text vs Icon)
         if hasattr(self, 'toggle_buttons'):
-            # Switch to icons when narrow (< 160px)
-            is_mini = width < 160
+            # Switch to icons when narrow (< 260px)
+            is_mini = width < 260
             
             c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
             icon_color = c.get('sidebar_fg', c.get('foreground', '#3D3A38'))
@@ -1800,6 +1800,16 @@ class Sidebar(QWidget):
         color = QColorDialog.getColor(initial, self, "Select Folder Color")
         if color.isValid(): self.updateFolder.emit(folder_id, {"color": color.name()})
 
+    def prompt_change_folder_page_size(self, folder_id):
+        folder = next((f for f in self.all_folders if f.id == folder_id), None)
+        if not folder: return
+        
+        from ui.zen_dialog import PageSizeDialog
+        current_size = getattr(folder, 'page_size', 'free')
+        new_size, ok = PageSizeDialog.getPageSize(self, current_size, self.theme_mode)
+        if ok:
+            self.updateFolder.emit(folder_id, {"page_size": new_size})
+
     def prompt_change_folder_bg_color(self, folder_id):
         """Open color picker for folder editor background."""
         from PyQt6.QtWidgets import QColorDialog
@@ -1904,6 +1914,10 @@ class Sidebar(QWidget):
         # NEW: Folder Background Color
         bg_color_act = menu.addAction(get_premium_icon("layout", color=m_color), "Set Editor Background")
         bg_color_act.triggered.connect(lambda: self.prompt_change_folder_bg_color(folder_id))
+        
+        # NEW: Folder Page Size
+        page_size_act = menu.addAction(get_premium_icon("file_text", color=m_color), "Set Folder Page Size")
+        page_size_act.triggered.connect(lambda: self.prompt_change_folder_page_size(folder_id))
         
         # Priority Submenu
         prio_menu = menu.addMenu(get_premium_icon("flag", color=m_color), "Set Priority")

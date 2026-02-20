@@ -11,6 +11,7 @@ from PyQt6.QtGui import (
 from util.icon_factory import get_premium_icon
 from util.tts_engine import TTSWorker # Import TTS Worker
 import ui.styles as styles
+import math
 from PyQt6.QtCore import Qt, pyqtSignal, QSizeF, QSize, QUrl, QByteArray, QBuffer, QIODevice, QTimer, QThreadPool, QRunnable, pyqtSlot, QObject, QEvent, QThread
 import time
 from ui.markdown_highlighter import MarkdownHighlighter
@@ -32,6 +33,7 @@ except ImportError:
     logger.debug("Pygments NOT detected")
 
 import uuid
+import re
 from util.logger import logger
 from ui.animations import slide_height
 
@@ -605,7 +607,6 @@ class MarkdownTextEdit(QTextEdit):
                 return
             
             # Numbered Lists: 1. 2. etc.
-            import re
             match = re.match(r'^(\d+)\.\s', text)
             if match:
                 if text == f"{match.group(1)}. ":
@@ -645,7 +646,6 @@ class MarkdownTextEdit(QTextEdit):
         text0 = c0.block().text().strip()
         
         target_color = None
-        import re
         if re.match(r'^\[\d+(\.\d+)+\]$', text0):
             # Check L1 or L2
             if re.match(r'^\[\d+\.\d+\]$', text0): target_color = editor_widget.level1_color
@@ -695,8 +695,8 @@ class MarkdownTextEdit(QTextEdit):
                 if "`" in text: is_markdown = True
                 elif "**" in text or "*" in text or "__" in text: is_markdown = True
                 elif "##" in text: is_markdown = True
-                # Check for markdown table
-                if "|" in text and "\n" in text and ("---" in text or ":-" in text):
+                # Check for markdown table (Must have pipe and either dash or colon for alignment)
+                elif "|" in text and ("---" in text or ":-" in text or "-:" in text):
                      is_markdown = True
                 elif "\n-" in text or "\n*" in text: is_markdown = True
                 elif "[" in text and "](" in text: is_markdown = True
@@ -713,8 +713,6 @@ class MarkdownTextEdit(QTextEdit):
                         # IMPROVED STRICT HEURISTICS
                         # We use Regex to look for structural patterns, not just keywords.
                         # This prevents "HOW return WORKS" from triggering code block.
-                        
-                        import re
                         
                         # 1. Reject simple single-line sentences unless they look like specific statements
                         lines = text_stripped.split('\n')
@@ -810,23 +808,44 @@ class MarkdownTextEdit(QTextEdit):
                             f'</td></tr></table>'
                         )
 
-                    # Use 'gfm-like' defaults but override highlighter
+                    # Initialize MarkdownIt and enable tables explicitly
                     md = MarkdownIt("commonmark", {
                         'breaks': True, 
                         'html': True, 
                         'highlight': highlight_func
-                    }).enable('table')
+                    }).enable('table').enable('strikethrough')
                     
                     html = md.render(text)
                     
-                    # Post-process for consistency if highlighter wasn't triggered for inline code
-                    # IBM Plex Mono applied to inline code
+                    if '<table>' in html and not '</body>' in html:
+                        # Wrap in a div to prevent QTextEdit from exploding/stretching it
+                        html = f'<div class="pasted-markdown-block" style="margin: 10px 0;">{html}</div>'
+
+                    # FONT SYNC: Wrap in a div with current font size
+                    # Locate parent TextEditor to get current toolbar font size
+                    current_font_size = 12
+                    p_ptr = self.parent()
+                    while p_ptr:
+                        if hasattr(p_ptr, 'spin_size'):
+                            current_font_size = p_ptr.spin_size.value()
+                            break
+                        p_ptr = p_ptr.parent()
+                    
+                    html = f'<div style="font-size: {current_font_size}pt;">{html}</div>'
+
+                    # Post-process for consistency
                     html = html.replace('<code>', '<code style="background: rgba(135,131,120,0.15); color: #EB5757; padding: 2px 5px; border-radius: 3px; font-family: \'IBM Plex Mono\', Consolas, monospace;">')
                     
-                    # Table Styling
-                    html = html.replace('<table>', '<table border="1" style="border-collapse: collapse; width: 100%; border-color: #555; margin: 10px 0;">')
-                    html = html.replace('<th>', '<th style="background-color: #373737; color: white; padding: 8px; border: 1px solid #555;">')
-                    html = html.replace('td>', 'td style="padding: 8px; border: 1px solid #555;">')
+                    # Table Styling (Inject clean CSS for tables)
+                    # We use inline styles because they are more robust for Qt's limited CSS support
+                    table_style = 'border-collapse: collapse; width: 100%; border: 1px solid #555; margin: 10px 0; background-color: transparent;'
+                    th_style = 'background-color: #373737; color: white; padding: 10px; border: 1px solid #555; text-align: left; font-weight: bold;'
+                    td_style = 'padding: 8px; border: 1px solid #555; vertical-align: top;'
+                    
+                    html = html.replace('<table>', f'<table border="1" style="{table_style}">')
+                    html = html.replace('<thead>', '<thead style="background-color: #373737;">')
+                    html = html.replace('<th>', f'<th style="{th_style}">')
+                    html = html.replace('<td>', f'<td style="{td_style}">')
                     
                     self.insertHtml(html)
                     return
@@ -1113,6 +1132,7 @@ class TextEditor(QWidget):
         self.toc_mode = 'toc' # Added for Bookmark feature
         self.shortcut_manager = shortcut_manager
         self.theme_mode = "light" # Initialize early for child widgets
+        self._page_size = "free"
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         
@@ -1156,6 +1176,16 @@ class TextEditor(QWidget):
             Qt.TextInteractionFlag.LinksAccessibleByMouse
         )
         self.layout.addWidget(self.editor)
+
+        # Page Number Overlay (NEW)
+        self.page_number_label = QLabel(self)
+        self.page_number_label.setObjectName("PageNumberLabel")
+        self.page_number_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.page_number_label.hide() # Only show when not free size
+        
+        # Connect scroll and text change to update numbering
+        self.editor.verticalScrollBar().valueChanged.connect(self._update_page_numbers)
+        self.editor.textChanged.connect(self._update_page_numbers)
 
         # Speed Reader Bar (Floating Overlay) - Must be after editor init
         self.speed_reader = SpeedReaderBar(self, self)
@@ -1222,7 +1252,6 @@ class TextEditor(QWidget):
             self.level2_color = QColor("#00FF00")
         
         # --- TOC & Editor Layout ---
-        from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QWidget, QSplitter, QLabel, QPushButton
         
         self.editor_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.editor_splitter.setHandleWidth(4)
@@ -1964,6 +1993,118 @@ class TextEditor(QWidget):
         # Reposition Find Bar if visible
         self._reposition_find_bar()
         
+        # Update fixed size centering and scale images
+        self._center_fixed_page()
+        self._update_page_numbers()
+
+    def _center_fixed_page(self):
+        """Adjust margins to center the fixed-width page in the viewport."""
+        if self._page_size == "free":
+            self.editor.setViewportMargins(50, 30, 5, 30)
+            return
+        
+        # Calculate widths
+        viewport_width = self.editor.viewport().width()
+        
+        # Standard widths at 96 DPI
+        widths = {
+            "a4": 794,
+            "a5": 559,
+            "legal": 816,
+            "letter": 816
+        }
+        
+        page_width = widths.get(self._page_size, 794)
+        
+        if viewport_width > page_width + 100:
+            # We have enough space for centered layout
+            side_margin = (viewport_width - page_width) // 2
+            self.editor.setViewportMargins(side_margin, 30, side_margin, 30)
+        else:
+            # Fallback to standard Zen padding if too narrow
+            self.editor.setViewportMargins(50, 30, 5, 30)
+
+    def set_page_size(self, size_name):
+        """Sets the paper size and updates layout."""
+        self._page_size = size_name.lower()
+        
+        # Apply to document
+        widths = {
+            "a4": 794,
+            "a5": 559,
+            "legal": 816,
+            "letter": 816
+        }
+        
+        if self._page_size == "free":
+            self.editor.document().setTextWidth(-1)
+            self.page_number_label.hide()
+        else:
+            px = widths.get(self._page_size, 794)
+            self.editor.document().setTextWidth(px)
+            self.page_number_label.show()
+        
+        # Apply visuals
+        self._center_fixed_page()
+        self._update_page_styling()
+        self._update_page_numbers()
+        
+        # Force re-scale of images to new width
+        self._resize_images_to_fit()
+
+    def _update_page_styling(self):
+        """Apply styling for fixed pages (subtle shadow/border visual simulation)."""
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        bg_color = "transparent" # Default
+        
+        # In fixed mode, we might want to make the 'desk' darker than the 'page'
+        # For now, let's keep it clean but show the page numbers nicely
+        pass
+
+    def _update_page_numbers(self):
+        """Calculate and display current page / total pages."""
+        if self._page_size == "free":
+            return
+            
+        # Standard heights at 96 DPI
+        heights = {
+            "a4": 1123,
+            "a5": 794,
+            "legal": 1344,
+            "letter": 1056
+        }
+        page_height = heights.get(self._page_size, 1123)
+        
+        # Document info
+        doc_height = self.editor.document().size().height()
+        scroll_pos = self.editor.verticalScrollBar().value()
+        
+        total_pages = max(1, math.ceil(doc_height / page_height))
+        current_page = min(total_pages, math.floor(scroll_pos / page_height) + 1)
+        
+        self.page_number_label.setText(f"Page {current_page} of {total_pages}")
+        
+        # Position the label at the bottom right
+        padding = 20
+        lw = self.page_number_label.width()
+        lh = self.page_number_label.height()
+        self.page_number_label.move(self.width() - lw - padding, self.height() - lh - padding)
+        
+        # Style based on theme
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        self.page_number_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: {c['secondary']};
+                color: {c['muted_foreground']};
+                border: 1px solid {c['border']};
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-size: 10px;
+                font-family: 'Inter', sans-serif;
+            }}
+        """)
+        self.page_number_label.adjustSize()
+            
     def _reposition_find_bar(self):
         if hasattr(self, 'find_bar') and self.find_bar and self.find_bar.isVisible():
             # Position: Top-Right corner of the widget
@@ -2301,10 +2442,15 @@ class TextEditor(QWidget):
         self.page_color_changed.emit(col.name())
 
     def text_size(self, size):
-        """Apply font size to selection."""
+        """Apply font size to selection and persist setting."""
         fmt = QTextCharFormat()
         fmt.setFontPointSize(size)
         self.editor.mergeCurrentCharFormat(fmt)
+        
+        # PERSISTENCE: Save last set font size
+        if self.data_manager:
+            self.data_manager.set_setting("editor_font_size", size)
+            
         self.editor.setFocus() # Return focus to editor
         
     def font_size_step_up(self):
@@ -3768,17 +3914,17 @@ class TextEditor(QWidget):
             del_style = "text-decoration: none; color: white; background: #d32f2f; padding: 6px; border-radius: 4px; font-size: 16px; border: 1px solid #b71c1c; display: block; text-align: center; margin: 2px 0; width: 32px;"
 
         # Use title attribute for tooltips
-        # Note: formatting as a table ensures vertical layout since flexbox is not supported by QTextEdit
-        html = '<table border="0" cellspacing="2" cellpadding="0">'
-        html += f'<tr><td><a href="action://view/{res_name}" title="View External" style="{btn_style}">🖼️</a></td></tr>'
-        html += f'<tr><td><a href="action://refresh/{res_name}" title="Refresh Image" style="{btn_style}">🔄</a></td></tr>'
+        # Use div with text-align: center for stacking
+        html = '<div style="text-align: center;">'
+        html += f'<div style="margin-bottom: 4px;"><a href="action://view/{res_name}" title="View External" style="{btn_style}">🖼️</a></div>'
+        html += f'<div style="margin-bottom: 4px;"><a href="action://refresh/{res_name}" title="Refresh Image" style="{btn_style}">🔄</a></div>'
         
         # Only show Edit button for whiteboard drawings
         if is_whiteboard:
-            html += f'<tr><td><a href="action://edit/{res_name}" title="Edit" style="{btn_style}">✏️</a></td></tr>'
+            html += f'<div style="margin-bottom: 4px;"><a href="action://edit/{res_name}" title="Edit" style="{btn_style}">✏️</a></div>'
             
-        html += f'<tr><td><a href="action://delete/{res_name}" title="Delete" style="{del_style}">🗑️</a></td></tr>'
-        html += '</table>'
+        html += f'<div style="margin-bottom: 4px;"><a href="action://delete/{res_name}" title="Delete" style="{del_style}">🗑️</a></div>'
+        html += '</div>'
         
         return html
 
@@ -4150,17 +4296,12 @@ class TextEditor(QWidget):
             # Use CSS max-width instead of fixed dimensions for sharper rendering
             # This allows browser to display at native resolution when smaller than max
             # CRITICAL: Use explicit width/height attributes to preserve aspect ratio in QTextEdit
+            # Use span/div instead of table to prevent QTextEdit from wrapping in structural tables
             html = f'''
-            <table border="0" style="margin-top: 5px; margin-bottom: 5px;">
-                <tr>
-                    <td style="vertical-align: top; padding-right: 10px;">
-                        <img src="{res_name}" width="{display_width}" height="{display_height}" style="border: {border_style}; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;" />
-                    </td>
-                    <td style="vertical-align: top;">
-                        {buttons_html}
-                    </td>
-                </tr>
-            </table>
+            <div style="margin-top: 5px; margin-bottom: 5px;">
+                <img src="{res_name}" width="{display_width}" height="{display_height}" style="border: {border_style}; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; vertical-align: top; margin-right: 10px;" />
+                <span style="vertical-align: top;">{buttons_html}</span>
+            </div>
             <br>
             '''
             
@@ -4205,10 +4346,9 @@ class TextEditor(QWidget):
         
         # Insert controls using resource reference for efficiency
         controls_html = f'''
-        <div align="center" style="margin-top: 8px; margin-bottom: 10px;">
+        <div style="text-align: center; margin-top: 8px; margin-bottom: 10px;">
             <a href="action://view/{res_name}" style="{edit_style}">🖼️ View</a>
             <a href="action://refresh/{res_name}" style="{edit_style}">🔄 Refresh</a>
-            <a href="action://edit/{res_name}" style="{edit_style}">✏️ Edit</a>
             <a href="action://delete/{res_name}" style="{delete_style}">🗑️ Delete</a>
         </div>
         '''
@@ -4351,17 +4491,12 @@ class TextEditor(QWidget):
         
         # HTML Block
         # Use explicit width/height for persistence, matching the Async implementation
+        # Use span/div instead of table to prevent QTextEdit from wrapping in structural tables
         html = f'''
-        <table border="0" style="margin-top: 5px; margin-bottom: 5px;">
-            <tr>
-                <td style="vertical-align: top; padding-right: 10px;">
-                    <img src="{res_name}" width="{logic_w}" height="{logic_h}" style="border: {border_style}; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges;" />
-                </td>
-                <td style="vertical-align: top;">
-                    {buttons_html}
-                </td>
-            </tr>
-        </table>
+        <div style="margin-top: 5px; margin-bottom: 5px;">
+            <img src="{res_name}" width="{logic_w}" height="{logic_h}" style="border: {border_style}; image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; vertical-align: top; margin-right: 10px;" />
+            <span style="vertical-align: top;">{buttons_html}</span>
+        </div>
         <br>
         '''
         
@@ -4910,11 +5045,96 @@ class TextEditor(QWidget):
     def get_whiteboard_images(self):
         return self.whiteboard_images
     def insertFromMimeData(self, source):
-        """COMPREHENSIVE: Handle all clipboard content types with proper image pasting.
+        """COMPREHENSIVE: Handle all clipboard content types with proper image pasting."""
         
-        NEVER falls back to parent defaults which show file paths instead of images.
-        Always shows clear error messages and accepts events to prevent fallback behavior.
-        """
+        # Priority 0: Intercept YouTube URLs
+        if source.hasText():
+            text = source.text().strip()
+            # Match standard YouTube URLs (watch?v=, youtu.be/, shorts/)
+            yt_pattern = re.compile(r'^(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)([a-zA-Z0-9_-]{11})([?&].*)?$')
+            match = yt_pattern.match(text)
+            
+            if match:
+                video_id = match.group(4)
+                url = text if text.startswith('http') else 'https://' + text
+                
+                from PyQt6.QtWidgets import QMenu
+                from PyQt6.QtGui import QAction, QCursor
+                from util.icon_factory import get_premium_icon
+                
+                menu = QMenu(self.editor)
+                menu.setStyleSheet("""
+                    QMenu {
+                        background-color: #f8f9fa;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                        padding: 4px;
+                    }
+                    QMenu::item {
+                        padding: 8px 24px 8px 32px;
+                        border-radius: 4px;
+                        color: #1f2937;
+                    }
+                    QMenu::item:selected {
+                        background-color: #f3f4f6;
+                    }
+                """)
+                
+                # Context Menu Options
+                embed_act = menu.addAction(get_premium_icon("video", color="#10b981"), "Embed video")
+                link_act = menu.addAction(get_premium_icon("link", color="#6b7280"), "Create Bookmark")
+                cancel_act = menu.addAction("Cancel")
+                
+                action = menu.exec(QCursor.pos())
+                
+                if action == embed_act:
+                    # Fetch thumbnail and embed as HTML
+                    import requests
+                    import base64
+                    
+                    try:
+                        # Fetch MaxRes thumbnail
+                        thumb_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+                        response = requests.get(thumb_url, timeout=3)
+                        
+                        # Fallback if MaxRes doesn't exist (HQ Default)
+                        if response.status_code != 200:
+                            thumb_url = f"https://img.youtube.com/vi/{video_id}/0.jpg"
+                            response = requests.get(thumb_url, timeout=3)
+                            
+                        if response.status_code == 200:
+                            b64_data = base64.b64encode(response.content).decode("utf-8")
+                            mime = "image/jpeg"
+                            data_uri = f"data:{mime};base64,{b64_data}"
+                            
+                            # Construct the embed block
+                            # Using a table to keep the image and link contained cleanly in Qt's rich text
+                            # CRITICAL: Include explicit height="270" (16:9 of 480) so PDF export does not stretch it
+                            # Use div instead of table to prevent QTextEdit from wrapping in structural tables
+                            embed_html = (
+                                f'<div style="text-align: center; margin-top: 10px; margin-bottom: 10px;">'
+                                f'<a href="{url}">'
+                                f'<img src="{data_uri}" width="480" height="270" style="border-radius: 8px; border: none;"/>'
+                                f'</a><br>'
+                                f'<a href="{url}" style="text-decoration: none; color: #3b82f6; font-size: 12px; padding: 4px;">Watch on YouTube</a>'
+                                f'</div><br>'
+                            )
+                            self.editor.insertHtml(embed_html)
+                            return
+                    except Exception as e:
+                        print(f"Failed to fetch YouTube thumbnail: {e}")
+                        # Fallback to link if fetch fails
+                        pass
+                
+                elif action == link_act:
+                    # Format as a clean hyperlink
+                    link_html = f'<a href="{url}" style="color: #3b82f6; text-decoration: underline;">{url}</a> '
+                    self.editor.insertHtml(link_html)
+                    return
+                    
+                elif action == cancel_act or not action:
+                    return # User canceled
+        
         
         # Priority 1: Image data (direct paste of images)
         if source.hasImage():
@@ -4984,28 +5204,44 @@ class TextEditor(QWidget):
             if "```" in text or "`" in text: is_markdown = True
             elif "**" in text or "*" in text or "__" in text: is_markdown = True
             elif "##" in text: is_markdown = True
-            elif "\n-" in text or "\n*" in text: is_markdown = True
             elif "[" in text and "](" in text: is_markdown = True # Links
+            # Check for markdown table (Must have pipe and either dash or colon for alignment)
+            elif "|" in text and ("---" in text or ":-" in text or "-:" in text):
+                is_markdown = True
+            elif "\n-" in text or "\n*" in text: is_markdown = True
             
             # PRIORITY: If it looks like Markdown, treat it as Markdown!
             # This overrides "junk" HTML that often wraps raw markdown symbols
             if is_markdown:
                 try:
                     from markdown_it import MarkdownIt
-                    md = MarkdownIt("commonmark", {'breaks': True, 'html': True})
+                    md = MarkdownIt("commonmark", {'breaks': True, 'html': True}).enable('table').enable('strikethrough')
                     
                     # render to HTML
                     html = md.render(text)
                     
-                    # Styling for code blocks (QTextEdit specific adjustments)
+                    # FONT SYNC: Wrap in a div with current font size
+                    current_size = self.spin_size.value()
+                    html = f'<div style="font-size: {current_size}pt;">{html}</div>'
+                    
+                    # Table Styling (Consistent with MarkdownTextEdit)
+                    table_style = 'border-collapse: collapse; width: 100%; border: 1px solid #555; margin: 10px 0; background-color: transparent;'
+                    th_style = 'background-color: #373737; color: white; padding: 10px; border: 1px solid #555; text-align: left; font-weight: bold;'
+                    td_style = 'padding: 8px; border: 1px solid #555; vertical-align: top;'
+                    
+                    html = html.replace('<table>', f'<table border="1" style="{table_style}">')
+                    html = html.replace('<thead>', '<thead style="background-color: #373737;">')
+                    html = html.replace('<th>', f'<th style="{th_style}">')
+                    html = html.replace('<td>', f'<td style="{td_style}">')
+
+                    # Code Styling
                     html = html.replace('<pre>', '<pre style="background: #2d2d2d; color: #ccc; padding: 10px; border-radius: 4px;">')
                     html = html.replace('<code>', '<code style="background: rgba(150,150,150,0.3); padding: 2px 4px; border-radius: 3px;">')
                     
                     self.editor.insertHtml(html)
-                    return
+                    return True # Parent handled it
                 except (ImportError, Exception) as e:
                     print(f"Markdown library failed ({e}), using fallback regex.")
-                    import re
                     from html import escape
                     
                     # Fallback Regex Parser

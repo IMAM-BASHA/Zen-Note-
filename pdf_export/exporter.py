@@ -28,7 +28,7 @@ def fetch_emoji_svg(emoji):
         if response.status_code == 200:
             svg_data = response.text
             b64_data = base64.b64encode(svg_data.encode('utf-8')).decode('utf-8')
-            img_tag = f'<img src="data:image/svg+xml;base64,{b64_data}" width="18" height="18" style="vertical-align: middle;">'
+            img_tag = f'<img class="emoji" src="data:image/svg+xml;base64,{b64_data}" width="18" height="18" style="vertical-align: middle; display: inline;">'
             return emoji, img_tag
     except Exception:
         pass
@@ -445,6 +445,7 @@ def export_note_to_pdf(note, output_path, progress_callback=None, theme=0):
     html_content = cleanup_editor_artifacts(html_content)
     html_content = sanitize_note_tables(html_content)
     html_content = process_images_for_pdf(html_content, whiteboard_images, page_metrics, theme)
+    html_content = process_inline_b64_images_for_pdf(html_content, page_metrics, theme)
     html_content = apply_theme_to_html(html_content, theme)
     html_content = force_code_block_styles(html_content)
 
@@ -468,7 +469,7 @@ def export_note_to_pdf(note, output_path, progress_callback=None, theme=0):
     
     # Enforce Level Box Styles (Contrast Fix)
     import os
-    debug_mode = os.environ.get('PDF_EXPORT_DEBUG', '').lower() == 'true'
+    debug_mode = os.environ.get('PDF_EXPORT_DEBUG', '0') == '1'
     html_content = enforce_level_box_styles(html_content, debug=debug_mode)
     
     # Prepend TOC
@@ -518,14 +519,13 @@ def cleanup_editor_artifacts(html):
             parent_table = link.find_parent('table')
             
             if parent_table and parent_table not in handled_tables:
-                # Security Check: Ensure this is actually an image wrapper table
-                # It should contain an image.
+                # Replace table with its internal image if found, or just remove it
                 img = parent_table.find('img')
                 if img:
-                    # Replace the WHOLE table with just the image
-                    # This removes the buttons and the wrapper table
                     parent_table.replace_with(img)
-                    handled_tables.add(parent_table)
+                else:
+                    parent_table.decompose()
+                handled_tables.add(parent_table)
         
         return str(soup)
         
@@ -617,13 +617,16 @@ def apply_theme_to_html(html, theme=0):
         h1, h2, h3, h4, h5, h6 { color: #ffffff !important; border-bottom: 2px solid #444444 !important; }
         p, div, span { color: #ffffff !important; }
         code, pre { background-color: #2d2d2d !important; color: #f8f8f2 !important; border: 1px solid #444444 !important; }
-        table { background-color: #2d2d2d !important; color: #ffffff !important; border: 1px solid #444444 !important; width: 100% !important; border-collapse: collapse !important; }
-        thead { display: table-header-group !important; }
-        tr { page-break-inside: avoid !important; }
+        table { background-color: #2d2d2d !important; color: #ffffff !important; border-collapse: collapse !important; width: 100% !important; }
+        table:not([border="0"]):not([style*="border: none"]):not([style*="border:none"]) { border: 1px solid #444444 !important; }
         td, th { background-color: #2d2d2d !important; color: #ffffff !important; border: 1px solid #444444 !important; padding: 8px !important; word-wrap: break-word !important; }
+        # Exclude borders for image block cells specifically
+        div.wb-image-block td, div.inline-image-block td { border: none !important; }
         hr { border-color: #444444 !important; }
         a { color: #66b3ff !important; }
-        img { border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img:not(.emoji) { border: none !important; max-width: 100% !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img.emoji { display: inline !important; margin: 0 !important; vertical-align: middle !important; border: none !important; background: transparent !important; }
+        div.wb-image-block, div.inline-image-block { border: none !important; background: transparent !important; }
         table.code-block-table { background-color: #2F3437 !important; border: 1px solid #373c3f !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }
         td.code-block-cell { background-color: #2F3437 !important; color: #f8f8f2 !important; border: none !important; padding: 15px !important; }
         pre.code-block-pre { background-color: transparent !important; color: #f8f8f2 !important; border: none !important; }
@@ -666,13 +669,14 @@ def apply_theme_to_html(html, theme=0):
         h1, h2, h3, h4, h5, h6 {{ color: {text_color} !important; border-bottom: 2px solid {border_color} !important; }}
         p, div, span {{ color: {text_color} !important; }}
         code, pre {{ background-color: {code_bg} !important; color: {code_text} !important; border: 1px solid {border_color} !important; }}
-        table {{ background-color: transparent !important; color: {text_color} !important; border: 1px solid {border_color} !important; width: 100% !important; border-collapse: collapse !important; }}
-        thead {{ display: table-header-group !important; }}
-        tr {{ page-break-inside: avoid !important; }}
+        table { background-color: transparent !important; color: {text_color} !important; border-collapse: collapse !important; width: 100% !important; }
+        table:not([border="0"]):not([style*="border: none"]):not([style*="border:none"]) {{ border: 1px solid {border_color} !important; }}
         td, th {{ background-color: transparent !important; color: {text_color} !important; border: 1px solid {border_color} !important; padding: 8px !important; word-wrap: break-word !important; }}
-        hr {{ border-color: {border_color} !important; }}
+        hr { border-color: {border_color} !important; }
         a {{ color: {"#66b3ff" if brightness < 128 else "#007ACC"} !important; }}
-        img {{ border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }}
+        img:not(.emoji) {{ border: none !important; max-width: 100% !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }}
+        img.emoji {{ display: inline !important; margin: 0 !important; vertical-align: middle !important; border: none !important; background: transparent !important; }}
+        div.wb-image-block, div.inline-image-block {{ border: none !important; background: transparent !important; }}
         
         /* Code Block Specifics */
         table.code-block-table {{ background-color: {code_bg} !important; border: 1px solid {border_color} !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }}
@@ -706,13 +710,14 @@ def apply_theme_to_html(html, theme=0):
         h1, h2, h3, h4, h5, h6 { color: #433422 !important; border-bottom: 2px solid #dcd1bc !important; }
         p, div, span { color: #433422 !important; }
         code, pre { background-color: #ede6d9 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; }
-        table { background-color: #f5f0e8 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; width: 100% !important; border-collapse: collapse !important; }
-        thead { display: table-header-group !important; }
-        tr { page-break-inside: avoid !important; }
+        table { background-color: #f5f0e8 !important; color: #433422 !important; border-collapse: collapse !important; width: 100% !important; }
+        table:not([border="0"]):not([style*="border: none"]):not([style*="border:none"]) { border: 1px solid #dcd1bc !important; }
         td, th { background-color: #f5f0e8 !important; color: #433422 !important; border: 1px solid #dcd1bc !important; padding: 8px !important; word-wrap: break-word !important; }
         hr { border-color: #dcd1bc !important; }
         a { color: #8e5c2e !important; }
-        img { border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img:not(.emoji) { border: none !important; max-width: 100% !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img.emoji { display: inline !important; margin: 0 !important; vertical-align: middle !important; border: none !important; background: transparent !important; }
+        div.wb-image-block, div.inline-image-block { border: none !important; background: transparent !important; }
         table.code-block-table { background-color: #ede6d9 !important; border: 1px solid #dcd1bc !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }
         td.code-block-cell { background-color: #ede6d9 !important; color: #433422 !important; border: none !important; padding: 15px !important; }
         pre.code-block-pre { background-color: transparent !important; color: #433422 !important; border: none !important; }
@@ -738,13 +743,14 @@ def apply_theme_to_html(html, theme=0):
         h1, h2, h3, h4, h5, h6 { color: #000000 !important; }
         p, div, span { color: #000000 !important; }
         code, pre { background-color: #f7f6f3 !important; color: #37352f !important; border: 1px solid #e0e0e0 !important; }
-        table { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; width: 100% !important; border-collapse: collapse !important; }
-        thead { display: table-header-group !important; }
-        tr { page-break-inside: avoid !important; }
+        table { background-color: #ffffff !important; color: #000000 !important; border-collapse: collapse !important; width: 100% !important; }
+        table:not([border="0"]):not([style*="border: none"]):not([style*="border:none"]) { border: 1px solid #cccccc !important; }
         td, th { background-color: #ffffff !important; color: #000000 !important; border: 1px solid #cccccc !important; padding: 8px !important; word-wrap: break-word !important; }
         hr { border-color: #cccccc !important; }
         a { color: #007ACC !important; }
-        img { border: none !important; max-width: 100% !important; height: auto !important; object-fit: contain !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img:not(.emoji) { border: none !important; max-width: 100% !important; display: block; margin: 5px auto; page-break-inside: avoid !important; }
+        img.emoji { display: inline !important; margin: 0 !important; vertical-align: middle !important; border: none !important; background: transparent !important; }
+        div.wb-image-block, div.inline-image-block { border: none !important; background: transparent !important; }
         table.code-block-table { background-color: #2F3437 !important; border: 1px solid #373c3f !important; border-radius: 6px !important; margin: 10px 0 !important; border-collapse: separate !important; }
         td.code-block-cell { background-color: #2F3437 !important; color: #f8f8f2 !important; border: none !important; padding: 15px !important; }
         pre.code-block-pre { background-color: transparent !important; color: #f8f8f2 !important; border: none !important; }
@@ -827,19 +833,99 @@ def process_images_for_pdf(html, whiteboard_images=None, page_metrics=None, them
             if theme == 1:
                 style_parts.extend(["border: 2px solid #444444 !important;", "box-shadow: 0 0 10px rgba(0,0,0,0.5);"])
             else:
-                style_parts.append("border: 1px solid #dddddd !important;")
+                style_parts.append("border: none !important;")
             
             if scaled_w: style_parts.append(f"width: {scaled_w}px; height: auto;")
             elif scaled_h: style_parts.append(f"height: {scaled_h}px; width: auto;")
             else: style_parts.append("width: 100%; height: auto;")
                 
             style_str = " ".join(style_parts)
-            return (f'<table class="wb-image-block" style="width: 100% !important; margin: 0 !important; border-collapse: collapse !important;">'
-                    f'<tr style="page-break-inside: avoid !important;">'
-                    f'<td style="page-break-inside: avoid !important; border: none !important; padding: 0 !important; text-align: left;">'
+            return (f'<div class="wb-image-block" style="width: 100% !important; margin: 0 !important; border: none !important; background: transparent !important; page-break-inside: avoid !important; text-align: left;">'
                     f'<img src="{img_data}" style="{style_str}">'
-                    f'</td></tr></table>')
+                    f'</div>')
         return m.group(0)
+    return re.sub(pattern, wrapper, html)
+
+def process_inline_b64_images_for_pdf(html, page_metrics, theme=0):
+    """Processes base64 images embedded directly in the HTML (like YouTube thumbnails), maintaining aspect ratio."""
+    if not html: return html
+    if 'data:image' not in html: return html
+    
+    usable_w = page_metrics['usable_width']
+    usable_h = page_metrics['usable_height']
+    
+    # Match <img ... src="data:image/..." ... >
+    pattern = r'<img\s+([^>]*?)src=([\"\'])(data:image/[^;]+;base64,([^\"\']+))\2([^>]*?)>'
+    
+    def wrapper(m):
+        pre_attrs = m.group(1)
+        full_src = m.group(3)
+        b64_data = m.group(4)
+        post_attrs = m.group(5)
+        
+        # Skip emojis natively to prevent wrapping them in block tables
+        if 'image/svg+xml' in full_src or 'class="emoji"' in pre_attrs + post_attrs:
+            return m.group(0)
+            
+        # Check if it already has explicit dimensions to respect
+        explicit_w = None
+        explicit_h = None
+        w_match = re.search(r'width=[\'\"](\d+)[\'\"]', pre_attrs + post_attrs)
+        h_match = re.search(r'height=[\'\"](\d+)[\'\"]', pre_attrs + post_attrs)
+        
+        if w_match: explicit_w = int(w_match.group(1))
+        if h_match: explicit_h = int(h_match.group(1))
+        
+        scaled_w = explicit_w if explicit_w else usable_w
+        scaled_h = explicit_h
+        
+        # If no explicit dim, decode and auto-scale
+        if not explicit_w and not explicit_h:
+            try:
+                img_bytes = base64.b64decode(b64_data)
+                image = QImage.fromData(img_bytes)
+                if not image.isNull():
+                    orig_w = image.width()
+                    orig_h = image.height()
+                    if orig_w > 0:
+                        scale_factor = usable_w / orig_w
+                        projected_h = orig_h * scale_factor
+                        if projected_h <= usable_h:
+                            scaled_w = usable_w
+                            scaled_h = None
+                        else:
+                            scaled_h = usable_h
+                            scaled_w = None
+            except Exception:
+                scaled_w = min(usable_w, 500)
+                scaled_h = None
+        else:
+             # Ensure explicit dimensions don't exceed page width
+             if scaled_w and scaled_w > usable_w:
+                 if scaled_h: # Scale height proportionally
+                     scaled_h = int(scaled_h * (usable_w / scaled_w))
+                 scaled_w = usable_w
+        
+        style_parts = ["display: block;", "object-fit: contain;", "margin: 5px 0;", "page-break-inside: avoid !important;", "max-width: 100%;"]
+        if theme == 1:
+            style_parts.extend(["border: 2px solid #444444 !important;", "box-shadow: 0 0 10px rgba(0,0,0,0.5);"])
+        else:
+            style_parts.append("border: none !important;")
+        
+        if scaled_w: style_parts.append(f"width: {scaled_w}px; height: auto;")
+        elif scaled_h: style_parts.append(f"height: {scaled_h}px; width: auto;")
+        else: style_parts.append("width: 100%; height: auto;")
+        
+        # If explicit height was found, force it (override the auto above)
+        if explicit_h:
+            # We enforce min-height and max-height to strictly clip Qt's stretching behavior
+            style_parts.append(f"height: {scaled_h}px !important; min-height: {scaled_h}px; max-height: {scaled_h}px;")
+            
+        style_str = " ".join(style_parts)
+        return (f'<div class="inline-image-block" style="width: 100% !important; margin: 0 !important; border: none !important; background: transparent !important; page-break-inside: avoid !important; text-align: left;">'
+                f'<img src="{full_src}" style="{style_str}">'
+                f'</div>')
+                
     return re.sub(pattern, wrapper, html)
 
 def force_code_block_styles(html):

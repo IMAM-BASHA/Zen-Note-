@@ -340,3 +340,102 @@ class ZenItemDialog(ZenDialog):
         if dlg.exec():
             return dlg.combo.currentText(), True
         return "", False
+class PageSizeDialog(ZenDialog):
+    """ Dialog for selecting paper sizes with a premium look. """
+    def __init__(self, parent=None, current_size="free", theme_mode="light"):
+        super().__init__(parent, "Page Size", theme_mode)
+        self.setFixedWidth(360)
+        
+        self.label = QLabel("Select note layout / paper size:")
+        self.label.setStyleSheet("font-size: 11px; color: palette(mid); margin-bottom: 5px;")
+        self.content_layout.addWidget(self.label)
+        
+        self.sizes = [
+            ("Infinite Scroll (Free Size)", "free", "maximize"),
+            ("A4 Paper (Standard)", "a4", "file_text"),
+            ("A5 Paper (Small)", "a5", "file_text"),
+            ("Legal Paper", "legal", "file_text"),
+            ("Letter (US)", "letter", "file_text")
+        ]
+        
+        self.buttons = []
+        for label, val, icon_name in self.sizes:
+            btn = QPushButton(label)
+            btn.setIcon(get_premium_icon(icon_name))
+            btn.setIconSize(QSize(18, 18))
+            btn.setCheckable(True)
+            btn.setChecked(val == current_size)
+            btn.setProperty("val", val)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setObjectName("SizeOptionBtn")
+            
+            # Auto-accept on click for speed
+            btn.clicked.connect(lambda checked, v=val: self._on_btn_clicked(v))
+            
+            self.content_layout.addWidget(btn)
+            self.buttons.append(btn)
+
+        # Cancel button at bottom
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
+        self.btn_cancel = QPushButton("Cancel")
+        self.btn_cancel.clicked.connect(self.reject)
+        footer_layout.addWidget(self.btn_cancel)
+        self.content_layout.addLayout(footer_layout)
+        
+        self._apply_size_theme()
+        self.selected_size = current_size
+
+    def _on_btn_clicked(self, val):
+        self.selected_size = val
+        self.accept()
+
+    def _apply_size_theme(self):
+        c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        
+        btn_style = f"""
+            QPushButton#SizeOptionBtn {{
+                text-align: left;
+                padding: 12px 15px;
+                border: 1px solid {c['border']};
+                border-radius: 8px;
+                background-color: {c['secondary']};
+                color: {c['foreground']};
+                font-size: 13px;
+            }}
+            QPushButton#SizeOptionBtn:hover {{
+                background-color: {c['muted']};
+                border: 1px solid {c['primary']};
+            }}
+            QPushButton#SizeOptionBtn:checked {{
+                background-color: {c['active_item_bg']};
+                border: 2px solid {c['primary']};
+                font-weight: bold;
+            }}
+        """
+        for btn in self.buttons:
+            btn.setStyleSheet(btn_style)
+            
+        self.btn_cancel.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                color: {c['muted_foreground']};
+                padding: 5px 10px;
+            }}
+            QPushButton:hover {{
+                text-decoration: underline;
+            }}
+        """)
+
+    @staticmethod
+    def getPageSize(parent, current_size="free", theme_mode="light"):
+        if parent and hasattr(parent, 'theme_mode'):
+            theme_mode = parent.theme_mode
+        elif parent and hasattr(parent, 'data_manager'):
+            theme_mode = parent.data_manager.get_setting("theme_mode", "light")
+
+        dlg = PageSizeDialog(parent, current_size, theme_mode)
+        if dlg.exec():
+            return dlg.selected_size, True
+        return current_size, False
