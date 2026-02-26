@@ -1609,34 +1609,33 @@ class InkCanvas(QWidget):
             else:
                 self._end_stroke()
     
+    def resizeEvent(self, event):
+        """Handle resize to invalidate background cache"""
+        self.bg_cache_valid = False
+        self.content_cache_valid = False
+        super().resizeEvent(event)
+        self.update()
+
     def keyPressEvent(self, event):
         """Handle keyboard shortcuts"""
         # Ctrl+X: Cut region
         if event.key() == Qt.Key.Key_X and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if self.current_tool == ToolType.REGION_SELECT and self.region_rect:
+            if self.current_tool == ToolType.SELECT and self.selection_rect:
                 self._copy_region()
                 self._delete_region_content()
-                self.region_rect = None
+                self.selection_rect = None
                 self.update()
         # Ctrl+C: Copy region
         elif event.key() == Qt.Key.Key_C and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if self.current_tool == ToolType.REGION_SELECT and self.region_rect:
+            if self.current_tool == ToolType.SELECT and self.selection_rect:
                 self._copy_region()
         # Delete: Delete selection or region
         elif event.key() == Qt.Key.Key_Delete or event.key() == Qt.Key.Key_Backspace:
             if self.current_tool == ToolType.SELECT:
                 self._delete_selection()
-            elif self.current_tool == ToolType.REGION_SELECT and self.region_rect:
-                self._delete_region_content()
-                self.region_rect = None
-                self.update()
         # Escape: Clear selection
         elif event.key() == Qt.Key.Key_Escape:
-            if self.current_tool == ToolType.REGION_SELECT:
-                self.region_rect = None
-                self.update()
-            else:
-                self._clear_selection()
+            self._clear_selection()
         super().keyPressEvent(event)
     
     def _update_selection(self):

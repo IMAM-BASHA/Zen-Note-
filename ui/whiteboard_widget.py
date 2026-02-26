@@ -85,14 +85,8 @@ class WhiteboardWidget(QMainWindow):
         self.tool_group.setExclusive(True)
         self.tool_group.triggered.connect(self._on_tool_changed)
         
-        # Create Toolbars
-        self._create_header_toolbar()    # TOP: Title & Nav
-        self._create_tool_toolbar()      # Left
-        self._create_main_toolbar()      # Right
-        self._create_pen_toolbar()       # Top
-        self._create_shape_toolbar()     # Top
-        self._create_settings_toolbar()  # Top
-        self._create_action_toolbar()    # Top (New)
+        # Create Unified Toolbars
+        self._create_toolbars()
         
         # Load first page
         self.canvas.load_page_data(self.pages[self.current_page_index])
@@ -132,7 +126,7 @@ class WhiteboardWidget(QMainWindow):
     def save_toolbar_state(self):
         """Save toolbar positions and layout"""
         try:
-            settings = QSettings("WhiteboardApp", "ToolbarLayout_v2")
+            settings = QSettings("WhiteboardApp", "ToolbarLayout_v4")
             settings.setValue("geometry", self.saveGeometry())
             settings.setValue("windowState", self.saveState())
         except Exception as e:
@@ -141,7 +135,7 @@ class WhiteboardWidget(QMainWindow):
     def restore_toolbar_state(self):
         """Restore toolbar positions and layout"""
         try:
-            settings = QSettings("WhiteboardApp", "ToolbarLayout_v2")
+            settings = QSettings("WhiteboardApp", "ToolbarLayout_v4")
             geometry = settings.value("geometry")
             state = settings.value("windowState")
             
@@ -166,24 +160,6 @@ class WhiteboardWidget(QMainWindow):
         """Handle responsive layout"""
         super().resizeEvent(event)
         
-        # Responsive Toolbar Layout for Actions
-        if hasattr(self, 'action_toolbar'):
-             # Check if we should force a new line
-             should_break = self.width() < 1100
-             
-             # Strategy: maintain a state
-             if not hasattr(self, '_action_toolbar_broken'):
-                 self._action_toolbar_broken = False
-                 
-             if should_break and not self._action_toolbar_broken:
-                 self.insertToolBarBreak(self.action_toolbar)
-                 self._action_toolbar_broken = True
-             elif not should_break and self._action_toolbar_broken:
-                 # To "remove" a break, we sadly have to remove the toolbar and re-add it 
-                 self.removeToolBar(self.action_toolbar)
-                 self.addToolBar(Qt.ToolBarArea.TopToolBarArea, self.action_toolbar)
-                 self._action_toolbar_broken = False
-        
     def set_info(self, folder_name, note_name=None):
         """Update context info"""
         self.folder_name = folder_name
@@ -201,156 +177,144 @@ class WhiteboardWidget(QMainWindow):
         if hasattr(self, 'lbl_page_info'):
             self.lbl_page_info.setText(f" Page {self.current_page_index + 1} / {len(self.pages)} ")
 
-    def _create_header_toolbar(self):
-        """Create Top Header with Title and Navigation"""
-        toolbar = QToolBar("Header")
-        toolbar.setObjectName("HeaderToolbar")
-        toolbar.setMovable(False)
-        toolbar.setFloatable(False)
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
+    def _create_svg_icon(self, path_d, color="#cccccc", size=24):
+        """Helper to generate clean SVG icons dynamically"""
+        from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
+        from PyQt6.QtCore import Qt, QByteArray
+        from PyQt6.QtSvg import QSvgRenderer
+        
+        # We enforce a strictly colored icon path
+        svg = f'''<svg width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="{color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="{path_d}"/></svg>'''
+        
+        renderer = QSvgRenderer(QByteArray(svg.encode('utf-8')))
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        renderer.render(painter)
+        painter.end()
+        
+        return QIcon(pixmap)
+
+    def _create_toolbars(self):
+        """Create clean, consolidated, locked toolbars"""
+        # 1. TOP TOOLBAR (Navigation & Actions)
+        top_bar = QToolBar("Header")
+        top_bar.setObjectName("TopToolbar_Embedded")
+        top_bar.setMovable(False)
+        top_bar.setFloatable(False)
+        top_bar.setIconSize(QSize(18, 18))
+        top_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # FORCE: Never use extension overflow arrow; take up multiple rows if needed
+        top_bar.setStyleSheet("QToolBar { border: none; } QToolBar::extension-button { width: 0px; }")
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, top_bar)
 
         # Title
         self.lbl_title = QLabel(" 📁 Loading... ")
-        self.lbl_title.setStyleSheet("font-weight: bold; font-size: 14px; color: #4da6ff;")
-        toolbar.addWidget(self.lbl_title)
+        self.lbl_title.setStyleSheet("font-weight: bold; font-size: 14px; color: #4da6ff; padding: 0 10px;")
+        top_bar.addWidget(self.lbl_title)
         
         # Spacer
         dummy = QWidget()
         dummy.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        dummy.setStyleSheet("background: transparent;") # Fix: Ensure it's invisible
-        toolbar.addWidget(dummy)
-        
-        # Prev
+        dummy.setStyleSheet("background: transparent;")
+        top_bar.addWidget(dummy)
+
+        # Navigation
         prev_action = QAction("◀", self)
         prev_action.setToolTip("Previous Page")
         prev_action.triggered.connect(self._prev_page)
-        toolbar.addAction(prev_action)
+        top_bar.addAction(prev_action)
         
-        # Page Info
         self.lbl_page_info = QLabel(" Page 1 / 1 ")
-        self.lbl_page_info.setStyleSheet("font-weight: bold;")
-        toolbar.addWidget(self.lbl_page_info)
+        self.lbl_page_info.setStyleSheet("font-weight: bold; padding: 0 10px;")
+        top_bar.addWidget(self.lbl_page_info)
         
-        # Next
         next_action = QAction("▶", self)
         next_action.setToolTip("Next Page")
         next_action.triggered.connect(self._next_page)
-        toolbar.addAction(next_action)
+        top_bar.addAction(next_action)
         
-        toolbar.addSeparator()
-        
-        # Delete Page
-        del_page_action = QAction("📄✖", self) # Page with X
+        # Add / Delete Pages
+        add_page_action = QAction("➕", self)
+        add_page_action.setToolTip("New Page")
+        add_page_action.triggered.connect(self._add_page)
+        top_bar.addAction(add_page_action)
+
+        del_page_action = QAction("✖", self)
         del_page_action.setToolTip("Delete Current Page")
         del_page_action.triggered.connect(self._delete_page)
-        toolbar.addAction(del_page_action)
+        top_bar.addAction(del_page_action)
         
-        # Insert to Note & Image moved to separate Action Toolbar for movability
+        top_bar.addSeparator()
 
-    def _create_action_toolbar(self):
-        """Create actions toolbar (Insert to Note, Image)"""
-        toolbar = QToolBar("Actions")
-        toolbar.setObjectName("ActionsToolbar_Embedded")
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        # Background
+        self.lbl_bg = QLabel(" Background: ")
+        top_bar.addWidget(self.lbl_bg)
+        bg_combo = QComboBox()
+        bg_combo.addItems(["Dots", "Grid", "Lines", "Lines + Margin", "Graph", "Plain"])
+        bg_combo.currentIndexChanged.connect(self._change_background)
+        top_bar.addWidget(bg_combo)
         
-        # Force handle style directly on this toolbar to ensure visibility
-        # The Base64 string is the 6-dot gripe handle
-        toolbar.setStyleSheet("""
-            QToolBar::handle {
-                background-image: url("assets/handle.svg");
-                background-position: center;
-                background-repeat: no-repeat;
-                width: 12px;
-                margin: 2px;
-            }
-            QToolBar::handle:horizontal {
-                width: 12px;
-                background-position: center;
-                margin-left: 2px;
-                margin-right: 2px;
-            }
-            QToolBar::handle:vertical {
-                height: 12px;
-                background-position: center;
-                margin-top: 2px;
-                margin-bottom: 2px;
-            }
-        """)
+        bg_color_btn = QPushButton("BG Color")
+        bg_color_btn.clicked.connect(self._pick_background_color)
+        top_bar.addWidget(bg_color_btn)
         
-        # We add it to Top, but we might want to force it to a new row if we could
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
-        self.action_toolbar = toolbar # Store reference
-        
-        # Insert to Note
-        # Using Icon+Text for high visibility as requested
-        save_action = QAction("✔️ Insert to Note", self)
-        save_action.setToolTip("Insert to Note - Instantly insert drawing into Note App")
-        save_action.triggered.connect(self._quick_to_editor)
-        toolbar.addAction(save_action)
-        
-        toolbar.addSeparator()
-        
-        # Image Action
-        img_action = QAction("📷 Image", self)
-        img_action.setToolTip("Add Image - Import an image to the canvas")
+        # 1b. ACTION TOOLBAR (File Operations, Insert, Export)
+        # Added below top_bar to prevent horizontal overflow
+        action_bar = QToolBar("Actions")
+        action_bar.setObjectName("ActionBar_Embedded")
+        action_bar.setMovable(False)
+        action_bar.setFloatable(False)
+        action_bar.setIconSize(QSize(18, 18))
+        action_bar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        action_bar.setStyleSheet("QToolBar { border: none; } QToolBar::extension-button { width: 0px; }")
+        self.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, action_bar)
+
+        # Document Actions
+        img_action = QAction("🖼️ Image", self)
+        img_action.setToolTip("Add Image")
         img_action.triggered.connect(self._add_image)
-        toolbar.addAction(img_action)
+        action_bar.addAction(img_action)
 
-    def _create_main_toolbar(self):
-        """Create main toolbar with file operations"""
-        toolbar = QToolBar("Main")
-        toolbar.setObjectName("MainToolbar_Embedded") 
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
-        toolbar.setIconSize(QSize(20, 20))
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        # PLACEMENT: Right (Vertical) as requested
-        self.addToolBar(Qt.ToolBarArea.RightToolBarArea, toolbar)
-        
-        # Close (Hide in embedded mode)
-        close_action = QAction("❌", self)
-        close_action.setToolTip("Close Whiteboard")
-        close_action.triggered.connect(self.closed.emit) # Emit signal instead of just hiding
-        toolbar.addAction(close_action)
-        
-        toolbar.addSeparator()
-        
-        # PDF
-        export_pdf_action = QAction("📄 PDF", self)
-        export_pdf_action.setToolTip("Export as PDF (All Pages)")
-        export_pdf_action.triggered.connect(self._export_pdf_toc)
-        toolbar.addAction(export_pdf_action)
-        
-        toolbar.addSeparator()
-        
-        # New page
-        new_action = QAction("➕📄", self)
-        new_action.setToolTip("New Page")
-        new_action.triggered.connect(self._add_page)
-        toolbar.addAction(new_action)
-        
-        # Save (Manual trigger for auto-save logic basically)
-        save_action = QAction("💾", self)
-        save_action.setToolTip("Save File (Ctrl+S)")
-        save_action.setShortcut("Ctrl+S")
-        save_action.triggered.connect(lambda: self.contentChanged.emit())
-        toolbar.addAction(save_action)
-        
-        # Image Export
-        export_action = QAction("📤", self)
+        export_action = QAction("📤 Export", self)
         export_action.setToolTip("Export as Image")
         export_action.triggered.connect(self._export_image)
-        toolbar.addAction(export_action)
+        action_bar.addAction(export_action)
 
-
-
-        toolbar.addSeparator()
+        export_pdf_action = QAction("📄 PDF", self)
+        export_pdf_action.setToolTip("Export as PDF")
+        export_pdf_action.triggered.connect(self._export_pdf_toc)
+        action_bar.addAction(export_pdf_action)
         
-        # Undo/Redo (Hidden Shortcuts)
+        save_action_main = QAction("💾 Save", self)
+        save_action_main.setToolTip("Save File (Ctrl+S)")
+        save_action_main.setShortcut("Ctrl+S")
+        save_action_main.triggered.connect(lambda: self.contentChanged.emit())
+        action_bar.addAction(save_action_main)
+
+        clear_action = QAction("🗑️ Clear", self)
+        clear_action.setToolTip("Clear Canvas")
+        clear_action.triggered.connect(self._clear_canvas)
+        action_bar.addAction(clear_action)
+
+        action_bar.addSeparator()
+
+        # Insert to Note
+        save_action = QAction("✔️ Insert to Note", self)
+        save_action.setToolTip("Insert to Note")
+        save_action.triggered.connect(self._quick_to_editor)
+        action_bar.addAction(save_action)
+
+        # Close
+        close_action = QAction("❌", self)
+        close_action.setToolTip("Close Whiteboard")
+        close_action.triggered.connect(self.closed.emit)
+        action_bar.addAction(close_action)
+
+        # Undo/Redo Hidden Action (Just added to window, not toolbar)
         undo_action = QAction("Undo", self)
         undo_action.setShortcut("Ctrl+Z")
         undo_action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
@@ -363,197 +327,138 @@ class WhiteboardWidget(QMainWindow):
         redo_action.triggered.connect(self.canvas.redo)
         self.addAction(redo_action)
 
-        
-        toolbar.addSeparator()
-        
-        # Clear
-        clear_action = QAction("🗑", self)
-        clear_action.setToolTip("Clear Canvas")
-        clear_action.triggered.connect(self._clear_canvas)
-        toolbar.addAction(clear_action)
 
-    def _create_tool_toolbar(self):
-        """Create toolbar for drawing tools"""
-        toolbar = QToolBar("Tools")
-        toolbar.setObjectName("ToolsToolbar_Embedded")
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        toolbar.setAllowedAreas(Qt.ToolBarArea.AllToolBarAreas)
-        # PLACEMENT: Left (Vertical)
-        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, toolbar)
-        
-        # Select
-        select_action = QAction("👆", self)
-        select_action.setToolTip("Select")
-        select_action.setCheckable(True)
-        select_action.setData(ToolType.SELECT)
-        select_action.setActionGroup(self.tool_group)
-        toolbar.addAction(select_action)
-        
+        # 2. LEFT TOOLBAR (Tools & Shapes)
+        left_bar = QToolBar("Tools")
+        left_bar.setObjectName("LeftToolbar_Embedded")
+        left_bar.setMovable(False)
+        left_bar.setFloatable(False)
+        self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, left_bar)
 
-        
-        toolbar.addSeparator()
-        
-        # Pen Tools
-        pen_action = QAction("🖊", self)
-        pen_action.setToolTip("Pen")
-        pen_action.setCheckable(True)
-        pen_action.setChecked(True)
-        pen_action.setData(ToolType.PEN)
-        pen_action.setActionGroup(self.tool_group)
-        toolbar.addAction(pen_action)
-        self.pen_action = pen_action # Ref for defaults
-        
-        ballpoint_action = QAction("🖊", self)
-        ballpoint_action.setToolTip("Ballpoint")
-        ballpoint_action.setCheckable(True)
-        ballpoint_action.setData(ToolType.BALLPOINT)
-        ballpoint_action.setActionGroup(self.tool_group)
-        toolbar.addAction(ballpoint_action)
-        
-        pencil_action = QAction("✏", self)
-        pencil_action.setToolTip("Pencil")
-        pencil_action.setCheckable(True)
-        pencil_action.setData(ToolType.PENCIL)
-        pencil_action.setActionGroup(self.tool_group)
-        toolbar.addAction(pencil_action)
-        
-        marker_action = QAction("🖍", self)
-        marker_action.setToolTip("Marker")
-        marker_action.setCheckable(True)
-        marker_action.setData(ToolType.MARKER)
-        marker_action.setActionGroup(self.tool_group)
-        toolbar.addAction(marker_action)
-        
-        highlighter_action = QAction("🖌️", self)
-        highlighter_action.setToolTip("Highlighter")
-        highlighter_action.setCheckable(True)
-        highlighter_action.setData(ToolType.HIGHLIGHTER)
-        highlighter_action.setActionGroup(self.tool_group)
-        toolbar.addAction(highlighter_action)
-        
-        toolbar.addSeparator()
-        
-        # Erasers
-        eraser_action = QAction("🧽", self)
-        eraser_action.setToolTip("Eraser")
-        eraser_action.setCheckable(True)
-        eraser_action.setData(ToolType.ERASER)
-        eraser_action.setActionGroup(self.tool_group)
-        toolbar.addAction(eraser_action)
-        
-        stroke_eraser_action = QAction("✂", self)
-        stroke_eraser_action.setToolTip("Stroke Eraser")
-        stroke_eraser_action.setCheckable(True)
-        stroke_eraser_action.setData(ToolType.STROKE_ERASER)
-        stroke_eraser_action.setActionGroup(self.tool_group)
-        toolbar.addAction(stroke_eraser_action)
+        icon_color = "#d4d4d8" # Light gray for dark theme compatibility
 
-    def _create_pen_toolbar(self):
-        """Create pen settings toolbar"""
-        toolbar = QToolBar("Pen Settings")
-        toolbar.setObjectName("PenSettingsToolbar_Embedded")
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        # PLACEMENT: Top (Horizontal)
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
-        
-        # Width
+        # Tool Icons
+        sel_icon = self._create_svg_icon("M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z", icon_color)
+        pen_icon = self._create_svg_icon("M12 19l7-7 3 3-7 7-3-3z M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z", icon_color)
+        ballpoint_icon = self._create_svg_icon("M3 21l3.75-3.75 L16.5 7.5l-3-3L3.75 14.25 3 21z M13.5 4.5l6 6", icon_color)
+        pencil_icon = self._create_svg_icon("M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z", icon_color)
+        marker_icon = self._create_svg_icon("M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z M15 5l4 4", icon_color)
+        highlighter_icon = self._create_svg_icon("M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z M14.5 6.5l3 3 M9 18l1.5 1.5 M15.5 11.5l1.5 1.5 M4 20l2-2", icon_color)
+        eraser_icon = self._create_svg_icon("M20 20H7L3 16C2.5 15.5 2.5 14.5 3 14L13 4C13.5 3.5 14.5 3.5 15 4L20 9C20.5 9.5 20.5 10.5 20 11L11 20M15 4l5 5", icon_color)
+        stroke_eraser_icon = self._create_svg_icon("M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z M18 9l-6 6 M12 9l6 6", icon_color)
+
+        tools = [
+            ("Select", sel_icon, ToolType.SELECT, "Select Tool"),
+            ("Pen", pen_icon, ToolType.PEN, "Normal Pen"),
+            ("Ballpoint", ballpoint_icon, ToolType.BALLPOINT, "Ballpoint Pen"),
+            ("Pencil", pencil_icon, ToolType.PENCIL, "Pencil"),
+            ("Marker", marker_icon, ToolType.MARKER, "Marker"),
+            ("Highlight", highlighter_icon, ToolType.HIGHLIGHTER, "Highlighter"),
+            ("Eraser", eraser_icon, ToolType.ERASER, "Free Eraser"),
+            ("Stroke Eraser", stroke_eraser_icon, ToolType.STROKE_ERASER, "Stroke Eraser"),
+        ]
+
+        # Use an ActionGroup for exclusive selection
+        self.tool_group = QActionGroup(self)
+        self.tool_group.setExclusive(True)
+        self.tool_group.triggered.connect(self._on_tool_changed)
+
+        for name, icon, tool_type, tip in tools:
+            action = QAction(icon, "", self)
+            action.setToolTip(tip)
+            action.setCheckable(True)
+            action.setData(tool_type)
+            action.setActionGroup(self.tool_group)
+            if tool_type == ToolType.PEN:
+                action.setChecked(True)
+                self.pen_action = action
+            left_bar.addAction(action)
+
+        left_bar.addSeparator()
+
+        line_icon = self._create_svg_icon("M3 21L21 3", icon_color)
+        rect_icon = self._create_svg_icon("M3 3h18v18H3z", icon_color)
+        circ_icon = self._create_svg_icon("M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z", icon_color)
+        arrow_icon = self._create_svg_icon("M5 12h14 M12 5l7 7-7 7", icon_color)
+        darrow_icon = self._create_svg_icon("M5 12h14 M12 5l7 7-7 7 M12 5L5 12l7 7", icon_color)
+
+        shapes = [
+            ("Line", line_icon, ToolType.LINE, "Line"),
+            ("Rect", rect_icon, ToolType.RECTANGLE, "Rectangle"),
+            ("Circle", circ_icon, ToolType.CIRCLE, "Circle"),
+            ("Arrow", arrow_icon, ToolType.ARROW, "Arrow"),
+            ("D-Arrow", darrow_icon, ToolType.DOUBLE_ARROW, "Double Arrow")
+        ]
+
+        for name, icon, tool_type, tip in shapes:
+            action = QAction(icon, "", self)
+            action.setToolTip(tip)
+            action.setCheckable(True)
+            action.setData(tool_type)
+            action.setActionGroup(self.tool_group)
+            left_bar.addAction(action)
+
+
+        # 3. SECONDARY TOP TOOLBAR (Pen Settings)
+        # This keeps the settings cleanly organized just below the action_bar
+        prop_bar = QToolBar("Properties")
+        prop_bar.setObjectName("PropertiesToolbar_Embedded")
+        prop_bar.setMovable(False)
+        prop_bar.setFloatable(False)
+        prop_bar.setStyleSheet("QToolBar { border: none; } QToolBar::extension-button { width: 0px; }")
+        self.addToolBarBreak(Qt.ToolBarArea.TopToolBarArea)
+        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, prop_bar)
+
         self.lbl_width = QLabel(" Width: ")
-        toolbar.addWidget(self.lbl_width)
+        prop_bar.addWidget(self.lbl_width)
+        
         width_slider = QSlider(Qt.Orientation.Horizontal)
         width_slider.setMinimum(1)
         width_slider.setMaximum(50)
         width_slider.setValue(3)
         width_slider.setMaximumWidth(150)
+        width_slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         width_slider.valueChanged.connect(self._on_width_changed)
-        toolbar.addWidget(width_slider)
+        prop_bar.addWidget(width_slider)
         self.width_slider = width_slider
         
         self.width_label = QLabel("3px")
         self.width_label.setMinimumWidth(40)
-        toolbar.addWidget(self.width_label)
+        self.width_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        prop_bar.addWidget(self.width_label)
         
-        toolbar.addSeparator()
+        prop_bar.addSeparator()
         
-        # Smooth
         self.lbl_smooth = QLabel(" Smooth: ")
-        toolbar.addWidget(self.lbl_smooth)
+        prop_bar.addWidget(self.lbl_smooth)
+        
         smooth_slider = QSlider(Qt.Orientation.Horizontal)
         smooth_slider.setMinimum(0)
         smooth_slider.setMaximum(5)
         smooth_slider.setValue(2)
         smooth_slider.setMaximumWidth(100)
+        smooth_slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         smooth_slider.valueChanged.connect(lambda v: setattr(self.canvas, 'smoothing_level', v))
-        toolbar.addWidget(smooth_slider)
+        prop_bar.addWidget(smooth_slider)
         
-        toolbar.addSeparator()
+        prop_bar.addSeparator()
         
-        # Colors
         self.lbl_colors = QLabel(" Colors: ")
-        toolbar.addWidget(self.lbl_colors)
-        for color in self.color_palette[:8]:
+        prop_bar.addWidget(self.lbl_colors)
+        
+        for color in self.color_palette[:16]:
             btn = QPushButton()
-            btn.setFixedSize(20, 20)
-            btn.setStyleSheet(f"background-color: {color.name()}; border: 1px solid #555; border-radius: 10px;")
+            btn.setFixedSize(22, 22)
+            btn.setStyleSheet(f"background-color: {color.name()}; border: 1px solid #444; border-radius: 11px;")
             btn.clicked.connect(lambda checked, c=color: self.canvas.set_color(c))
-            toolbar.addWidget(btn)
+            prop_bar.addWidget(btn)
             
         custom_color_btn = QPushButton("⊕")
-        custom_color_btn.setFixedSize(20, 20)
+        custom_color_btn.setFixedSize(22, 22)
+        custom_color_btn.setStyleSheet("border: 1px solid #444; border-radius: 11px; font-weight: bold;")
+        custom_color_btn.setToolTip("Custom Color")
         custom_color_btn.clicked.connect(self._pick_custom_color)
-        toolbar.addWidget(custom_color_btn)
-
-    def _create_shape_toolbar(self):
-        """Create shapes toolbar"""
-        toolbar = QToolBar("Shapes")
-        toolbar.setObjectName("ShapesToolbar_Embedded")
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        # PLACEMENT: Top (Horizontal)
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
-        
-        # Shapes
-        shapes = [
-            ("─", ToolType.LINE, "Line"),
-            ("□", ToolType.RECTANGLE, "Rectangle"),
-            ("○", ToolType.CIRCLE, "Circle"),
-            ("➔", ToolType.ARROW, "Arrow"),
-            ("↔", ToolType.DOUBLE_ARROW, "Double Arrow")
-        ]
-        
-        for icon, tool, tooltip in shapes:
-            action = QAction(icon, self)
-            action.setToolTip(tooltip)
-            action.setCheckable(True)
-            action.setData(tool)
-            action.setActionGroup(self.tool_group)
-            toolbar.addAction(action)
-
-    def _create_settings_toolbar(self):
-        """Create settings toolbar"""
-        toolbar = QToolBar("Settings")
-        toolbar.setObjectName("SettingsToolbar_Embedded")
-        toolbar.setMovable(True)
-        toolbar.setFloatable(True)
-        # PLACEMENT: Top (Horizontal)
-        self.addToolBar(Qt.ToolBarArea.TopToolBarArea, toolbar)
-        
-        # Background
-        self.lbl_bg = QLabel(" Background: ")
-        toolbar.addWidget(self.lbl_bg)
-        bg_combo = QComboBox()
-        bg_combo.addItems(["Dots", "Grid", "Lines", "Lines + Margin", "Graph", "Plain"])
-        bg_combo.currentIndexChanged.connect(self._change_background)
-        toolbar.addWidget(bg_combo)
-        
-        bg_color_btn = QPushButton("BG Color")
-        bg_color_btn.clicked.connect(self._pick_background_color)
-        toolbar.addWidget(bg_color_btn)
-        
-        toolbar.addSeparator()
-        
-        toolbar.addSeparator()
+        prop_bar.addWidget(custom_color_btn)
 
     def _on_tool_changed(self, action):
         """Handle tool selection"""

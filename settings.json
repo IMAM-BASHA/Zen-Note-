@@ -1,5 +1,5 @@
 {
-    "theme_mode": "light",
+    "theme_mode": "dark",
     "whiteboard_split_view": true,
     "notebooks": [
         {
@@ -595,7 +595,7 @@
             "color": "blue"
         },
         "whs": {
-            "last_note_id": "64828563-fc80-4ae3-a63b-0286fef63401",
+            "last_note_id": "1adbb2e6-aeb7-4be9-b672-11e91d23e2a6",
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
