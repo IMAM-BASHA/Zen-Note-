@@ -1,15 +1,12 @@
 {
-    "theme_mode": "rose",
+    "theme_mode": "forest_sage",
     "whiteboard_split_view": true,
     "notebooks": [
         {
-            "id": "a6fe5b51-60c1-4067-ba3d-d4bf3f5cf612",
-            "name": "helo",
+            "id": "f042ff6b-80f4-4a03-ac4d-1a05cd594398",
+            "name": "Allaha subhanu thala",
             "folder_ids": [
-                "whs",
-                "ses",
-                "good will_",
-                "allaha subhana talla"
+                "why allaha create all this creatures"
             ],
             "is_expanded": true
         }
@@ -85,19 +82,6 @@
         },
         "dfd": {
             "last_note_id": "87fc4812-7645-4def-81ef-732ecdc6dda0"
-        },
-        "ses": {
-            "last_note_id": "eb5512eb-61bd-4be9-9507-5c118c27a7b4",
-            "is_pinned": false,
-            "priority": 0,
-            "is_archived": false,
-            "color": null,
-            "editor_background_color": null,
-            "is_locked": false,
-            "page_size": "free",
-            "cover_image": null,
-            "description": null,
-            "view_mode": "list"
         },
         "sdf4": {
             "last_note_id": "0492b439-12e5-45cc-9768-0ef933d280c5"
@@ -607,8 +591,7 @@
         "test_recursive_folder/subfolder": {
             "color": "blue"
         },
-        "whs": {
-            "last_note_id": "14f3b871-2c8f-4946-8c41-4dd054e1769e",
+        "why allaha create all this creatures": {
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
@@ -616,12 +599,13 @@
             "editor_background_color": null,
             "is_locked": false,
             "page_size": "free",
-            "cover_image": null,
+            "cover_image": "C:/Users/IMAM/Desktop/free-watermark.webp",
             "description": null,
-            "view_mode": "list"
+            "view_mode": "grid",
+            "last_note_id": "5305363c-6ef8-4853-81d9-877840da3927"
         }
     },
-    "last_selected_folder_id": "good will_",
+    "last_selected_folder_id": "why allaha create all this creatures",
     "last_image_dir": "C:/Users/IMAM/Desktop",
     "wrap_mode": false,
     "whiteboard_settings": {

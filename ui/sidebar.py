@@ -236,10 +236,10 @@ class FolderListDelegate(QStyledItemDelegate):
     def sizeHint(self, option, index):
         item_type = index.data(Qt.ItemDataRole.UserRole + 2)
         if item_type == "SECTION_HEADER":
-            return QSize(option.rect.width(), 28)
+            return QSize(option.rect.width(), 30)
         if item_type == "SPACER":
-            return QSize(option.rect.width(), 6)
-        return QSize(option.rect.width(), 36)
+            return QSize(option.rect.width(), 8)
+        return QSize(option.rect.width(), 44)
 
     def paint(self, painter, option, index):
         painter.save()
@@ -253,24 +253,22 @@ class FolderListDelegate(QStyledItemDelegate):
         text_color = QColor(c.get('foreground', "#3D3A38"))
         muted_color = QColor(c.get('muted_foreground', "#8D8682"))
         primary_color = QColor(c.get('primary', "#7B9E87"))
+        border_color = QColor(c.get('border', "#E0DDD9"))
         
         rect = option.rect
         item_type = index.data(Qt.ItemDataRole.UserRole + 2)
         
-        # ── SECTION HEADER ──
+        # SECTION HEADER
         if item_type == "SECTION_HEADER":
             header_text = index.data(Qt.ItemDataRole.DisplayRole) or ""
             
-            # Check for Minimized State
             if rect.width() < 80:
-                # Draw Icon Centered
                 icon_name = "folder"
                 if "Favorites" in header_text: icon_name = "heart"
                 elif "Recent" in header_text: icon_name = "clock"
                 elif "Trash" in header_text: icon_name = "trash_2"
                 elif "Notebooks" in header_text: icon_name = "book"
                 
-                # Use muted, slightly transparent color
                 icon_color = QColor(c.get('muted_foreground', '#8D8682'))
                 icon = get_premium_icon(icon_name, color=icon_color.name())
                 
@@ -284,38 +282,30 @@ class FolderListDelegate(QStyledItemDelegate):
                 painter.restore()
                 return
 
-            # JetBrains Mono, 9px, weight 500, letter-spacing 0.16em
             font = QFont("JetBrains Mono", 7)
             font.setWeight(QFont.Weight.Medium)
             font.setLetterSpacing(QFont.SpacingType.PercentageSpacing, 116)
             painter.setFont(font)
             
-            # Check for toggle (Chevron)
             section_key = index.data(Qt.ItemDataRole.UserRole + 3)
-            # Fetch explicitly as bool/int because sometimes it might be None if not set
             is_expanded_val = index.data(Qt.ItemDataRole.UserRole + 4)
             is_expanded = bool(is_expanded_val) if is_expanded_val is not None else True
             
-            # Use muted color matching --text-muted
             label_color = QColor(c.get('muted_foreground', '#4d5370'))
             label_color.setAlpha(160)
 
             if section_key:
-                # Draw Chevron
                 painter.save()
                 arrow_size = 8
-                # Center vertically based on text baseline approx or rect center
                 arrow_y = rect.center().y() - arrow_size / 2
                 arrow_rect = QRectF(rect.left() + 8, arrow_y, arrow_size, arrow_size)
                 
                 path = QPainterPath()
                 if is_expanded:
-                    # Down Arrow
                     path.moveTo(arrow_rect.left(), arrow_rect.top() + 3)
                     path.lineTo(arrow_rect.center().x(), arrow_rect.bottom() - 3)
                     path.lineTo(arrow_rect.right(), arrow_rect.top() + 3)
                 else:
-                    # Right Arrow
                     path.moveTo(arrow_rect.left() + 2, arrow_rect.top())
                     path.lineTo(arrow_rect.right() - 2, arrow_rect.center().y())
                     path.lineTo(arrow_rect.left() + 2, arrow_rect.bottom())
@@ -325,20 +315,17 @@ class FolderListDelegate(QStyledItemDelegate):
                 painter.drawPath(path)
                 painter.restore()
             
-            # Draw label text
             label_text = header_text.upper()
             fm = painter.fontMetrics()
             text_w = fm.horizontalAdvance(label_text)
             
             text_left = rect.left() + 20
             text_rect = QRectF(text_left, rect.top(), text_w + 4, rect.height())
-            # Use muted color matching --text-muted
             label_color = QColor(c.get('muted_foreground', '#4d5370'))
             label_color.setAlpha(160)
             painter.setPen(label_color)
             painter.drawText(text_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignBottom, label_text)
             
-            # Trailing gradient line (like ::after in zen-notes.html)
             line_x_start = text_left + text_w + 10
             line_x_end = rect.right() - 20
             if line_x_end > line_x_start:
@@ -355,7 +342,6 @@ class FolderListDelegate(QStyledItemDelegate):
             return
             
         elif item_type == "SPACER":
-            # Draw a subtle divider line
             line_y = rect.center().y()
             line_color = QColor(c.get('border', '#E0DDD9'))
             line_color.setAlpha(40 if is_dark else 60)
@@ -364,93 +350,101 @@ class FolderListDelegate(QStyledItemDelegate):
             painter.restore()
             return
 
-        # ── FOLDER ITEM ──
-        item_rect = rect.adjusted(6, 2, -6, -2)
+        # FOLDER ITEM
+        item_rect = rect.adjusted(6, 3, -6, -3)
+        surface_path = QPainterPath()
+        surface_path.addRoundedRect(QRectF(item_rect), 10, 10)
         
         if is_selected:
-            # Subtle accent background with rounded rect
-            sel_bg = QColor(c.get('active_item_bg', c.get('accent', 'rgba(0,0,0,0.05)')))
-            painter.setBrush(QBrush(sel_bg))
+            glow = QColor(primary_color)
+            glow.setAlpha(26 if is_dark else 20)
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(QRectF(item_rect), 8, 8)
-            
-            # Left accent bar (teal/primary gradient)
-            bar_h = 18
-            bar_y = item_rect.center().y() - bar_h / 2
-            bar_rect = QRectF(item_rect.left(), bar_y, 3, bar_h)
-            accent_color = primary_color
-            painter.setBrush(QBrush(accent_color))
-            painter.setPen(Qt.PenStyle.NoPen)
-            bar_path = QPainterPath()
-            bar_path.addRoundedRect(bar_rect, 1.5, 1.5)
-            painter.drawPath(bar_path)
-            
+            painter.setBrush(glow)
+            painter.drawRoundedRect(QRectF(item_rect.adjusted(-1, -1, 1, 1)), 11, 11)
+
+            sel_bg = QColor(c.get('active_item_bg', c.get('accent', '#DDE4E0')))
+            if sel_bg.alpha() == 255:
+                sel_bg.setAlpha(72 if is_dark else 58)
+            painter.setPen(QPen(primary_color, 1.2))
+            painter.setBrush(sel_bg)
+            painter.drawPath(surface_path)
         elif is_hover:
             hover_bg = QColor(c.get('secondary', "#F5F5F4"))
-            hover_bg.setAlpha(80 if is_dark else 100)
+            hover_bg.setAlpha(95 if is_dark else 125)
             painter.setBrush(QBrush(hover_bg))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawRoundedRect(QRectF(item_rect), 8, 8)
+            painter.setPen(QPen(border_color, 1))
+            painter.drawPath(surface_path)
+        else:
+            base_bg = QColor(c.get('card', c.get('sidebar_bg', '#FFFFFF')))
+            base_bg.setAlpha(48 if is_dark else 165)
+            subtle_border = QColor(border_color)
+            subtle_border.setAlpha(70 if is_dark else 90)
+            painter.setBrush(QBrush(base_bg))
+            painter.setPen(QPen(subtle_border, 1))
+            painter.drawPath(surface_path)
 
-        # ── Layout: [num] [icon] [text] ──
+        # Layout: [icon capsule] [title] [optional count badge]
         content_x = item_rect.left() + 10
         
-        # Number label (index prefix like "1.", "2.")
         display_text = index.data(Qt.ItemDataRole.DisplayRole) or ""
-        num_text = ""
         folder_name = display_text
         
-        # Extract number prefix if present (e.g. "1. ddsdfd" -> num="1", folder_name="ddsdfd")
-        if display_text and len(display_text) > 2 and display_text[0].isdigit():
-            parts = display_text.split('. ', 1)
-            if len(parts) == 2 and parts[0].strip().isdigit():
-                num_text = parts[0].strip()
-                folder_name = parts[1]
+        # Cleanup legacy numeric prefixes if present.
+        if folder_name and ". " in folder_name:
+            head, tail = folder_name.split(". ", 1)
+            if head.strip().isdigit():
+                folder_name = tail
         
-        # Draw number
-        if num_text:
-            # JetBrains Mono, 10px, weight 500, opacity 0.4
-            num_font = QFont("JetBrains Mono", 8)
-            num_font.setWeight(QFont.Weight.Medium)
-            painter.setFont(num_font)
-            num_color = QColor(c.get('muted_foreground', '#4d5370'))
-            if is_selected:
-                num_color = QColor(primary_color)
-                num_color.setAlpha(200)
-            else:
-                num_color.setAlpha(100)  # opacity ~0.4
-            painter.setPen(num_color)
-            num_rect = QRectF(content_x, rect.top(), 16, rect.height())
-            painter.drawText(num_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, num_text)
-            content_x += 22
-        
-        # Icon
+        chip_rect = QRectF(content_x, item_rect.center().y() - 10, 20, 20)
+        chip_bg = QColor(c.get('muted', c.get('card', '#FFFFFF')))
+        chip_bg.setAlpha(140 if is_dark else 210)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(chip_bg)
+        painter.drawRoundedRect(chip_rect, 6, 6)
+
         icon = index.data(Qt.ItemDataRole.DecorationRole)
-        icon_size = 17
         if icon:
-            icon_rect = QRectF(content_x, rect.center().y() - icon_size / 2, icon_size, icon_size)
+            icon_rect = chip_rect.adjusted(3, 3, -3, -3)
             icon.paint(painter, icon_rect.toRect(), Qt.AlignmentFlag.AlignCenter, QIcon.Mode.Normal, QIcon.State.On)
-        content_x += icon_size + 10
-        
-        # Text — DM Sans 13.5px, weight 400 (500 when active)
-        text_w = item_rect.right() - content_x - 8
+        content_x += 28
+
+        badge_width = 0
+        count_value = index.data(Qt.ItemDataRole.UserRole + 5)
+        if isinstance(count_value, int) and count_value >= 0:
+            badge_text = str(count_value)
+            badge_font = QFont("JetBrains Mono", 7)
+            painter.setFont(badge_font)
+            badge_metrics = painter.fontMetrics()
+            badge_width = max(22, badge_metrics.horizontalAdvance(badge_text) + 12)
+            badge_rect = QRectF(item_rect.right() - badge_width - 8, item_rect.center().y() - 9, badge_width, 18)
+
+            badge_bg = QColor(c.get('muted', c.get('secondary', '#E5E7EB')))
+            badge_bg.setAlpha(175 if is_dark else 235)
+            badge_text_color = QColor(c.get('muted_foreground', '#64748B'))
+            if is_selected:
+                badge_bg = QColor(primary_color)
+                badge_bg.setAlpha(180 if is_dark else 165)
+                badge_text_color = QColor(c.get('primary_foreground', '#FFFFFF'))
+
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(badge_bg)
+            painter.drawRoundedRect(badge_rect, 9, 9)
+            painter.setPen(badge_text_color)
+            painter.drawText(badge_rect, Qt.AlignmentFlag.AlignCenter, badge_text)
+
+        text_right = item_rect.right() - 8 - ((badge_width + 8) if badge_width else 0)
+        text_w = max(40, int(text_right - content_x))
         if folder_name:
-            # Text — DM Sans 10px, weight 500 (600 when active) for "thick" look
-            # Color: Use foreground (bright) instead of muted to make it "glow" against dark
             txt_color = QColor(c.get('foreground', '#E8EAF2')) 
             if is_selected:
-                txt_color = QColor(c.get('primary_foreground', '#FFFFFF'))
+                txt_color = QColor(c.get('foreground', '#FFFFFF'))
             
             painter.setPen(txt_color)
-            # Use Inter SemiBold 11pt for "smooth bold" look (less thick than Bold)
-            font = QFont("Inter", 11)
-            font.setWeight(QFont.Weight.DemiBold) # Weight 600
-            if is_selected:
-                font.setPointSize(11) 
-                
+            font = QFont("Inter", 10)
+            font.setWeight(QFont.Weight.DemiBold)
             painter.setFont(font)
             
-            text_rect_f = QRectF(content_x, rect.top(), text_w, rect.height())
+            text_rect_f = QRectF(content_x, item_rect.top(), text_w, item_rect.height())
             elided = painter.fontMetrics().elidedText(folder_name, Qt.TextElideMode.ElideRight, int(text_rect_f.width()))
             painter.drawText(text_rect_f, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, elided)
             
@@ -562,7 +556,12 @@ class Sidebar(QWidget):
 
             if show:
                 self.title_label.setText(text)
-                self.title_label.setStyleSheet(f"font-size: {font_size}px; font-weight: bold; margin: 0px; padding: 0px;")
+                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+                title_color = c.get('sidebar_fg', c.get('foreground', '#3D3A38'))
+                self.title_label.setStyleSheet(
+                    f"font-family: 'Playfair Display', serif; font-size: {font_size}px; font-weight: 700; "
+                    f"letter-spacing: 0.08em; color: {title_color}; margin: 0px; padding: 0px;"
+                )
                 if hasattr(self, 'brand_layout'): self.brand_layout.setSpacing(spacing)
                 self.title_label.show()
             else:
@@ -587,13 +586,16 @@ class Sidebar(QWidget):
                     btn.setIcon(get_premium_icon(icon_name, color=icon_color))
                     btn.setIconSize(QSize(20, 20))
                     btn.setToolTip(key.title())
-                    # Minimal padding for mini mode
-                    btn.setStyleSheet(btn.styleSheet() + " QPushButton { padding: 6px 2px; }")
+                    btn.setProperty("mini", "true")
                 else:
                     if not btn.text(): btn.setText(key.title())
                     btn.setIcon(QIcon())
                     btn.setToolTip("")
-                    btn.setStyleSheet(btn.styleSheet().replace(" QPushButton { padding: 6px 2px; }", ""))
+                    btn.setProperty("mini", "false")
+
+                btn.style().unpolish(btn)
+                btn.style().polish(btn)
+                btn.update()
 
         # Hide search bar and controls if very narrow
         if hasattr(self, 'search_bar'):
@@ -601,13 +603,28 @@ class Sidebar(QWidget):
         if hasattr(self, 'nb_row'): # Container for selector
             self.nb_row.setVisible(width > 170)
         if hasattr(self, 'add_btn'):
-            # Maybe show only icon for add button if narrowed?
-            if width < 160:
-                if self.add_btn.text(): self.add_btn.setText("")
-                self.add_btn.setFixedWidth(36)
+            # Responsive behavior for the New Folder CTA to avoid clipping in narrow widths.
+            if width < 235:
+                # Compact: icon-only pill
+                if self.add_btn.text():
+                    self.add_btn.setText("")
+                self.add_btn.setToolTip("New Folder")
+                self.add_btn.setFixedWidth(40)
+                self.add_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+            elif width < 290:
+                # Medium: short label, fixed safe width
+                if self.add_btn.text() != " New":
+                    self.add_btn.setText(" New")
+                self.add_btn.setToolTip("New Folder")
+                self.add_btn.setFixedWidth(96)
+                self.add_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
             else:
-                if not self.add_btn.text(): self.add_btn.setText(" New Folder")
-                self.add_btn.setMinimumWidth(100)
+                # Wide: full call-to-action
+                if self.add_btn.text() != " New Folder":
+                    self.add_btn.setText(" New Folder")
+                self.add_btn.setToolTip("")
+                self.add_btn.setMinimumWidth(120)
+                self.add_btn.setMaximumWidth(16777215)
                 self.add_btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def _setup_header(self):
@@ -643,14 +660,19 @@ class Sidebar(QWidget):
         self.title_label = QLabel("ZEN NOTES")
         self.title_label.setObjectName("SidebarTitle")
         self.title_label.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Preferred)
-        self.title_label.setStyleSheet("font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: #3D3A38;")
+        self.title_label.setStyleSheet(
+            "font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: #3D3A38;"
+        )
         self.brand_layout.addWidget(self.title_label)
+
+        # Keep utility actions right-aligned for a cleaner premium header rhythm.
+        self.brand_layout.addStretch()
         
         # Theme Toggle (Top Right)
         self.theme_btn = QPushButton() 
         self.theme_btn.setToolTip("Toggle Zen Mode")
-        self.theme_btn.setFixedSize(24, 24)
-        self.theme_btn.setIconSize(QSize(18, 18))
+        self.theme_btn.setFixedSize(28, 28)
+        self.theme_btn.setIconSize(QSize(16, 16))
         self.theme_btn.setStyleSheet("QPushButton { border: none; background: transparent; padding: 0px; margin: 0px; border-radius: 4px; outline: none; } QPushButton:hover { background: rgba(0,0,0,0.05); }")
         self.theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.theme_btn.clicked.connect(self._open_theme_chooser)
@@ -659,8 +681,8 @@ class Sidebar(QWidget):
         # Focus Mode Button
         self.focus_btn = QPushButton()
         self.focus_btn.setToolTip("Focus Mode")
-        self.focus_btn.setFixedSize(24, 24)
-        self.focus_btn.setIconSize(QSize(18, 18))
+        self.focus_btn.setFixedSize(28, 28)
+        self.focus_btn.setIconSize(QSize(16, 16))
         self.focus_btn.setStyleSheet("QPushButton { border: none; background: transparent; padding: 0px; margin: 0px; border-radius: 4px; outline: none; } QPushButton:hover { background: rgba(0,0,0,0.05); }")
         self.focus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.focus_btn.clicked.connect(self._open_focus_mode)
@@ -669,15 +691,12 @@ class Sidebar(QWidget):
         # Settings Button
         self.settings_btn = QPushButton()
         self.settings_btn.setToolTip("Settings")
-        self.settings_btn.setFixedSize(24, 24)
-        self.settings_btn.setIconSize(QSize(18, 18))
+        self.settings_btn.setFixedSize(28, 28)
+        self.settings_btn.setIconSize(QSize(16, 16))
         self.settings_btn.setStyleSheet("QPushButton { border: none; background: transparent; padding: 0px; margin: 0px; border-radius: 4px; outline: none; } QPushButton:hover { background: rgba(0,0,0,0.05); }")
         self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.settings_btn.clicked.connect(lambda: pulse_button(self.settings_btn))
         self.brand_layout.addWidget(self.settings_btn)
-        
-        # Absorb remaining space AFTER icons (not between title and icons)
-        self.brand_layout.addStretch()
         
         self.header_layout.addWidget(brand_row)
         
@@ -745,15 +764,17 @@ class Sidebar(QWidget):
     def _setup_search(self):
         # Horizontal Layout: [ Search Bar ] [Sort] [Wrap] [Eye] [Mark]
         container = QWidget()
+        container.setObjectName("SidebarSearchRow")
+        self.search_container = container
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(16, 14, 16, 10) # zen-notes.html: padding: 14px 16px 0
-        layout.setSpacing(6)
+        layout.setContentsMargins(16, 12, 16, 10)
+        layout.setSpacing(8)
         layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
 
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search folders...")
-        self.search_bar.setFixedHeight(32)
+        self.search_bar.setFixedHeight(36)
         
         # Add Search Icon inside
         search_icon = get_premium_icon("search", color="#94A3B8")
@@ -761,10 +782,10 @@ class Sidebar(QWidget):
         
         self.search_bar.setStyleSheet("""
             QLineEdit {
-                border-radius: 10px;
-                padding: 6px 10px;
+                border-radius: 12px;
+                padding: 7px 10px;
                 font-family: 'Inter', sans-serif;
-                font-size: 13px;
+                font-size: 12px;
                 background: rgba(0,0,0,0.03);
                 border: 1px solid rgba(0,0,0,0.04);
                 color: #3D3A38;
@@ -778,14 +799,14 @@ class Sidebar(QWidget):
         layout.addWidget(self.search_bar)
 
         # --- Action Buttons ---
-        icon_size = 24
+        icon_size = 30
         
         # 1. Filter (replacing wrap)
         self.wrap_btn = QPushButton()
         self.wrap_btn.setIcon(get_premium_icon("filter"))
         self.wrap_btn.setToolTip("Filter Folders")
         self.wrap_btn.setFixedSize(icon_size, icon_size)
-        self.wrap_btn.setIconSize(QSize(18, 18))
+        self.wrap_btn.setIconSize(QSize(16, 16))
         self.wrap_btn.setCheckable(True)
         self.wrap_btn.clicked.connect(lambda: self.wrapToggled.emit(self.wrap_btn.isChecked()))
         self.wrap_btn.setObjectName("ViewToggleBtn") # Standardize styling
@@ -817,9 +838,10 @@ class Sidebar(QWidget):
         """Create a horizontal segmented control for switching categories."""
         container = QWidget()
         container.setObjectName("SidebarToggleContainer")
+        self.toggle_container = container
         layout = QHBoxLayout(container)
         layout.setContentsMargins(16, 4, 16, 10)
-        layout.setSpacing(4)
+        layout.setSpacing(6)
         
         self.toggle_buttons = {}
         sections = [
@@ -832,12 +854,13 @@ class Sidebar(QWidget):
         # Style for the segmented buttons
         button_style = """
             QPushButton {
-                border: none;
-                border-radius: 8px;
-                padding: 6px 12px;
+                border: 1px solid transparent;
+                border-radius: 10px;
+                padding: 7px 12px;
                 font-family: 'Inter', sans-serif;
-                font-size: 12px;
-                font-weight: 500;
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.04em;
                 color: #64748B;
                 background: transparent;
             }
@@ -847,7 +870,11 @@ class Sidebar(QWidget):
             QPushButton[active="true"] {
                 color: #3D3A38;
                 background: rgba(0,0,0,0.06);
-                font-weight: 600;
+                border-color: rgba(0,0,0,0.08);
+                font-weight: 700;
+            }
+            QPushButton[mini="true"] {
+                padding: 7px 2px;
             }
         """
         
@@ -856,6 +883,7 @@ class Sidebar(QWidget):
             btn.setCheckable(False)
             btn.setProperty("section_key", key)
             btn.setProperty("active", "true" if key == self.active_section else "false")
+            btn.setProperty("mini", "false")
             btn.setStyleSheet(button_style)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.clicked.connect(lambda checked, k=key: self.set_active_section(k))
@@ -1073,8 +1101,8 @@ class Sidebar(QWidget):
         self.nb_selector.clear()
         
         for i, nb in enumerate(self.all_notebooks, 1):
-            # Use icon-like prefixes for a premium look
-            self.nb_selector.addItem(f"📁 {i}. {nb.name}", nb.id)
+            label = nb.name.strip() if getattr(nb, "name", None) else f"Notebook {i}"
+            self.nb_selector.addItem(label, nb.id)
             
         # Try to restore previous selection
         idx = self.nb_selector.findData(current_data)
@@ -1089,7 +1117,8 @@ class Sidebar(QWidget):
         self.refresh_list()
 
     def _on_lock_toggled(self, locked):
-        self.lock_btn.setIcon(get_premium_icon("lock" if locked else "unlock", color="white"))
+        icon_color = "white" if locked else self.current_icon_color
+        self.lock_btn.setIcon(get_premium_icon("lock" if locked else "unlock", color=icon_color))
         self.lockToggled.emit(locked)
 
     def _open_focus_mode(self):
@@ -1132,7 +1161,9 @@ class Sidebar(QWidget):
         self.settings_btn.setIcon(get_premium_icon("settings", color=icon_color))
         
         # Update Brand Typography
-        self.title_label.setStyleSheet(f"font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: {icon_color};")
+        self.title_label.setStyleSheet(
+            f"font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: {icon_color};"
+        )
         
         # Update Bottom Icons
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
@@ -1142,23 +1173,66 @@ class Sidebar(QWidget):
             self.view_toggle_btn.setIcon(get_premium_icon("layout_list", color=icon_color))
         else:
             self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=icon_color))
-            
-        # Selectors & Input
+
+        surface_bg = "rgba(255,255,255,0.03)" if is_dark else c.get('card', '#FFFFFF')
+        surface_border = f"{c.get('border', '#E0DDD9')}AA"
+        surface_hover = "rgba(255,255,255,0.10)" if is_dark else c.get('muted', '#F5F5F4')
+        checked_bg = c.get('active_item_bg', c.get('accent', 'rgba(0,0,0,0.08)'))
+
+        # Segmented container + buttons
+        if hasattr(self, 'toggle_container'):
+            seg_bg = "rgba(255,255,255,0.04)" if is_dark else c.get('muted', '#F2F0ED')
+            self.toggle_container.setStyleSheet(
+                f"#SidebarToggleContainer {{ background: {seg_bg}; border: 1px solid {c.get('border', '#E0DDD9')}88; border-radius: 12px; }}"
+            )
+
+        toggle_btn_style = f"""
+            QPushButton {{
+                border: 1px solid transparent;
+                border-radius: 10px;
+                padding: 7px 12px;
+                font-family: 'Inter', sans-serif;
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.04em;
+                color: {c.get('muted_foreground', c.get('foreground', '#64748B'))};
+                background: transparent;
+            }}
+            QPushButton:hover {{
+                color: {c.get('foreground', '#111827')};
+                background: {surface_hover};
+            }}
+            QPushButton[active="true"] {{
+                color: {c.get('foreground', '#111827')};
+                background: {c.get('card', '#FFFFFF') if not is_dark else c.get('secondary', '#1F2937')};
+                border-color: {c.get('border', '#E0DDD9')};
+                font-weight: 700;
+            }}
+            QPushButton[mini="true"] {{
+                padding: 7px 2px;
+            }}
+        """
+        if hasattr(self, 'toggle_buttons'):
+            for btn in self.toggle_buttons.values():
+                btn.setStyleSheet(toggle_btn_style)
+
+        # Selectors
         self.nb_selector.setStyleSheet(f"""
             QComboBox {{ 
-                background: {c.get('card', '#FFFFFF')}; 
+                background: {surface_bg}; 
                 color: {c['foreground']}; 
-                border: 1px solid {c.get('border', '#E0DDD9')}; 
+                border: 1px solid {surface_border}; 
                 border-radius: 12px; 
                 padding: 6px 12px; 
                 font-family: 'Inter', sans-serif;
                 font-size: 12px;
-                font-weight: 500;
+                font-weight: 600;
                 min-height: 34px;
                 max-height: 34px;
             }}
             QComboBox:hover {{
                 border-color: {c.get('primary', '#7B9E87')};
+                background: {c.get('card', '#FFFFFF') if not is_dark else c.get('secondary', '#1F2937')};
             }}
             QComboBox::drop-down {{
                 border: none;
@@ -1166,129 +1240,158 @@ class Sidebar(QWidget):
             }}
         """)
 
-        # Sidebar Header Separation
+        # Sidebar Header
         self.sidebar_header_widget = self.header_layout.parentWidget()
         if self.sidebar_header_widget:
-            self.sidebar_header_widget.setStyleSheet(f"#SidebarHeader {{ border-bottom: 1px solid {c.get('border', '#E0DDD9')}44; }}") # Subtle 44 alpha
+            self.sidebar_header_widget.setStyleSheet(
+                f"#SidebarHeader {{ border-bottom: 1px solid {c.get('border', '#E0DDD9')}66; background: transparent; }}"
+            )
 
-        # FIXED: Preserve compact search bar sizing (32px height, 8px radius, 11px font)
+        top_btn_style = f"""
+            QPushButton {{
+                border: 1px solid {surface_border};
+                background: {surface_bg};
+                border-radius: 8px;
+                padding: 0px;
+            }}
+            QPushButton:hover {{
+                border-color: {c.get('primary', '#7B9E87')}AA;
+                background: {surface_hover};
+            }}
+            QPushButton:pressed {{
+                background: {checked_bg};
+            }}
+        """
+        for btn in [self.theme_btn, self.focus_btn, self.settings_btn]:
+            btn.setStyleSheet(top_btn_style)
+            btn.setFixedSize(28, 28)
+            btn.setIconSize(QSize(16, 16))
+
         search_icon_color = c.get('muted_foreground', '#94A3B8')
         if hasattr(self, 'search_action'):
             self.search_action.setIcon(get_premium_icon("search", color=search_icon_color))
-        
-        # Detect ALL dark themes properly
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
-            
+
+        search_bg = c.get('input', '#1E1E1E') if is_dark else c.get('card', '#FFFFFF')
+        search_border = f"{c.get('border', '#D1D5DB')}CC"
+        search_focus_bg = c.get('secondary', '#1F2937') if is_dark else c.get('background', '#FFFFFF')
         self.search_bar.setStyleSheet(f"""
             QLineEdit {{
-                background: {c.get('input', '#1E1E1E') if is_dark else 'rgba(0,0,0,0.03)'};
+                background: {search_bg};
                 color: {c['foreground']};
-                border: 1px solid {c.get('border', '#333') if is_dark else 'rgba(0,0,0,0.05)'};
-                border-radius: 8px;
-                padding-left: 5px; padding-right: 10px;
-                font-size: 11px;
+                border: 1px solid {search_border};
+                border-radius: 12px;
+                padding-left: 6px; padding-right: 10px;
+                font-size: 12px;
+                font-weight: 500;
             }}
             QLineEdit:focus {{
-                background: {c.get('background', '#FFFFFF')};
+                background: {search_focus_bg};
                 border: 1px solid {c.get('primary', '#7B9E87')};
             }}
         """)
-        self.search_bar.setFixedHeight(32)
-        
-        # Action Buttons styling (Search Row) — preserve 20px size
-        btn_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: {c.get('secondary', 'rgba(0,0,0,0.1)')}; }} QPushButton:checked {{ background: {c.get('primary', 'rgba(0,0,0,0.15)')}; }}"
+        self.search_bar.setFixedHeight(36)
+
+        small_surface_style = f"""
+            QPushButton {{
+                border: 1px solid {surface_border};
+                background: {surface_bg};
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                border-color: {c.get('primary', '#7B9E87')}AA;
+                background: {surface_hover};
+            }}
+        """
+        checkable_small_surface_style = f"""
+            QPushButton {{
+                border: 1px solid {surface_border};
+                background: {surface_bg};
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                border-color: {c.get('primary', '#7B9E87')}AA;
+                background: {surface_hover};
+            }}
+            QPushButton:checked {{
+                border-color: {c.get('primary', '#7B9E87')};
+                background: {checked_bg};
+            }}
+        """
+        destructive_surface_style = f"""
+            QPushButton {{
+                border: 1px solid {surface_border};
+                background: {surface_bg};
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                border-color: #EF4444AA;
+                background: rgba(239, 68, 68, 0.18);
+            }}
+        """
 
         for btn in [self.wrap_btn, self.preview_btn, self.highlight_preview_btn]:
-            btn.setStyleSheet(btn_style)
-            btn.setFixedSize(24, 24)
-            btn.setIconSize(QSize(18, 18))
+            btn.setFixedSize(30, 30)
+            btn.setIconSize(QSize(16, 16))
         
         # Refresh Icons in Search Row
         self.wrap_btn.setIcon(get_premium_icon("filter", color=icon_color))
         self.preview_btn.setIcon(get_premium_icon("eye", color=icon_color))
         self.highlight_preview_btn.setIcon(get_premium_icon("sparkle", color=icon_color))
-        
-        # POLISH: Ensure the header container itself has a subtle separation line if needed
-        # but Zen mode usually prefers clean space. Let's add a very subtle border-bottom.
-        # self.header_layout.parentWidget().setStyleSheet(f"border-bottom: 1px solid {c.get('border', '#EEE')};")
-        
-        # Refresh to apply theme to icons in list
-        self.refresh_list()
-        
-        # Action Icons
-        # Note: Primary/Destructive buttons typically have contrasting text (white/white)
-        # UPDATE: Now they are flat icons next to title, so use theme icon_color
+
+        # Action icons
         self.add_folder_btn.setIcon(get_premium_icon("plus", color=icon_color))
         self.delete_nb_btn.setIcon(get_premium_icon("trash", color=icon_color))
-        
-        # Lock button (Normal: Icon Color, Checked: White)
+
         lock_color = "white" if self.lock_btn.isChecked() else icon_color
         self.lock_btn.setIcon(get_premium_icon("lock" if self.lock_btn.isChecked() else "unlock", color=lock_color))
-        
-        # 3. Update Stylesheets for Hover Visibility
-        hover_bg = "rgba(255,255,255,0.1)" if is_dark else "rgba(0,0,0,0.1)"
-        checked_bg = "rgba(255,255,255,0.15)" if is_dark else "rgba(0,0,0,0.15)"
 
-        
-        flat_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: {hover_bg}; }}"
-        checkable_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: {hover_bg}; }} QPushButton:checked {{ background: {checked_bg}; }}"
-        delete_style = f"QPushButton {{ border: none; background: transparent; border-radius: 4px; }} QPushButton:hover {{ background: rgba(239, 68, 68, 0.2); }}"
+        self.add_folder_btn.setStyleSheet(small_surface_style)
+        self.delete_nb_btn.setStyleSheet(destructive_surface_style)
+        self.lock_btn.setStyleSheet(checkable_small_surface_style)
+        self.wrap_btn.setStyleSheet(checkable_small_surface_style)
+        self.preview_btn.setStyleSheet(small_surface_style)
+        self.highlight_preview_btn.setStyleSheet(small_surface_style)
+        self.panel_toggle_btn.setStyleSheet(small_surface_style)
+        self.view_toggle_btn.setStyleSheet(small_surface_style)
 
-        # Apply to Vertical Controls
-        self.add_folder_btn.setStyleSheet(flat_style)
-        self.delete_nb_btn.setStyleSheet(delete_style)
-        self.lock_btn.setStyleSheet(checkable_style)
-        
-        # Apply to Horizontal Controls
-        self.wrap_btn.setStyleSheet(checkable_style)
-        self.preview_btn.setStyleSheet(flat_style)
-        self.highlight_preview_btn.setStyleSheet(flat_style)
-        
-        # Apply to Bottom Controls
-        self.panel_toggle_btn.setStyleSheet(flat_style)
-        self.view_toggle_btn.setStyleSheet(flat_style)
-        
         # Update Bottom Icons
         view_icon = "layout_grid" if self.view_mode == VIEW_MODE_LIST else "layout_list"
         self.view_toggle_btn.setIcon(get_premium_icon(view_icon, color=icon_color))
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
         
-        # Add Button icon - dark on bright gradient for dark themes, white on solid primary for light
         add_icon_color = "#0d1219" if is_dark else "#FFFFFF"
         self.add_btn.setIcon(get_premium_icon("plus", color=add_icon_color))
         
-        # New Folder Button - Premium Zen look (teal-to-blue gradient)
         primary = c.get('primary', '#7B9E87')
         primary_fg = c.get('primary_foreground', '#FFFFFF')
         
-        # Use a gradient for dark themes, solid primary for light themes
         if is_dark:
             btn_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3dd6c4, stop:0.5 #4db8e8, stop:1 #5b9cf6)'
             btn_fg = '#0d1219'
             btn_hover_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #35c4b3, stop:0.5 #44a8d8, stop:1 #518ce6)'
         else:
-            btn_bg = primary
+            btn_bg = f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {primary}, stop:1 {primary}DD)"
             btn_fg = primary_fg
-            btn_hover_bg = f'{primary}DD'
+            btn_hover_bg = f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {primary}EE, stop:1 {primary})"
         
         self.add_btn.setStyleSheet(f"""
             QPushButton#NewFolderBtn {{
                 background: {btn_bg};
                 color: {btn_fg};
-                border: none;
-                border-radius: 12px;
+                border: 1px solid {primary}AA;
+                border-radius: 14px;
                 padding: 8px 16px;
                 font-family: 'Inter', sans-serif;
-                font-size: 13px;
-                font-weight: 600;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.03em;
             }}
             QPushButton#NewFolderBtn:hover {{
                 background: {btn_hover_bg};
+                border-color: {primary};
             }}
             QPushButton#NewFolderBtn:pressed {{
                 background: {btn_bg};
-                margin-top: 0px;
-                margin-left: 0px;
             }}
         """)
         
@@ -1571,7 +1674,7 @@ class Sidebar(QWidget):
                         self._add_list_node(f.name, f, count=getattr(f, 'note_count', None))
                 elif self.active_section == "FOLDERS":
                     for i, f in enumerate(active_folders, 1):
-                        self._add_list_node(f.name, f, index_prefix=f"{i}. ", count=getattr(f, 'note_count', None))
+                        self._add_list_node(f.name, f, count=getattr(f, 'note_count', None))
 
 
     def _add_list_node(self, text, data=None, is_header=False, is_spacer=False, icon="folder", icon_color=None, count=None, index_prefix="", section_key=None, is_expanded=True):
@@ -1594,7 +1697,7 @@ class Sidebar(QWidget):
                 item.setData(0, Qt.ItemDataRole.UserRole + 4, is_expanded)
             
             item.setText(0, text.upper())
-            # Premium Header Styling — JetBrains Mono matching delegate
+            # Premium header styling - JetBrains Mono matching delegate
             font = item.font(0)
             font.setFamily("JetBrains Mono")
             font.setPointSize(7)
@@ -2006,3 +2109,4 @@ class Sidebar(QWidget):
         self.showing_archived = not self.showing_archived
         # Update UI if needed, refresh list
         self.refresh_list()
+

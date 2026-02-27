@@ -158,3 +158,30 @@
 2026-02-27 14:43:46,561 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=noir_ember color=#F5F5F5
 2026-02-27 14:43:50,885 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=rose color=#4A044E
 2026-02-27 14:43:51,041 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=rose color=#4A044E
+2026-02-27 15:37:08,284 - NoteApp - DEBUG - [editor.py:195] - SpeedReaderBar initialized
+2026-02-27 15:37:08,297 - NoteApp - DEBUG - [tts_engine.py:30] - TTSWorker.init_engine called
+2026-02-27 15:37:08,298 - NoteApp - DEBUG - [tts_engine.py:40] - Initializing pyttsx3 with sapi5
+2026-02-27 15:37:08,332 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=rose color=#4A044E
+2026-02-27 15:37:08,372 - NoteApp - DEBUG - [editor.py:1750] - get_toolbar_actions L1 visible=False
+2026-02-27 15:37:08,618 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=rose color=#4A044E
+2026-02-27 15:37:08,672 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=rose color=#4A044E
+2026-02-27 15:37:08,793 - NoteApp - DEBUG - [tts_engine.py:45] - pyttsx3 initialized successfully
+2026-02-27 15:37:08,807 - NoteApp - DEBUG - [tts_engine.py:49] - TTS voices found: 2
+2026-02-27 15:37:08,807 - NoteApp - DEBUG - [tts_engine.py:51] - TTS voice 0: Microsoft David Desktop - English (United States) (HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0)
+2026-02-27 15:37:08,808 - NoteApp - DEBUG - [tts_engine.py:51] - TTS voice 1: Microsoft Zira Desktop - English (United States) (HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_ZIRA_11.0)
+2026-02-27 15:37:22,511 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=dark color=#E7E5E4
+2026-02-27 15:37:22,560 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=dark color=#E7E5E4
+2026-02-27 15:38:28,127 - NoteApp - DEBUG - [editor.py:432] - SpeedReaderBar.pause_reading
+2026-02-27 15:44:28,552 - NoteApp - DEBUG - [editor.py:195] - SpeedReaderBar initialized
+2026-02-27 15:44:28,568 - NoteApp - DEBUG - [tts_engine.py:30] - TTSWorker.init_engine called
+2026-02-27 15:44:28,570 - NoteApp - DEBUG - [tts_engine.py:40] - Initializing pyttsx3 with sapi5
+2026-02-27 15:44:28,601 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=dark color=#E7E5E4
+2026-02-27 15:44:28,646 - NoteApp - DEBUG - [editor.py:1750] - get_toolbar_actions L1 visible=False
+2026-02-27 15:44:28,878 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=dark color=#E7E5E4
+2026-02-27 15:44:28,936 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=dark color=#E7E5E4
+2026-02-27 15:44:28,966 - NoteApp - DEBUG - [tts_engine.py:45] - pyttsx3 initialized successfully
+2026-02-27 15:44:28,968 - NoteApp - DEBUG - [tts_engine.py:49] - TTS voices found: 2
+2026-02-27 15:44:28,968 - NoteApp - DEBUG - [tts_engine.py:51] - TTS voice 0: Microsoft David Desktop - English (United States) (HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0)
+2026-02-27 15:44:28,968 - NoteApp - DEBUG - [tts_engine.py:51] - TTS voice 1: Microsoft Zira Desktop - English (United States) (HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_ZIRA_11.0)
+2026-02-27 15:44:45,722 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=forest_sage color=#1C2415
+2026-02-27 15:44:45,772 - NoteApp - DEBUG - [editor.py:1837] - _refresh_toolbar_icons mode=forest_sage color=#1C2415
