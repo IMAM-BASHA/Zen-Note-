@@ -457,6 +457,7 @@ class DataManager:
                     folder.color = meta.get("color", None)
                     folder.is_locked = meta.get("is_locked", False)
                     folder.editor_background_color = meta.get("editor_background_color", None)
+                    folder.page_size = meta.get("page_size", getattr(folder, "page_size", "free"))
                 
                 self.folders.append(folder)
 

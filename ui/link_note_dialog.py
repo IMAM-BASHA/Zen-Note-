@@ -111,7 +111,7 @@ class LinkNoteDialog(ZenDialog):
             try:
                 dt = datetime.fromisoformat(f.created_at)
                 timestamp = dt.timestamp()
-            except:
+            except Exception:
                 timestamp = 0
             date_rank = -timestamp 
             return (pinned_rank, prio, order_rank, date_rank)

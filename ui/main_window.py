@@ -53,22 +53,30 @@ class MetadataBar(QFrame):
         
         self.lbl_chars = QLabel("0 CHARS")
         self.lbl_chars.setStyleSheet(mono_style)
+
+        self.lbl_page = QLabel("PAGE --/--")
+        self.lbl_page.setStyleSheet(mono_style)
         
         self.lbl_modified = QLabel("LAST MODIFIED: --")
         self.lbl_modified.setStyleSheet(mono_style)
         
         layout.addWidget(self.lbl_words)
         layout.addWidget(self.lbl_chars)
+        layout.addWidget(self.lbl_page)
         layout.addStretch()
         layout.addWidget(self.lbl_modified)
         
-    def update_stats(self, text, last_modified=None):
+    def update_stats(self, text, last_modified=None, page_text=None):
         words = len(text.split())
         chars = len(text)
         self.lbl_words.setText(f"{words} WORDS")
         self.lbl_chars.setText(f"{chars} CHARS")
+        self.lbl_page.setText(page_text if page_text else "PAGE --/--")
         if last_modified:
             self.lbl_modified.setText(f"LAST MODIFIED: {last_modified.upper()}")
+
+    def set_page_text(self, page_text):
+        self.lbl_page.setText(page_text if page_text else "PAGE --/--")
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -318,6 +326,8 @@ class MainWindow(QMainWindow):
         
         # Connect editor text changes to metadata updates
         self.editor.editor.textChanged.connect(self.refresh_metadata)
+        self.editor.editor.verticalScrollBar().valueChanged.connect(self._refresh_page_metadata)
+        self.editor.editor.verticalScrollBar().rangeChanged.connect(lambda _min, _max: self._refresh_page_metadata())
         
         # Connect Editor Toolbar to Custom Title Bar
         self.title_bar.set_editor_toolbar_actions(self.editor.get_toolbar_actions())
@@ -2247,7 +2257,7 @@ class MainWindow(QMainWindow):
         # Assuming notes have an 'order' attribute from database
         try:
              sorted_notes = sorted(self.current_folder.notes, key=lambda n: n.order)
-        except:
+        except Exception:
              # Fallback if order is missing
              sorted_notes = self.current_folder.notes
         
@@ -2453,7 +2463,7 @@ class MainWindow(QMainWindow):
                  col = QColor(c)
                  if col.isValid():
                      return col.name().lower() # Returns #rrggbb
-             except:
+             except Exception:
                  pass
              return str(c).lower()
 
@@ -2782,7 +2792,7 @@ class MainWindow(QMainWindow):
                 # Re-extract
                 try:
                      sorted_notes = sorted(self.current_folder.notes, key=lambda n: n.order)
-                except:
+                except Exception:
                      sorted_notes = self.current_folder.notes
                      
                 grouped_highlights, total_count = self._extract_highlights(sorted_notes)
@@ -2970,7 +2980,7 @@ class MainWindow(QMainWindow):
                     bg_style = f"background-color:{item['color']};"
                     try:
                         fg_style = "color:white;" if QColor(item['color']).lightness() < 128 else "color:black;"
-                    except:
+                    except Exception:
                         fg_style = "color:black;"
                 
                 # Numbering Style
@@ -3140,6 +3150,20 @@ class MainWindow(QMainWindow):
             msg.setDetailedText(details)
         msg.setWindowFlags(msg.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         return msg.exec()
+
+    def _refresh_page_metadata(self):
+        """Refresh only the page counter in the metadata bar."""
+        if not hasattr(self, "metadata_bar"):
+            return
+        if not self.current_note:
+            self.metadata_bar.set_page_text("PAGE --/--")
+            return
+
+        try:
+            self.metadata_bar.set_page_text(self.editor.get_page_progress_text())
+        except Exception:
+            self.metadata_bar.set_page_text("PAGE --/--")
+
     def refresh_metadata(self):
         """Update the metadata bar with current editor stats."""
         if not self.current_note:
@@ -3165,7 +3189,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logger.error(f"Error parsing timestamp {raw_ts}: {e}")
              
-        self.metadata_bar.update_stats(text, modified_time)
+        self.metadata_bar.update_stats(text, modified_time, self.editor.get_page_progress_text())
 
     def on_view_mode_changed(self, mode):
         """Persist view mode preference for current folder."""
@@ -3177,5 +3201,3 @@ class MainWindow(QMainWindow):
             # MainWindow.update_folder updates 'folders_meta'.
             # Let's reuse that pipeline.
             self.sidebar.updateFolder.emit(self.current_folder.id, {"view_mode": mode})
-
-

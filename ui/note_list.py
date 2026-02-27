@@ -350,8 +350,7 @@ class NoteList(QWidget):
         
         menu.addSeparator()
         color_action = menu.addAction("🎨 Set Color...")
-        bg_color_action = menu.addAction(get_premium_icon("layout"), "Set Page Background...") # NEW
-        page_size_action = menu.addAction(get_premium_icon("file_text"), "Set Page Size...") # NEW
+        bg_color_action = menu.addAction(get_premium_icon("layout"), "Set Page Background...")
         lock_text = "Unlock Note" if getattr(note, 'is_locked', False) else "Lock Note"
         lock_action = menu.addAction(lock_text)
 
@@ -425,11 +424,6 @@ class NoteList(QWidget):
             initial = QColor(initial_color)
             color = QColorDialog.getColor(initial, self, "Select Page Background")
             if color.isValid(): self.updateNote.emit(note_id, {"background_color": color.name()})
-        elif action == page_size_action:
-            from ui.zen_dialog import PageSizeDialog
-            current_size = getattr(note, 'page_size', 'free')
-            new_size, ok = PageSizeDialog.getPageSize(self, current_size, self.theme_mode)
-            if ok: self.updateNote.emit(note_id, {"page_size": new_size})
         elif action == lock_action: self.updateNote.emit(note_id, {"is_locked": not getattr(note, 'is_locked', False)})
         elif action == p1: self.updateNote.emit(note_id, {"priority": 1})
         elif action == p2: self.updateNote.emit(note_id, {"priority": 2})

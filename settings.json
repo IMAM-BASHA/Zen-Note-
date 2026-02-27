@@ -1,5 +1,5 @@
 {
-    "theme_mode": "light",
+    "theme_mode": "rose",
     "whiteboard_split_view": true,
     "notebooks": [
         {
@@ -7,7 +7,9 @@
             "name": "helo",
             "folder_ids": [
                 "whs",
-                "ses"
+                "ses",
+                "good will_",
+                "allaha subhana talla"
             ],
             "is_expanded": true
         }
@@ -606,7 +608,7 @@
             "color": "blue"
         },
         "whs": {
-            "last_note_id": "72644c22-00b5-4737-aa76-31f8fc2e176c",
+            "last_note_id": "14f3b871-2c8f-4946-8c41-4dd054e1769e",
             "is_pinned": false,
             "priority": 0,
             "is_archived": false,
@@ -616,12 +618,12 @@
             "page_size": "free",
             "cover_image": null,
             "description": null,
-            "view_mode": "grid"
+            "view_mode": "list"
         }
     },
-    "last_selected_folder_id": "ses",
+    "last_selected_folder_id": "good will_",
     "last_image_dir": "C:/Users/IMAM/Desktop",
-    "wrap_mode": true,
+    "wrap_mode": false,
     "whiteboard_settings": {
         "pen_type": "Std",
         "bg_mode": "Rule",

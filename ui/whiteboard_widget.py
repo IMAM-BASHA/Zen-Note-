@@ -156,27 +156,6 @@ class WhiteboardWidget(QMainWindow):
         self.save_toolbar_state()
         super().hideEvent(event)
 
-    def resizeEvent(self, event):
-        """Handle responsive layout"""
-        super().resizeEvent(event)
-        
-    def set_info(self, folder_name, note_name=None):
-        """Update context info"""
-        self.folder_name = folder_name
-        self.note_name = note_name
-        self._update_page_display()
-
-    def _update_page_display(self):
-        """Update header and controls"""
-        if hasattr(self, 'lbl_title'):
-            if hasattr(self, 'note_name') and self.note_name:
-                self.lbl_title.setText(f" 📁 {self.folder_name}  ➜  📝 {self.note_name} ")
-            else:
-                self.lbl_title.setText(f" 📁 {self.folder_name}  ")
-        
-        if hasattr(self, 'lbl_page_info'):
-            self.lbl_page_info.setText(f" Page {self.current_page_index + 1} / {len(self.pages)} ")
-
     def _create_svg_icon(self, path_d, color="#cccccc", size=24):
         """Helper to generate clean SVG icons dynamically"""
         from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor
@@ -847,7 +826,7 @@ class WhiteboardWidget(QMainWindow):
         try:
             bg_color = self.pages[self.current_page_index].background_color
             image.fill(bg_color)
-        except:
+        except Exception:
             image.fill(Qt.GlobalColor.white)
         
         painter = QPainter(image)

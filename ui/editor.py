@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QTextEdit, QToolBar, QApplication, QComboBox, QColorDialog, QSpinBox,
     QDialog, QGridLayout, QPushButton, QToolButton, QMenu, QMessageBox, QSplitter, QListWidget, QListWidgetItem, QLabel,
-    QLineEdit
+    QLineEdit, QSizePolicy
 )
 from PyQt6.QtGui import (
     QAction, QTextCursor, QTextListFormat, QColor, QTextImageFormat, 
@@ -188,10 +188,11 @@ class SpeedReaderBar(QWidget):
     request_stop = pyqtSignal()
     request_init = pyqtSignal()
     request_rate = pyqtSignal(int)
+    request_cleanup = pyqtSignal()
 
     def __init__(self, editor_widget, parent=None):
         super().__init__(parent)
-        print("DEBUG: SpeedReaderBar.__init__ CALLED")
+        logger.debug("SpeedReaderBar initialized")
         self.editor_widget = editor_widget
         self.editor = editor_widget.editor
         self.is_reading = False
@@ -279,11 +280,13 @@ class SpeedReaderBar(QWidget):
         self.request_stop.connect(self.tts_worker.stop)
         self.request_rate.connect(self.tts_worker.set_rate)
         self.request_init.connect(self.tts_worker.init_engine)
+        self.request_cleanup.connect(self.tts_worker.cleanup)
         
         self.tts_worker.word_spoken.connect(self._on_word_spoken)
         # DEBUG: Disabling finished signal to prevent premature stops
         # self.tts_worker.finished.connect(self.pause_reading)
         self.tts_worker.voices_loaded.connect(self.update_voices)
+        self.tts_thread.finished.connect(self.tts_worker.deleteLater)
         
         self.tts_thread.start()
         self.request_init.emit()
@@ -375,7 +378,7 @@ class SpeedReaderBar(QWidget):
 
     def toggle_voice_mode(self):
         self.tts_active = self.btn_voice.isChecked()
-        print(f"DEBUG: SpeedReaderBar.toggle_voice_mode: active={self.tts_active}")
+        logger.debug(f"SpeedReaderBar.toggle_voice_mode active={self.tts_active}")
         self.combo_voice.setVisible(self.tts_active)
         self.btn_voice.setIcon(get_premium_icon("volume_2" if self.tts_active else "volume_x", color=self._get_icon_color()))
 
@@ -385,7 +388,7 @@ class SpeedReaderBar(QWidget):
             self.combo_voice.addItem(v['name'], v['id'])
             
     def toggle_reading(self):
-        print(f"DEBUG: SpeedReaderBar.toggle_reading: is_reading={self.is_reading}, tts_active={self.tts_active}")
+        logger.debug(f"SpeedReaderBar.toggle_reading is_reading={self.is_reading} tts_active={self.tts_active}")
         if self.is_reading:
             self.pause_reading()
         else:
@@ -402,17 +405,17 @@ class SpeedReaderBar(QWidget):
              # Get text from cursor to end
              text = self.editor.toPlainText()[cursor.position():]
              if not text.strip(): 
-                 print("DEBUG: SpeedReaderBar - No text from cursor, reading from start")
+                 logger.debug("SpeedReaderBar no text from cursor, reading from start")
                  text = self.editor.toPlainText()
                  if not text.strip():
-                     print("DEBUG: SpeedReaderBar - Document is empty")
+                     logger.debug("SpeedReaderBar document is empty")
                      return
              
              # Calculate rate
              wpm = self.spin_wpm.value()
              voice_id = self.combo_voice.currentData()
              
-             print(f"DEBUG: SpeedReaderBar emitting request_say: voice={voice_id}, wpm={wpm}, text_len={len(text)}")
+             logger.debug(f"SpeedReaderBar request_say voice={voice_id} wpm={wpm} text_len={len(text)}")
              
              # Store start position to map callbacks
              self.tts_start_pos = cursor.position()
@@ -426,14 +429,14 @@ class SpeedReaderBar(QWidget):
              self._highlight_current_word()
         
     def pause_reading(self):
-        print("DEBUG: SpeedReaderBar.pause_reading")
+        logger.debug("SpeedReaderBar.pause_reading")
         self.is_reading = False
         self.btn_play.setIcon(get_premium_icon("play", color=self._get_icon_color()))
         self.btn_play.setToolTip("Resume (Space)")
         
         self.timer.stop()
         if self.tts_active:
-             print("DEBUG: SpeedReaderBar emitting request_stop")
+             logger.debug("SpeedReaderBar request_stop emitted")
              self.request_stop.emit()
         
     def stop_reading(self):
@@ -444,6 +447,20 @@ class SpeedReaderBar(QWidget):
     def close_bar(self):
         self.stop_reading()
         self.hide()
+
+    def shutdown(self):
+        """Release TTS resources when editor closes."""
+        self.stop_reading()
+        try:
+            self.request_cleanup.emit()
+        except Exception:
+            pass
+
+        if hasattr(self, "tts_thread") and self.tts_thread and self.tts_thread.isRunning():
+            self.tts_thread.quit()
+            if not self.tts_thread.wait(1500):
+                self.tts_thread.terminate()
+                self.tts_thread.wait(500)
 
     def _on_word_spoken(self, location, length):
         """Callback from TTS Worker."""
@@ -797,7 +814,7 @@ class MarkdownTextEdit(QTextEdit):
                                     f'</pre></td></tr></table>'
                                 )
                             except Exception as e:
-                                print(f"Highlight error: {e}")
+                                logger.warning(f"Highlight error: {e}")
                                 pass
                         
                         # Fallback (Table based)
@@ -850,7 +867,7 @@ class MarkdownTextEdit(QTextEdit):
                     self.insertHtml(html)
                     return
                 except (ImportError, Exception) as e:
-                    print(f"Markdown render error: {e}")
+                    logger.warning(f"Markdown render error: {e}")
                     # Fallback regex parser (Simplified for brevity, assuming MarkdownIt mostly works)
                     import re
                     from html import escape
@@ -1009,16 +1026,16 @@ class MarkdownTextEdit(QTextEdit):
         
         # 3. Handle URL Actions
         if url_str:
-             print(f"DEBUG: LINK CLICK DETECTED: Raw URL='{url_str}'")
+             logger.debug(f"Link click detected url={url_str}")
              qurl = QUrl(url_str)
              scheme = qurl.scheme()
-             print(f"DEBUG: PARSED URL: Scheme='{scheme}', Host='{qurl.host()}', Query='{qurl.query()}'")
+             logger.debug(f"Parsed URL scheme={scheme} host={qurl.host()} query={qurl.query()}")
              
              # Check for Note Link
              if scheme == "note":
                  note_id = qurl.host() if qurl.host() else qurl.path().strip("/")
                  query = qurl.query()
-                 print(f"DEBUG: NOTE LINK ACTION: note_id='{note_id}', is_overlay={'overlay=true' in query}")
+                 logger.debug(f"Internal note link note_id={note_id} overlay={'overlay=true' in query}")
                  
                  # Traverse to TextEditor
                  p = self.parent()
@@ -1125,6 +1142,23 @@ class TextEditor(QWidget):
     requestShortcutDialog = pyqtSignal()
     exportWordRequest = pyqtSignal() # NEW
     page_color_changed = pyqtSignal(str) # NEW: For background color persistence
+    _PAGE_WIDTHS = {
+        "a4": 794,
+        "a5": 559,
+        "legal": 816,
+        "letter": 816,
+    }
+    _PAGE_HEIGHTS = {
+        "a4": 1123,
+        "a5": 794,
+        "legal": 1344,
+        "letter": 1056,
+    }
+    _DEFAULT_MARGINS = (50, 30, 5, 30)
+    _TOC_MIN_WIDTH = 190
+    _TOC_DEFAULT_WIDTH = 260
+    _TOC_MAX_WIDTH = 420
+    _TOC_LABEL_MAX_CHARS = 90
 
     def __init__(self, parent=None, data_manager=None, shortcut_manager=None):
         super().__init__(parent)
@@ -1156,7 +1190,7 @@ class TextEditor(QWidget):
         # Replace layout-breaking setTextWidth with proper viewport margins
         # self.editor.setViewportMargins(30, 20, 30, 20) # REMOVED: Too much padding requested
         # Provide proper Zen-style padding (Asymmetric: 50px left for space, 5px right for scrollbar)
-        self.editor.setViewportMargins(50, 30, 5, 30) 
+        self.editor.setViewportMargins(*self._DEFAULT_MARGINS)
         self.editor.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth) # Ensure text wraps to window
         # Ensure long words (like long URLs or 'dddd...') wrap instead of stretching
         from PyQt6.QtGui import QTextOption
@@ -1276,7 +1310,9 @@ class TextEditor(QWidget):
         self.editor_splitter.addWidget(self.editor)
         
         self.toc_panel = QWidget()
-        self.toc_panel.setMinimumWidth(100)
+        self.toc_panel.setMinimumWidth(self._TOC_MIN_WIDTH)
+        self.toc_panel.setMaximumWidth(self._TOC_MAX_WIDTH)
+        self.toc_panel.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
         
         toc_layout = QVBoxLayout(self.toc_panel)
         toc_layout.setContentsMargins(0, 0, 0, 0)
@@ -1323,10 +1359,11 @@ class TextEditor(QWidget):
         
         self.toc_list = QListWidget()
         self.toc_list.setFrameShape(QListWidget.Shape.NoFrame)
-        self.toc_list.setWordWrap(True)
+        self.toc_list.setWordWrap(False)
         self.toc_list.setTextElideMode(Qt.TextElideMode.ElideRight)
         self.toc_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.toc_list.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.toc_list.setResizeMode(QListWidget.ResizeMode.Fixed)
+        self.toc_list.setUniformItemSizes(True)
         self.toc_list.itemClicked.connect(self._on_toc_item_clicked)
         toc_layout.addWidget(self.toc_list)
         
@@ -1346,6 +1383,8 @@ class TextEditor(QWidget):
         if self.data_manager:
             show_toc = self.data_manager.get_setting("show_toc", "false") == "true"
         self.toc_panel.setVisible(show_toc)
+        if show_toc:
+            QTimer.singleShot(0, self._ensure_toc_width)
         
         self.editor.cursorPositionChanged.connect(self._enforce_readonly_numbers)
         self.editor.textChanged.connect(lambda: self.refresh_toc() if self.toc_list.isVisible() else None)
@@ -1382,7 +1421,7 @@ class TextEditor(QWidget):
         if self.data_manager:
             try:
                 default_size = int(self.data_manager.get_setting("editor_font_size", 12))
-            except:
+            except Exception:
                 default_size = 12
         self.spin_size.setValue(default_size)
         
@@ -1708,7 +1747,7 @@ class TextEditor(QWidget):
         ]
         
         # DEBUG: Confirm they are here
-        print(f"DEBUG: get_toolbar_actions -> L1: {self.lvl1_btn}, Visible: {self.lvl1_btn.isVisible()}")
+        logger.debug(f"get_toolbar_actions L1 visible={self.lvl1_btn.isVisible()}")
         
         return actions
 
@@ -1769,7 +1808,7 @@ class TextEditor(QWidget):
             
             # Also handle legacy "cyan" default
             if current_hex == old_def_hex_norm or current_hex == "#00FFFF":
-                print(f"DEBUG: Migrating Highlight Color from {current_hex} to {new_default.name()}")
+                logger.debug(f"Migrating highlight color from {current_hex} to {new_default.name()}")
                 self.custom_highlight_color = new_default
                 if self.data_manager:
                     self.data_manager.set_setting("custom_highlight_color", new_default.name())
@@ -1779,7 +1818,7 @@ class TextEditor(QWidget):
                     self._update_custom_hl_icon(new_default)
                     
         except Exception as e:
-            print(f"Error syncing highlight color: {e}")
+            logger.error(f"Error syncing highlight color: {e}")
 
         # Re-apply editor background/text with current state so theme switches
         # don't leave stale foreground colors behind.
@@ -1795,7 +1834,7 @@ class TextEditor(QWidget):
         # But 'color' arg in get_premium_icon sets the stroke.
         # Light: #3D3A38, Dark: #E7E5E4.
         color = c['foreground']
-        print(f"DEBUG: _refresh_toolbar_icons called with mode='{mode}', color='{color}'")
+        logger.debug(f"_refresh_toolbar_icons mode={mode} color={color}")
         
         def set_icon(action_attr, icon_name):
             if hasattr(self, action_attr):
@@ -2002,75 +2041,52 @@ class TextEditor(QWidget):
             }}
         """)
 
-    def resizeEvent(self, event):
-        """Handle window resize and scale images proportionally."""
-        super().resizeEvent(event)
-        # Performance: Only resize if width actually changed
-        current_width = self.editor.viewport().width()
-        if abs(current_width - self._last_resize_width) > 10:
-            self._last_resize_width = current_width
-            # Use debounced timer to prevent frequent resizing
-            self._resize_debounce_timer.start(300)  # 300ms delay
-            
-        # Reposition Find Bar if visible
-        self._reposition_find_bar()
-        
-        # Update fixed size centering and scale images
-        self._center_fixed_page()
-        self._update_page_numbers()
-
     def _center_fixed_page(self):
-        """Adjust margins to center the fixed-width page in the viewport."""
+        """Adjust margins to center fixed page sizes without oscillating on resize."""
         if self._page_size == "free":
-            self.editor.setViewportMargins(50, 30, 5, 30)
+            self.editor.setViewportMargins(*self._DEFAULT_MARGINS)
             return
-        
-        # Calculate widths
-        viewport_width = self.editor.viewport().width()
-        
-        # Standard widths at 96 DPI
-        widths = {
-            "a4": 794,
-            "a5": 559,
-            "legal": 816,
-            "letter": 816
-        }
-        
-        page_width = widths.get(self._page_size, 794)
-        
-        if viewport_width > page_width + 100:
-            # We have enough space for centered layout
-            side_margin = (viewport_width - page_width) // 2
-            self.editor.setViewportMargins(side_margin, 30, side_margin, 30)
+
+        page_width = self._PAGE_WIDTHS.get(self._page_size, self._PAGE_WIDTHS["a4"])
+
+        frame = self.editor.frameWidth() * 2
+        editor_width = max(0, self.editor.width() - frame)
+        scrollbar_width = self.editor.verticalScrollBar().sizeHint().width()
+
+        # Reserve scrollbar width so wrapped text stays close to the selected page width.
+        available = max(0, editor_width - scrollbar_width)
+        min_side = 24
+        top = self._DEFAULT_MARGINS[1]
+        bottom = self._DEFAULT_MARGINS[3]
+
+        if available > page_width + (min_side * 2):
+            left = max(min_side, (available - page_width) // 2)
+            right = max(min_side, available - page_width - left)
+            self.editor.setViewportMargins(left, top, right, bottom)
         else:
-            # Fallback to standard Zen padding if too narrow
-            self.editor.setViewportMargins(50, 30, 5, 30)
+            self.editor.setViewportMargins(*self._DEFAULT_MARGINS)
+
+    def _normalize_page_size_name(self, size_name):
+        if not size_name:
+            return "free"
+        value = str(size_name).strip().lower()
+        if value in {"free", "a4", "a5", "legal", "letter"}:
+            return value
+        return "free"
 
     def set_page_size(self, size_name):
-        """Sets the paper size and updates layout."""
-        self._page_size = size_name.lower()
-        
-        # Apply to document
-        widths = {
-            "a4": 794,
-            "a5": 559,
-            "legal": 816,
-            "letter": 816
-        }
-        
+        """Set page layout mode and reflow content."""
+        self._page_size = self._normalize_page_size_name(size_name)
+
         if self._page_size == "free":
-            self.editor.document().setTextWidth(-1)
             self.page_number_label.hide()
         else:
-            px = widths.get(self._page_size, 794)
-            self.editor.document().setTextWidth(px)
             self.page_number_label.show()
-        
-        # Apply visuals
+
         self._center_fixed_page()
         self._update_page_styling()
         self._update_page_numbers()
-        
+
         # Force re-scale of images to new width
         self._resize_images_to_fit()
 
@@ -2085,35 +2101,14 @@ class TextEditor(QWidget):
 
     def _update_page_numbers(self):
         """Calculate and display current page / total pages."""
+        current_page, total_pages = self.get_page_numbers()
         if self._page_size == "free":
+            self.page_number_label.hide()
             return
-            
-        # Standard heights at 96 DPI
-        heights = {
-            "a4": 1123,
-            "a5": 794,
-            "legal": 1344,
-            "letter": 1056
-        }
-        page_height = heights.get(self._page_size, 1123)
-        
-        # Document info
-        doc_height = self.editor.document().size().height()
-        scroll_pos = self.editor.verticalScrollBar().value()
-        
-        total_pages = max(1, math.ceil(doc_height / page_height))
-        current_page = min(total_pages, math.floor(scroll_pos / page_height) + 1)
-        
-        self.page_number_label.setText(f"Page {current_page} of {total_pages}")
-        
-        # Position the label at the bottom right
-        padding = 20
-        lw = self.page_number_label.width()
-        lh = self.page_number_label.height()
-        self.page_number_label.move(self.width() - lw - padding, self.height() - lh - padding)
-        
+
         # Style based on theme
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
+        self.page_number_label.setText(f"Page {current_page} of {total_pages}")
         self.page_number_label.setStyleSheet(f"""
             QLabel {{
                 background-color: {c['secondary']};
@@ -2126,6 +2121,32 @@ class TextEditor(QWidget):
             }}
         """)
         self.page_number_label.adjustSize()
+
+        # Position the label at the bottom right
+        padding = 20
+        lw = self.page_number_label.width()
+        lh = self.page_number_label.height()
+        self.page_number_label.move(self.width() - lw - padding, self.height() - lh - padding)
+
+    def get_page_numbers(self):
+        """Return (current_page, total_pages) for fixed and free layout modes."""
+        doc_height = float(self.editor.document().size().height())
+        scroll_pos = float(self.editor.verticalScrollBar().value())
+
+        if self._page_size == "free":
+            # Free mode has no physical page size; use viewport as a virtual page.
+            page_height = float(max(1, self.editor.viewport().height()))
+        else:
+            page_height = float(self._PAGE_HEIGHTS.get(self._page_size, self._PAGE_HEIGHTS["a4"]))
+
+        total_pages = max(1, math.ceil(max(doc_height, page_height) / page_height))
+        current_page = min(total_pages, math.floor(max(0.0, scroll_pos) / page_height) + 1)
+        return int(current_page), int(total_pages)
+
+    def get_page_progress_text(self):
+        """Return page progress text for status/metadata bars."""
+        current_page, total_pages = self.get_page_numbers()
+        return f"PAGE {current_page}/{total_pages}"
             
     def _reposition_find_bar(self):
         if hasattr(self, 'find_bar') and self.find_bar and self.find_bar.isVisible():
@@ -2155,11 +2176,11 @@ class TextEditor(QWidget):
 
     def toggle_speed_reader(self):
         if self.speed_reader.isVisible():
-            print("DEBUG: Hiding Speed Reader")
+            logger.debug("Hiding Speed Reader")
             self.speed_reader.stop_reading()
             self.speed_reader.hide()
         else:
-            print("DEBUG: Showing Speed Reader")
+            logger.debug("Showing Speed Reader")
             self.speed_reader.show()
             self.speed_reader.raise_()
             self.speed_reader.setFocus()
@@ -2207,7 +2228,7 @@ class TextEditor(QWidget):
             
             while block.isValid():
                 if processed_blocks > MAX_BLOCKS:
-                    print("Warning: Aborted image resize loop - excessive blocks detected.")
+                    logger.warning("Aborted image resize loop due to excessive blocks")
                     break
                 processed_blocks += 1
 
@@ -2227,7 +2248,7 @@ class TextEditor(QWidget):
                                 img_dims = (img.width(), img.height())
                                 # Update cache with true natural size
                                 self._image_dimensions_cache[name] = img_dims
-                        except:
+                        except Exception:
                             pass
 
                         if not img_dims:
@@ -2295,7 +2316,7 @@ class TextEditor(QWidget):
             self.editor.viewport().update()
             
         except Exception as e:
-            print(f"Error resizing images: {e}")
+            logger.error(f"Error resizing images: {e}")
 
     def _get_shortcut(self, action_id, default=""):
         """Safely get a shortcut string from manager."""
@@ -2345,44 +2366,6 @@ class TextEditor(QWidget):
         """Quickly apply a specific highlight color."""
         self.text_highlight(color=color_name)
 
-    def set_background_color(self, color):
-        """Sets the background color of the editor content area."""
-        if not color:
-            # Reset to current theme background if no color provided
-            if hasattr(self, "theme_mode"):
-                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-                self.editor.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
-            return
-
-        # Apply the specific color
-        try:
-            # We must preserve the foreground color from the theme to avoid text disappearing.
-            fg_color = "black"
-            if hasattr(self, "theme_mode"):
-                 c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-                 fg_color = c['foreground']
-            
-            self.editor.setStyleSheet(f"background-color: {color}; color: {fg_color};")
-        except Exception as e:
-            logger.error(f"Error setting background color: {e}")
-
-    def choose_page_color(self):
-        """Open color picker for page background."""
-        # Get current bg if possible, else default white
-        current_bg = QColor(255, 255, 255) 
-        
-        col = QColorDialog.getColor(current_bg, self, "Select Page Background")
-        if not col.isValid(): return
-        
-        # Apply locally
-        self.set_background_color(col.name())
-        
-        # Signal to save this preference to the Note
-        # We emit a custom signal that MainWindow connects to
-        if hasattr(self, 'page_color_changed'):
-            self.page_color_changed.emit(col.name())
-            # self.contentChanged.emit() # Also mark as dirty? Maybe separate signal is better usually.
-
     @staticmethod
     def _srgb_to_linear(channel):
         c = max(0.0, min(1.0, channel / 255.0))
@@ -2410,6 +2393,10 @@ class TextEditor(QWidget):
         if isinstance(background_color, str):
             background_color = QColor(background_color)
 
+        # If we know the page background, always use auto contrast (black/white).
+        if isinstance(background_color, QColor) and background_color.isValid():
+            return self._best_bw_text_for_bg(background_color)
+
         if (
             getattr(self, "_text_color_mode", "auto") == "manual"
             and isinstance(getattr(self, "current_text_color", None), QColor)
@@ -2417,12 +2404,57 @@ class TextEditor(QWidget):
         ):
             return QColor(self.current_text_color)
 
-        if isinstance(background_color, QColor) and background_color.isValid():
-            return self._best_bw_text_for_bg(background_color)
-
         c = styles.ZEN_THEME.get(getattr(self, "theme_mode", "light"), styles.ZEN_THEME["light"])
         fallback = QColor(c.get("background", "#FFFFFF"))
         return self._best_bw_text_for_bg(fallback)
+
+    def _retint_neutral_text_for_contrast(self, target_color):
+        """Retint existing neutral text (black/gray/white) to the new auto contrast color."""
+        if not isinstance(target_color, QColor) or not target_color.isValid():
+            return
+
+        doc = self.editor.document()
+        if not doc:
+            return
+
+        target_is_black = target_color.name().upper() == "#000000"
+        fmt = QTextCharFormat()
+        fmt.setForeground(target_color)
+
+        root_cursor = QTextCursor(doc)
+        root_cursor.beginEditBlock()
+        try:
+            block = doc.begin()
+            while block.isValid():
+                it = block.begin()
+                while not it.atEnd():
+                    frag = it.fragment()
+                    if frag.isValid():
+                        frag_color = frag.charFormat().foreground().color()
+                        should_recolor = False
+
+                        if not frag_color.isValid():
+                            should_recolor = True
+                        else:
+                            _, sat, val, _ = frag_color.getHsv()
+                            # Only auto-fix neutral/near-neutral colors to preserve intentional colored text.
+                            if sat <= 28:
+                                if target_is_black and val >= 150:
+                                    should_recolor = True
+                                elif (not target_is_black) and val <= 110:
+                                    should_recolor = True
+
+                        if should_recolor:
+                            c = QTextCursor(doc)
+                            start = frag.position()
+                            c.setPosition(start)
+                            c.setPosition(start + frag.length(), QTextCursor.MoveMode.KeepAnchor)
+                            c.mergeCharFormat(fmt)
+
+                    it += 1
+                block = block.next()
+        finally:
+            root_cursor.endEditBlock()
 
     def _apply_default_text_color(self, color):
         """Apply default typing color without rewriting selected content."""
@@ -2446,6 +2478,18 @@ class TextEditor(QWidget):
             cursor.setPosition(sel_end, QTextCursor.MoveMode.KeepAnchor)
             self.editor.setTextCursor(cursor)
 
+    def _apply_document_text_defaults(self, color):
+        """Keep rendered rich-text readable under custom page backgrounds."""
+        if not isinstance(color, QColor) or not color.isValid():
+            return
+
+        css = (
+            "body, p, li, ol, ul, div, span {"
+            f" color: {color.name()};"
+            " }"
+        )
+        self.editor.document().setDefaultStyleSheet(css)
+
     def set_background_color(self, color):
         """Set editor background and keep text color readable/persistent."""
         try:
@@ -2463,6 +2507,8 @@ class TextEditor(QWidget):
             self.editor.setStyleSheet(
                 f"background-color: {background.name()}; color: {fg_color.name()};"
             )
+            self._apply_document_text_defaults(fg_color)
+            self._retint_neutral_text_for_contrast(fg_color)
             self._apply_default_text_color(fg_color)
         except Exception as e:
             logger.error(f"Error setting background color: {e}")
@@ -3081,6 +3127,34 @@ class TextEditor(QWidget):
             self.renumber_all_levels() # Apply new color to existing boxes
         
     # --- Table of Contents Logic ---
+    def _compact_toc_text(self, text):
+        """Normalize and cap TOC labels so long headings don't stretch UI."""
+        cleaned = " ".join((text or "").split())
+        if len(cleaned) <= self._TOC_LABEL_MAX_CHARS:
+            return cleaned
+        return cleaned[: self._TOC_LABEL_MAX_CHARS - 3].rstrip() + "..."
+
+    def _ensure_toc_width(self):
+        """Keep TOC width within safe bounds when shown via splitter."""
+        if not hasattr(self, 'editor_splitter') or not hasattr(self, 'toc_panel'):
+            return
+        if not self.toc_panel.isVisible():
+            return
+
+        sizes = self.editor_splitter.sizes()
+        if len(sizes) < 2:
+            return
+
+        total = sizes[0] + sizes[1]
+        if total <= 0:
+            return
+
+        current_toc = sizes[1] if sizes[1] > 0 else self._TOC_DEFAULT_WIDTH
+        max_allowed = min(self._TOC_MAX_WIDTH, max(self._TOC_MIN_WIDTH, total - 260))
+        toc_width = max(self._TOC_MIN_WIDTH, min(current_toc, max_allowed))
+        editor_width = max(260, total - toc_width)
+        self.editor_splitter.setSizes([editor_width, toc_width])
+
     def toggle_toc(self):
         """Toggle TOC sidebar visibility."""
         # Use toc_panel instead of toc_list
@@ -3090,8 +3164,9 @@ class TextEditor(QWidget):
         # Save Persistence
         if self.data_manager:
               self.data_manager.set_setting("show_toc", "true" if not is_visible else "false")
-              
+               
         if not is_visible:
+            self._ensure_toc_width()
             self.refresh_toc()
             
     def set_toc_mode(self, mode):
@@ -3125,12 +3200,13 @@ class TextEditor(QWidget):
                     content_block = block.next()
                     content_text = content_block.text().strip() if content_block.isValid() else ""
                     level = match.group(1)
-                    display_text = f"{level} {content_text}"
+                    full_text = f"{level} {content_text}".strip()
+                    display_text = self._compact_toc_text(full_text)
                     dots = level.count('.')
                     indent = "    " * (dots - 1) if dots > 1 else ""
                     item = QListWidgetItem(f"{indent}{display_text}")
                     item.setData(Qt.ItemDataRole.UserRole, block.position())
-                    item.setToolTip(display_text)
+                    item.setToolTip(full_text)
                     self.toc_list.addItem(item)
             else:
                 match = pattern_bookmark.search(text)
@@ -3141,9 +3217,11 @@ class TextEditor(QWidget):
                         rest = next_b.text().strip()[:30] + "..." if next_b.isValid() else "Bookmark"
                     
                     display_text = f"🔖 {idx}. {rest}"
+                    full_text = f"Bookmark {idx}. {rest}"
+                    display_text = self._compact_toc_text(full_text)
                     item = QListWidgetItem(display_text)
                     item.setData(Qt.ItemDataRole.UserRole, block.position())
-                    item.setToolTip(text)
+                    item.setToolTip(full_text)
                     self.toc_list.addItem(item)
                     idx += 1
             
@@ -3231,7 +3309,7 @@ class TextEditor(QWidget):
                 meta['_res_name'] = res_name
                 self.edit_whiteboard_requested.emit(meta)
             except Exception as e:
-                print(f"Error parsing metadata for edit: {e}")
+                logger.error(f"Error parsing metadata for edit: {e}")
 
     def insert_image_from_file(self):
         # Legacy/internal usage fallback if needed, but primarily used via signal now
@@ -3356,7 +3434,9 @@ class TextEditor(QWidget):
         
         # 1. Reset Margins
         if hasattr(self, 'editor'):
-            self.editor.setViewportMargins(0, 0, 0, 0)
+            self._center_fixed_page()
+            self._update_page_numbers()
+            self._resize_images_to_fit()
             self.editor.viewport().update()
             
         # 2. Close Whiteboard Subprocess if exists
@@ -3365,7 +3445,7 @@ class TextEditor(QWidget):
                 self.whiteboard_process.terminate()
                 self.whiteboard_process = None
             except Exception as e:
-                print(f"Error closing whiteboard: {e}")
+                logger.error(f"Error closing whiteboard: {e}")
 
 
 
@@ -3547,7 +3627,7 @@ class TextEditor(QWidget):
                 self.find_bar.lbl_count.setText("0/0")
 
         except Exception as e:
-            print(f"Count Error: {e}")
+            logger.error(f"Find count error: {e}")
             self.find_bar.lbl_count.setText("?")
 
         # Visual Feedback
@@ -3787,7 +3867,7 @@ class TextEditor(QWidget):
                     f'{note_title}</a>'
                     f'</td></tr></table>&nbsp;'
                 )
-                print(f"DEBUG: INSERTING LINK HTML: {link_html}")
+                logger.debug("Inserting internal link HTML")
                 self.editor.insertHtml(link_html)
                 
                 # Reset cursor format to avoid typing inside the link
@@ -3812,7 +3892,7 @@ class TextEditor(QWidget):
                 meta = json.loads(meta_json)
                 if 'path' in meta and os.path.exists(meta['path']):
                     file_path = meta['path']
-            except:
+            except Exception:
                 pass
         
         # 2. If no path, save to temp file
@@ -3843,7 +3923,7 @@ class TextEditor(QWidget):
                     meta['is_temp'] = True
                     self.whiteboard_images[res_name + "_meta"] = json.dumps(meta)
                 except Exception as e:
-                    print(f"Error creating temp file: {e}")
+                    logger.error(f"Error creating temp file: {e}")
                     return
 
         # 3. Open
@@ -3854,7 +3934,7 @@ class TextEditor(QWidget):
             try:
                 os.startfile(file_path)
             except Exception as e:
-                print(f"Error opening file: {e}")
+                logger.error(f"Error opening file: {e}")
 
     def _handle_file_change(self, path):
         """Handle auto-refresh when watched file changes."""
@@ -3897,7 +3977,7 @@ class TextEditor(QWidget):
                 meta = json.loads(meta_json)
                 if 'path' in meta and os.path.exists(meta['path']):
                     file_path = meta['path']
-            except:
+            except Exception:
                 pass
         
         if file_path:
@@ -3955,34 +4035,6 @@ class TextEditor(QWidget):
                 # Silently fail after max retries - will refresh on next file change
 
     # ... delete method ...
-
-    def _insert_image_controls(self, cursor, res_name):
-        """Insert edit/delete controls for whiteboard images using a VERTICAL layout on the Right."""
-        # Define theme-aware styles for BUTTONS
-        if self.theme_mode == "light":
-            btn_style = "text-decoration: none; color: black; background: #e3f2fd; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #007ACC; display: inline-block; width: 60px; text-align: center; margin-bottom: 5px;"
-            del_style = "text-decoration: none; color: black; background: #ffebee; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #d32f2f; display: inline-block; width: 60px; text-align: center; margin-bottom: 5px;"
-        else:
-            btn_style = "text-decoration: none; color: white; background: #007ACC; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #005a9e; display: inline-block; width: 60px; text-align: center; margin-bottom: 5px;"
-            del_style = "text-decoration: none; color: white; background: #d32f2f; padding: 6px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; border: 1px solid #b71c1c; display: inline-block; width: 60px; text-align: center; margin-bottom: 5px;"
-        
-        # We need to wrap the PREVIOUS image in a table structure. 
-        # But wait, the image is already inserted. Modifying structure backwards is hard in QTextCursor.
-        # It's better to insert the Table structure first, then put image in Cell 1 and Buttons in Cell 2.
-        # BUT this method is called AFTER image insertion.
-        
-        # New Strategy: The caller (`_insert_processed_image`) should handle the Table structure.
-        # This method just returns the HTML for the buttons? No, it inserts.
-        # Let's Modify THIS method to effectively "wrap" the preceding image? No, risky.
-        
-        # Let's assume we modify `_process_and_insert_image` to create the table structure and call this 
-        # to get button HTML. 
-        # OR better: We simply insert a Table here, and move the previous character (the Image) into it? 
-        # Moving images in QTextEdit is tricky.
-        
-        # EASIEST PATH: Update `_insert_processed_image` (and sync) to generate the full Table HTML directly,
-        # instead of Image then Controls.
-        pass # We will modify the caller instead.
 
     def _get_image_controls_html(self, res_name, is_whiteboard=False):
         """Generate vertical button HTML for image controls."""
@@ -4103,12 +4155,12 @@ class TextEditor(QWidget):
         from PyQt6.QtCore import QUrl
         
         if not os.path.exists(new_path):
-             print(f"Replacement path not found: {new_path}")
+             logger.warning(f"Replacement path not found: {new_path}")
              return False
              
         new_img = QImage(new_path)
         if new_img.isNull():
-             print(f"Replacement image invalid: {new_path}")
+             logger.warning(f"Replacement image invalid: {new_path}")
              return False
         
         # 1. Update Resource
@@ -4412,7 +4464,7 @@ class TextEditor(QWidget):
             # Do NOT call ensureCursorVisible() here, as it forces scrolling.
             
         except Exception as e:
-            print(f"Error inserting processed image: {e}")
+            logger.error(f"Error inserting processed image: {e}")
     
 
     
@@ -4593,15 +4645,6 @@ class TextEditor(QWidget):
         self.editor.setTextCursor(cursor)
         self.editor.ensureCursorVisible()
 
-    def scroll_to_bottom(self):
-        # Force layout calculation of the document
-        self.editor.document().adjustSize()
-        
-        # Ensure the new content is visible (Scroll to bottom)
-        sb = self.editor.verticalScrollBar()
-        sb.setValue(sb.maximum())
-        self.editor.ensureCursorVisible()
-
     def text_italic(self):
         # Use clean format for merge
         fmt = QTextCharFormat()
@@ -4633,18 +4676,18 @@ class TextEditor(QWidget):
                 base_font = "Segoe UI"
                 
             if mode == 'clean':
-                print(f"DEBUG: SafeFont - Cleaned to: '{base_font}'")
+                logger.debug(f"SafeFont cleaned='{base_font}'")
                 return base_font
                 
             if mode == 'add' and new_id:
                 # 2. Injection
                 new_font = f"{base_font}, {new_id}"
-                print(f"DEBUG: SafeFont - Generated: '{new_font}'")
+                logger.debug(f"SafeFont generated='{new_font}'")
                 return new_font
                 
             return base_font
         except Exception as e:
-            print(f"CRITICAL ERROR in _safe_font_update: {e}")
+            logger.error(f"Critical error in _safe_font_update: {e}")
             return "Segoe UI" # Ultimate fallback
 
     def text_underline(self):
@@ -4710,7 +4753,7 @@ class TextEditor(QWidget):
             self.editor.mergeCurrentCharFormat(fmt)
             
         except Exception as e:
-            print(f"Error in text_highlight: {e}")
+            logger.error(f"Error in text_highlight: {e}")
 
     def change_list_style(self, index):
         """Handle list style changes from ComboBox."""
@@ -4830,13 +4873,22 @@ class TextEditor(QWidget):
         """Handle back button click."""
         if self.origin_note_id:
             from util.logger import logger
-            print(f"DEBUG: Back Button Clicked. Returning to Note {self.origin_note_id}")
+            logger.debug(f"Back button clicked, returning to note {self.origin_note_id}")
             self.request_open_note.emit(self.origin_note_id)
             self.hide_back_button()
 
     def resizeEvent(self, event):
-        """Handle resize events to reposition floating elements."""
+        """Handle responsive resize for content layout and floating controls."""
         super().resizeEvent(event)
+
+        current_width = self.editor.viewport().width()
+        if abs(current_width - self._last_resize_width) > 10:
+            self._last_resize_width = current_width
+            self._resize_debounce_timer.start(300)
+
+        self._reposition_find_bar()
+        self._center_fixed_page()
+        self._update_page_numbers()
         self._reposition_back_button()
 
     def text_outdent(self):
@@ -4901,30 +4953,6 @@ class TextEditor(QWidget):
         cursor = self.editor.textCursor()
         cursor.createList(QTextListFormat.Style.ListDisc)
 
-    def get_html(self):
-        """Get HTML with data URIs embedded for persistence with error handling."""
-        try:
-            html = self.editor.toHtml()
-            
-            # Replace resource names with data URIs for persistence
-            for res_name, b64_data in self.whiteboard_images.items():
-                try:
-                    data_uri = f"data:image/png;base64,{b64_data}"
-                    # Replace all occurrences of resource reference with data URI
-                    html = html.replace(f'src="{res_name}"', f'src="{data_uri}"')
-                    # Also handle single quotes
-                    html = html.replace(f"src='{res_name}'", f"src='{data_uri}'")
-                except Exception:
-                    pass  # Skip problematic images
-            
-            return html
-        except Exception as e:
-            print(f"Error getting HTML: {e}")
-            return self.editor.toHtml()  # Fallback
-
-        # Refresh TOC strictly after loading to ensure visibility
-        self.refresh_toc()
-
     def _get_typography_overlay(self):
         """Returns CSS to enforce the premium typography rules."""
         # Font Stacks
@@ -4958,44 +4986,85 @@ class TextEditor(QWidget):
         """
 
     def _normalize_list_layout_html(self, html):
-        """Prevent overly large list margins from collapsing text into narrow columns."""
+        """Normalize list CSS so nested bullets stay readable on narrow layouts."""
         if not html:
             return html
 
         try:
             import re
 
-            def _fix_li_tag(match):
+            tag_pattern = re.compile(r'(?is)<(li|ul|ol)\b[^>]*>')
+            style_attr_pattern = re.compile(r'(?is)\sstyle\s*=\s*"([^"]*)"')
+            num_pattern = re.compile(r'^\s*([-+]?\d*\.?\d+)\s*(px|pt)?\s*$', flags=re.IGNORECASE)
+
+            def _clamp_value(raw_value, cap_px):
+                m = num_pattern.match(str(raw_value))
+                if not m:
+                    return str(raw_value).strip()
+
+                value = max(0.0, float(m.group(1)))
+                unit = (m.group(2) or "px").lower()
+                cap = cap_px if unit == "px" else cap_px * 0.75
+                value = min(value, cap)
+                if value.is_integer():
+                    value = int(value)
+                return f"{value}{unit}"
+
+            def _parse_style(style_text):
+                pairs = []
+                for chunk in style_text.split(";"):
+                    if ":" not in chunk:
+                        continue
+                    name, value = chunk.split(":", 1)
+                    name = name.strip().lower()
+                    value = value.strip()
+                    if name:
+                        pairs.append((name, value))
+                return pairs
+
+            def _normalize_tag(match):
                 tag = match.group(0)
+                tag_name = match.group(1).lower()
 
-                # Remove large right margins on list items (causes ultra-narrow columns).
-                tag = re.sub(
-                    r'(?i)margin-right\s*:\s*[-+]?\d*\.?\d+\s*(?:px|pt)?\s*;?',
-                    '',
-                    tag
+                # Merge duplicate style attributes into one deterministic style map.
+                style_chunks = style_attr_pattern.findall(tag)
+                merged_style = "; ".join(s.strip() for s in style_chunks if s and s.strip())
+                tag = style_attr_pattern.sub("", tag)
+
+                styles_map = {}
+                for name, value in _parse_style(merged_style):
+                    if name in {"margin-right", "padding-right"}:
+                        continue
+                    if name in {"width", "min-width", "max-width"}:
+                        continue
+
+                    if name in {"margin-left", "padding-left", "text-indent"}:
+                        cap = 24 if tag_name == "li" else 20
+                        value = _clamp_value(value, cap)
+                    elif name == "-qt-list-indent":
+                        try:
+                            value = str(min(max(int(float(value)), 1), 2))
+                        except Exception:
+                            value = "1"
+
+                    styles_map[name] = value
+
+                if tag_name in {"ul", "ol"}:
+                    styles_map.setdefault("margin-left", "0px")
+                    styles_map.setdefault("padding-left", "18px")
+                else:
+                    styles_map.setdefault("margin-left", "0px")
+                    styles_map.setdefault("margin-right", "0px")
+                    styles_map.setdefault("text-indent", "0px")
+
+                style_text = "; ".join(
+                    f"{name}: {value}" for name, value in styles_map.items() if value
                 )
-
-                # Cap left margin so nested bullets remain readable on small widths.
-                def _cap_left_margin(margin_match):
-                    value = float(margin_match.group(1))
-                    unit = (margin_match.group(2) or "px").lower()
-                    cap = 72.0 if unit == "px" else 54.0
-                    value = min(value, cap)
-                    if value.is_integer():
-                        value = int(value)
-                    return f"margin-left: {value}{unit};"
-
-                tag = re.sub(
-                    r'(?i)margin-left\s*:\s*([-+]?\d*\.?\d+)\s*(px|pt)?\s*;?',
-                    _cap_left_margin,
-                    tag
-                )
-
-                # Keep style attributes syntactically clean after removals.
-                tag = re.sub(r';\s*;', ';', tag)
+                if style_text:
+                    tag = re.sub(r">\s*$", f' style="{style_text}">', tag)
                 return tag
 
-            return re.sub(r'(?is)<li\b[^>]*>', _fix_li_tag, html)
+            return tag_pattern.sub(_normalize_tag, html)
         except Exception:
             return html
 
@@ -5038,7 +5107,7 @@ class TextEditor(QWidget):
                             doc.addResource(QTextDocument.ResourceType.ImageResource, QUrl(res_name), image)
                 except Exception as e:
                     # Suppress errors for non-critical resources to avoid spamming console
-                    print(f"Error loading sidecar resource {res_name}: {e}")
+                    logger.error(f"Error loading sidecar resource {res_name}: {e}")
                     
         # Basic XSS / HTML Sanitization
         if html:
@@ -5078,7 +5147,7 @@ class TextEditor(QWidget):
                     img = doc.resource(QTextDocument.ResourceType.ImageResource, QUrl(res_name))
                     if img and isinstance(img, QImage) and img.width() > 0:
                         natural_dims = (img.width(), img.height())
-                except:
+                except Exception:
                     pass
                 
                 if natural_dims:
@@ -5154,8 +5223,9 @@ class TextEditor(QWidget):
                 return img_tag + closing
             
             html = re.sub(pattern, add_dimensions, html)
-        
-        return html
+
+        # Persist normalized list CSS so responsive layout remains stable after reopen.
+        return self._normalize_list_layout_html(html)
 
     def get_whiteboard_images(self):
         return self.whiteboard_images
@@ -5237,7 +5307,7 @@ class TextEditor(QWidget):
                             self.editor.insertHtml(embed_html)
                             return
                     except Exception as e:
-                        print(f"Failed to fetch YouTube thumbnail: {e}")
+                        logger.warning(f"Failed to fetch YouTube thumbnail: {e}")
                         # Fallback to link if fetch fails
                         pass
                 
@@ -5356,7 +5426,7 @@ class TextEditor(QWidget):
                     self.editor.insertHtml(self._normalize_list_layout_html(html))
                     return True # Parent handled it
                 except (ImportError, Exception) as e:
-                    print(f"Markdown library failed ({e}), using fallback regex.")
+                    logger.warning(f"Markdown library failed ({e}), using fallback regex")
                     from html import escape
                     
                     # Fallback Regex Parser
@@ -5424,7 +5494,7 @@ class TextEditor(QWidget):
                                  image_data = response.content
                                  image = QImage.fromData(image_data)
                          except Exception as e:
-                             print(f"Failed to download remote image {src}: {e}")
+                             logger.warning(f"Failed to download remote image {src}: {e}")
                     
                     # Case B: Data URI (might have missed if it's nested in HTML)
                     elif src.startswith('data:image/'):
@@ -5433,7 +5503,7 @@ class TextEditor(QWidget):
                             image_data = base64.b64decode(encoded)
                             image = QImage.fromData(image_data)
                         except Exception as e:
-                            print(f"Failed to decode data URI image: {e}")
+                            logger.warning(f"Failed to decode data URI image: {e}")
                             
                     # Register image in our system if found
                     if image and not image.isNull():
@@ -5514,7 +5584,32 @@ class TextEditor(QWidget):
         self.editor.insertHtml(html)
 
     def cleanup(self):
-        """Handle cleanup (terminate whiteboard subprocess)."""
+        """Handle cleanup for threads, watchers, timers, and subprocesses."""
+        if hasattr(self, 'speed_reader') and self.speed_reader:
+            try:
+                self.speed_reader.shutdown()
+            except Exception as e:
+                logger.error(f"Error shutting down speed reader: {e}")
+
+        for timer_name in ("highlight_debounce_timer", "debounce_timer", "_resize_debounce_timer"):
+            timer = getattr(self, timer_name, None)
+            if timer and timer.isActive():
+                timer.stop()
+
+        if hasattr(self, "file_watcher") and self.file_watcher:
+            try:
+                watched_files = self.file_watcher.files()
+                if watched_files:
+                    self.file_watcher.removePaths(watched_files)
+            except Exception:
+                pass
+
+        if hasattr(self, "_thread_pool") and self._thread_pool:
+            try:
+                self._thread_pool.waitForDone(1000)
+            except Exception:
+                pass
+
         if hasattr(self, 'whiteboard_process') and self.whiteboard_process:
             try:
                 if self.whiteboard_process.state() != self.whiteboard_process.ProcessState.NotRunning:
@@ -5524,7 +5619,7 @@ class TextEditor(QWidget):
                         # Force kill if still running
                         self.whiteboard_process.kill()
                         self.whiteboard_process.waitForFinished(500)
-            except:
+            except Exception:
                 pass
     
     def closeEvent(self, event):

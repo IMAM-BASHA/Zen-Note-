@@ -27,7 +27,7 @@ def main():
         try:
             QMessageBox.critical(None, "Fatal Error", 
                 f"Failed to start application:\n\n{type(e).__name__}: {str(e)}\n\nSee console for details.")
-        except:
+        except Exception:
             pass
         
         sys.exit(1)

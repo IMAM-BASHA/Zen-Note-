@@ -2,6 +2,7 @@
 import pyttsx3
 import pythoncom
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
+from util.logger import logger
 
 class TTSWorker(QObject):
     """
@@ -18,6 +19,7 @@ class TTSWorker(QObject):
         self._current_text_offset = 0 
         self.stop_requested = False
         self.current_rate = 200
+        self._com_initialized = False
         
     def set_rate(self, rate):
         """Update rate dynamically."""
@@ -25,26 +27,28 @@ class TTSWorker(QObject):
 
     def init_engine(self):
         """Initialize the engine. Must be called in the worker thread."""
-        print("DEBUG: TTSWorker.init_engine CALLED")
-        try:
-            pythoncom.CoInitialize() # Required for SAPI5 in threads
-        except Exception as e:
-            print(f"DEBUG: CoInitialize failed: {e}")
+        logger.debug("TTSWorker.init_engine called")
+        if not self._com_initialized:
+            try:
+                pythoncom.CoInitialize() # Required for SAPI5 in threads
+                self._com_initialized = True
+            except Exception as e:
+                logger.error(f"TTS CoInitialize failed: {e}")
 
         if not self.engine:
             try:
-                print("DEBUG: Initializing pyttsx3 with sapi5...")
+                logger.debug("Initializing pyttsx3 with sapi5")
                 # Explicitly use sapi5 for Windows stability
                 self.engine = pyttsx3.init('sapi5')
                 self.engine.connect('started-word', self._on_word)
                 # DELETED: finished-utterance connection was causing premature stopping in chunked mode
-                print("DEBUG: pyttsx3 initialized successfully.")
+                logger.debug("pyttsx3 initialized successfully")
                 
                 # Load voices
                 voices = self.engine.getProperty('voices')
-                print(f"DEBUG: System voices found: {len(voices)}")
+                logger.debug(f"TTS voices found: {len(voices)}")
                 for i, v in enumerate(voices):
-                    print(f"DEBUG: Voice {i}: {v.name} (ID: {v.id})")
+                    logger.debug(f"TTS voice {i}: {v.name} ({v.id})")
                 
                 # Format for UI: [{'id': id, 'name': name}, ...]
                 voice_data = [{'id': v.id, 'name': v.name} for v in voices]
@@ -54,25 +58,11 @@ class TTSWorker(QObject):
                 self.engine.setProperty('volume', 1.0)
                 self.engine.setProperty('rate', 200)
             except Exception as e:
-                print(f"TTS Init Error: {e}")
-
-    def _on_word(self, name, location, length):
-        """Callback from pyttsx3 when a word is spoken."""
-        # location is the character index in the text passed to say()
-        # Mapped in logic now
-        pass 
-        
-    def _on_finished(self, name, completed):
-        """Callback when speaking is done."""
-        pass 
+                logger.error(f"TTS init error: {e}")
 
     def say(self, text, voice_id=None, rate=200):
         """Speak text in chunks to allow interruption and updates."""
-        print(f"DEBUG: TTSWorker.say start. Text len: {len(text)}")
-        try:
-            pythoncom.CoInitialize() 
-        except: pass
-        
+        logger.debug(f"TTSWorker.say start, text_len={len(text)}")
         if not self.engine: 
             self.init_engine()
         
@@ -105,7 +95,7 @@ class TTSWorker(QObject):
                 current = ""
         if current.strip(): speech_chunks.append(current)
         
-        print(f"DEBUG: Split into {len(speech_chunks)} chunks")
+        logger.debug(f"TTS chunks={len(speech_chunks)}")
         
         current_offset = 0
         
@@ -113,10 +103,10 @@ class TTSWorker(QObject):
              # Apply initial settings
             if voice_id:
                 try: 
-                    print(f"DEBUG: Setting TTS Voice to: {voice_id}")
+                    logger.debug(f"Setting TTS voice: {voice_id}")
                     self.engine.setProperty('voice', voice_id)
                 except Exception as ve: 
-                    print(f"DEBUG: Voice setting error: {ve}")
+                    logger.error(f"TTS voice setting error: {ve}")
             
             # Initial set
             self.current_rate = max(50, min(rate, 600))
@@ -132,7 +122,7 @@ class TTSWorker(QObject):
                 
                 # Check for stop signal (set via thread-safe flag or slot)
                 if self.stop_requested:
-                    print("DEBUG: TTS Stop requested")
+                    logger.debug("TTS stop requested")
                     break
                 
                 # Update settings ONLY if they changed
@@ -148,7 +138,8 @@ class TTSWorker(QObject):
                     # if voice_id and voice_id != last_voice:
                     #     self.engine.setProperty('voice', voice_id)
                     #     last_voice = voice_id
-                except: pass
+                except Exception:
+                    pass
                 
                 self.current_chunk_offset = current_offset 
                 
@@ -156,16 +147,16 @@ class TTSWorker(QObject):
                     self.engine.say(chunk) 
                     self.engine.runAndWait() 
                 except Exception as e:
-                    print(f"DEBUG: Engine Error: {e}")
+                    logger.error(f"TTS engine error: {e}")
                     # If engine errors, it might need re-init, best to break
                     break
                 
                 current_offset += len(chunk)
                 
         except Exception as e:
-            print(f"TTS Say Error: {e}")
+            logger.error(f"TTS say error: {e}")
             
-        print("DEBUG: TTS Finished Loop")
+        logger.debug("TTS finished loop")
         self.finished.emit()
 
     def _on_word(self, name, location, length):
@@ -178,10 +169,27 @@ class TTSWorker(QObject):
 
     def stop(self):
         """Stop speaking."""
-        print("DEBUG: TTSWorker.stop called")
+        logger.debug("TTSWorker.stop called")
         self.stop_requested = True
         if self.engine:
             try:
                 self.engine.stop()
             except Exception as e:
-                print(f"TTS Stop Error: {e}")
+                logger.error(f"TTS stop error: {e}")
+
+    def cleanup(self):
+        """Release TTS resources before worker thread exits."""
+        self.stop_requested = True
+        if self.engine:
+            try:
+                self.engine.stop()
+            except Exception:
+                pass
+            self.engine = None
+
+        if self._com_initialized:
+            try:
+                pythoncom.CoUninitialize()
+            except Exception:
+                pass
+            self._com_initialized = False

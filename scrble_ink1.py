@@ -746,40 +746,6 @@ class InkCanvas(QWidget):
     def set_pen_width(self, width: float):
         self.pen_width = width
     
-    def set_background_type(self, bg_type: BackgroundType):
-        self.background_type = bg_type
-        self.bg_cache_valid = False
-        self.update()
-    
-    def set_background_color(self, color: QColor):
-        self.background_color = color
-        self.bg_cache_valid = False
-        self.update()
-    
-    def add_image(self, image_path: str):
-        """Add image to canvas with Undo support"""
-        image = QImage(image_path)
-        if not image.isNull():
-            # Scale image if too large
-            max_size = 800
-            if image.width() > max_size or image.height() > max_size:
-                image = image.scaled(max_size, max_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            
-            img_obj = ImageObject(
-                image=image,
-                position=QPointF(100, 100),
-                size=image.size()
-            )
-            self.images.append(img_obj)
-            
-            # Add to Undo Stack
-            action = UndoAction(UndoType.ADD_IMAGE, img_obj)
-            self.undo_stack.append(action)
-            self.redo_stack.clear()
-            
-            self.content_cache_valid = False
-            self.update()
-    
     def undo(self):
         """Advanced Undo"""
         if not self.undo_stack:
@@ -879,29 +845,6 @@ class InkCanvas(QWidget):
         self.content_cache_valid = False
         self.bg_cache_valid = False  # Invalidate background cache
         self.update()
-    
-    def add_image(self, file_path):
-        """Add image from file path"""
-        try:
-            image = QImage(file_path)
-            if image.isNull():
-                print(f"Failed to load image: {file_path}")
-                return
-            # Place image at center of canvas
-            img_size = QSize(min(image.width(), 400), min(image.height(), 400))
-            img_pos = QPointF((self.width() - img_size.width()) / 2, 
-                             (self.height() - img_size.height()) / 2)
-            img_obj = ImageObject(image=image, position=img_pos, size=img_size)
-            self.images.append(img_obj)
-            self.content_cache_valid = False
-            self.update()
-        except Exception as e:
-            print(f"Error adding image: {e}")
-    
-    def resizeEvent(self, event):
-        """Invalidate cache on resize"""
-        self.content_cache_valid = False
-        super().resizeEvent(event)
     
     def paintEvent(self, event: QPaintEvent):
         painter = QPainter(self)
@@ -2803,7 +2746,7 @@ class ScrbleInkPro(QMainWindow):
                 # direct parent is the folder
                 folder_name = os.path.basename(os.path.dirname(self.active_file_path))
                 folder_name = f"[{folder_name}] - "
-            except:
+            except Exception:
                 pass
                 
         # Prepare page name text
@@ -2958,7 +2901,7 @@ class ScrbleInkPro(QMainWindow):
                 folder_name = os.path.basename(os.path.dirname(self.active_file_path))
                 if folder_name:
                     default_name = folder_name
-            except:
+            except Exception:
                 pass
                 
         filename, _ = QFileDialog.getSaveFileName(
