@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import (
     QAction, QTextCursor, QTextListFormat, QColor, QTextImageFormat, 
     QTextCharFormat, QFont, QDesktopServices, QTextDocument, QImage, QPainter,
-    QPixmap, QPolygonF, QPen, QBrush, QIcon, QClipboard, QTextFormat
+    QPixmap, QPolygonF, QPen, QBrush, QIcon, QClipboard
 )
 from util.icon_factory import get_premium_icon
 from util.tts_engine import TTSWorker # Import TTS Worker
@@ -1190,6 +1190,30 @@ class TextEditor(QWidget):
         # Speed Reader Bar (Floating Overlay) - Must be after editor init
         self.speed_reader = SpeedReaderBar(self, self)
 
+        # Persistent color state (used by toolbar icons and background/text rendering).
+        self._current_background_color = None
+        self.custom_highlight_color = QColor("cyan")
+        self.current_text_color = None
+        self._text_color_mode = "auto"
+        if self.data_manager:
+            saved_hl = self.data_manager.get_setting("custom_highlight_color", "cyan")
+            loaded_hl = QColor(saved_hl)
+            if loaded_hl.isValid():
+                self.custom_highlight_color = loaded_hl
+
+            saved_mode = str(self.data_manager.get_setting("editor_text_color_mode", "auto")).lower()
+            if saved_mode in ("auto", "manual"):
+                self._text_color_mode = saved_mode
+            else:
+                self._text_color_mode = "auto"
+
+            if self._text_color_mode == "manual":
+                saved_text = self.data_manager.get_setting("editor_text_color", None)
+                if saved_text:
+                    loaded_text = QColor(saved_text)
+                    if loaded_text.isValid():
+                        self.current_text_color = loaded_text
+
         # Toolbar Actions (Initialized here, but not added to a local toolbar)
         # MOVED: Must be called AFTER find_action and editor are created.
         self._init_actions()
@@ -1207,12 +1231,6 @@ class TextEditor(QWidget):
         
         # FIX: Track files we're actively refreshing to prevent watcher loop
         self._refreshing_files = set()
-        
-        # Load custom highlight color from settings
-        saved_color = "cyan"
-        if self.data_manager:
-            saved_color = self.data_manager.get_setting("custom_highlight_color", "cyan")
-        self.custom_highlight_color = QColor(saved_color)
         
         # Local image data storage for persistence
         self.whiteboard_images = {}
@@ -1763,6 +1781,10 @@ class TextEditor(QWidget):
         except Exception as e:
             print(f"Error syncing highlight color: {e}")
 
+        # Re-apply editor background/text with current state so theme switches
+        # don't leave stale foreground colors behind.
+        self.set_background_color(getattr(self, "_current_background_color", None))
+
     def _refresh_toolbar_icons(self, mode):
         """Updates toolbar icons based on the current theme."""
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
@@ -1798,8 +1820,8 @@ class TextEditor(QWidget):
         set_icon('action_highlight', 'highlight')
         set_icon('action_highlight', 'highlight')
         
-        # Text Color (Use saved color if available, else default)
-        if getattr(self, 'current_text_color', None):
+        # Text Color icon: reflect manual mode color; otherwise use default icon tint.
+        if getattr(self, '_text_color_mode', 'auto') == "manual" and getattr(self, 'current_text_color', None):
              self._update_text_color_icon(self.current_text_color)
         else:
              set_icon('action_color', 'color')
@@ -2361,27 +2383,87 @@ class TextEditor(QWidget):
             self.page_color_changed.emit(col.name())
             # self.contentChanged.emit() # Also mark as dirty? Maybe separate signal is better usually.
 
-    def set_background_color(self, color):
-        """Sets the background color of the editor content area."""
-        if not color:
-            # Reset to current theme background if no color provided
-            if hasattr(self, "theme_mode"):
-                c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-                self.editor.setStyleSheet(f"background-color: {c['background']}; color: {c['foreground']};")
+    @staticmethod
+    def _srgb_to_linear(channel):
+        c = max(0.0, min(1.0, channel / 255.0))
+        if c <= 0.04045:
+            return c / 12.92
+        return ((c + 0.055) / 1.055) ** 2.4
+
+    def _best_bw_text_for_bg(self, background_color):
+        """Pick pure black or pure white based on WCAG contrast ratio."""
+        if not isinstance(background_color, QColor) or not background_color.isValid():
+            return QColor("#000000")
+
+        r, g, b, _ = background_color.getRgb()
+        rl = self._srgb_to_linear(r)
+        gl = self._srgb_to_linear(g)
+        bl = self._srgb_to_linear(b)
+        luminance = (0.2126 * rl) + (0.7152 * gl) + (0.0722 * bl)
+
+        contrast_black = (luminance + 0.05) / 0.05
+        contrast_white = 1.05 / (luminance + 0.05)
+        return QColor("#000000") if contrast_black >= contrast_white else QColor("#FFFFFF")
+
+    def _resolve_effective_text_color(self, background_color=None):
+        """Resolve readable editor text color from manual mode or auto contrast."""
+        if isinstance(background_color, str):
+            background_color = QColor(background_color)
+
+        if (
+            getattr(self, "_text_color_mode", "auto") == "manual"
+            and isinstance(getattr(self, "current_text_color", None), QColor)
+            and self.current_text_color.isValid()
+        ):
+            return QColor(self.current_text_color)
+
+        if isinstance(background_color, QColor) and background_color.isValid():
+            return self._best_bw_text_for_bg(background_color)
+
+        c = styles.ZEN_THEME.get(getattr(self, "theme_mode", "light"), styles.ZEN_THEME["light"])
+        fallback = QColor(c.get("background", "#FFFFFF"))
+        return self._best_bw_text_for_bg(fallback)
+
+    def _apply_default_text_color(self, color):
+        """Apply default typing color without rewriting selected content."""
+        if not isinstance(color, QColor) or not color.isValid():
             return
 
-        # Apply the specific color
+        cursor = self.editor.textCursor()
+        had_selection = cursor.hasSelection()
+        sel_start, sel_end = cursor.selectionStart(), cursor.selectionEnd()
+        if had_selection:
+            cursor.clearSelection()
+            self.editor.setTextCursor(cursor)
+
+        fmt = self.editor.currentCharFormat()
+        fmt.setForeground(color)
+        self.editor.setCurrentCharFormat(fmt)
+
+        if had_selection:
+            cursor = self.editor.textCursor()
+            cursor.setPosition(sel_start)
+            cursor.setPosition(sel_end, QTextCursor.MoveMode.KeepAnchor)
+            self.editor.setTextCursor(cursor)
+
+    def set_background_color(self, color):
+        """Set editor background and keep text color readable/persistent."""
         try:
-            # Ensure text color contrasts well or remains theme-based? 
-            # For now, we only change background, assuming user picks a light bg for light mode logic usually.
-            # But better to just set background-color on the widget.
-            # We must preserve the foreground color from the theme to avoid text disappearing.
-            fg_color = "black"
-            if hasattr(self, "theme_mode"):
-                 c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-                 fg_color = c['foreground']
-            
-            self.editor.setStyleSheet(f"background-color: {color}; color: {fg_color};")
+            c = styles.ZEN_THEME.get(getattr(self, "theme_mode", "light"), styles.ZEN_THEME["light"])
+            theme_bg = QColor(c.get("background", "#FFFFFF"))
+            background = QColor(color) if color else theme_bg
+
+            if not background.isValid():
+                background = theme_bg
+                self._current_background_color = None
+            else:
+                self._current_background_color = background.name() if color else None
+
+            fg_color = self._resolve_effective_text_color(background)
+            self.editor.setStyleSheet(
+                f"background-color: {background.name()}; color: {fg_color.name()};"
+            )
+            self._apply_default_text_color(fg_color)
         except Exception as e:
             logger.error(f"Error setting background color: {e}")
 
@@ -4587,6 +4669,8 @@ class TextEditor(QWidget):
 
             # Target Color
             target_bg = color
+            if isinstance(target_bg, str):
+                target_bg = QColor(target_bg)
             if not target_bg:
                 # Default "Standard" Highlight (Ctrl+H) -> Use Theme Default
                 import ui.styles as styles
@@ -4619,22 +4703,9 @@ class TextEditor(QWidget):
                 # REMOVE Highlight
                 from PyQt6.QtGui import QBrush
                 fmt.setBackground(QBrush(Qt.BrushStyle.NoBrush))
-                # Reset text color to default (black-ish usually)
-                # We can try clearing foreground, currently just setting to black/theme auto?
-                # Best way to "reset" foreground implies unsetting it. 
-                # mergeCurrentCharFormat with a cleared property should work if we construct it right?
-                # Actually, setting it to a specific color (WindowText) is safer for now or just standard black.
-                # Let's assume standard note text is black/theme dependent.
-                # A safe bet is cleaning the property.
-                fmt.clearProperty(QTextFormat.Property.ForegroundBrush)
             else:
-                # APPLY Highlight
-                r, g, b, _ = target_bg.getRgb()
-                luminance = (0.299 * r + 0.587 * g + 0.114 * b)
-                text_color = Qt.GlobalColor.white if luminance < 128 else Qt.GlobalColor.black
-                
+                # Apply highlight only; keep existing text color intact.
                 fmt.setBackground(target_bg)
-                fmt.setForeground(text_color)
             
             self.editor.mergeCurrentCharFormat(fmt)
             
@@ -4886,6 +4957,48 @@ class TextEditor(QWidget):
         </style>
         """
 
+    def _normalize_list_layout_html(self, html):
+        """Prevent overly large list margins from collapsing text into narrow columns."""
+        if not html:
+            return html
+
+        try:
+            import re
+
+            def _fix_li_tag(match):
+                tag = match.group(0)
+
+                # Remove large right margins on list items (causes ultra-narrow columns).
+                tag = re.sub(
+                    r'(?i)margin-right\s*:\s*[-+]?\d*\.?\d+\s*(?:px|pt)?\s*;?',
+                    '',
+                    tag
+                )
+
+                # Cap left margin so nested bullets remain readable on small widths.
+                def _cap_left_margin(margin_match):
+                    value = float(margin_match.group(1))
+                    unit = (margin_match.group(2) or "px").lower()
+                    cap = 72.0 if unit == "px" else 54.0
+                    value = min(value, cap)
+                    if value.is_integer():
+                        value = int(value)
+                    return f"margin-left: {value}{unit};"
+
+                tag = re.sub(
+                    r'(?i)margin-left\s*:\s*([-+]?\d*\.?\d+)\s*(px|pt)?\s*;?',
+                    _cap_left_margin,
+                    tag
+                )
+
+                # Keep style attributes syntactically clean after removals.
+                tag = re.sub(r';\s*;', ';', tag)
+                return tag
+
+            return re.sub(r'(?is)<li\b[^>]*>', _fix_li_tag, html)
+        except Exception:
+            return html
+
     def set_html(self, html, whiteboard_images=None):
         """Set HTML content and reload associated image resources."""
         self.whiteboard_images = whiteboard_images if whiteboard_images else {}
@@ -4936,6 +5049,8 @@ class TextEditor(QWidget):
              html = re.sub(r'href=[\'"]javascript:[^\'"]*[\'"]', '', html, flags=re.IGNORECASE)
              # Remove on* events
              html = re.sub(r' on\w+=[\'"][^\'"]*[\'"]', '', html, flags=re.IGNORECASE)
+             # Normalize problematic list margins for responsive readability.
+             html = self._normalize_list_layout_html(html)
 
         # Wrap layout modifications in an edit block for performance and to prevent flickering/glitches
         cursor = self.editor.textCursor()
@@ -5238,7 +5353,7 @@ class TextEditor(QWidget):
                     html = html.replace('<pre>', '<pre style="background: #2d2d2d; color: #ccc; padding: 10px; border-radius: 4px;">')
                     html = html.replace('<code>', '<code style="background: rgba(150,150,150,0.3); padding: 2px 4px; border-radius: 3px;">')
                     
-                    self.editor.insertHtml(html)
+                    self.editor.insertHtml(self._normalize_list_layout_html(html))
                     return True # Parent handled it
                 except (ImportError, Exception) as e:
                     print(f"Markdown library failed ({e}), using fallback regex.")
@@ -5277,7 +5392,7 @@ class TextEditor(QWidget):
                     html = html.replace('\n', '<br>')
                     html = re.sub(r'(</h[1-6]>|</ul>|</pre>)<br>', r'\1', html)
                     
-                    self.editor.insertHtml(html)
+                    self.editor.insertHtml(self._normalize_list_layout_html(html))
                     return
 
         # Priority 4: Rich Text / HTML (Browser Copy, Notion, Office, etc.)
@@ -5345,11 +5460,11 @@ class TextEditor(QWidget):
                         new_tag = full_tag.replace(src, res_name)
                         modified_html = modified_html.replace(full_tag, new_tag)
 
-                self.editor.insertHtml(modified_html)
+                self.editor.insertHtml(self._normalize_list_layout_html(modified_html))
                 return True
             
             # Fallback if no images found or if we want to let super handle other rich text
-            self.editor.insertHtml(html)
+            self.editor.insertHtml(self._normalize_list_layout_html(html))
             return True
 
 
@@ -5485,9 +5600,11 @@ class TextEditor(QWidget):
 
     def text_color_picker(self):
         """Pick a new text color and update the icon."""
-        # Get current color if possible
-        curr_fmt = self.editor.currentCharFormat()
-        curr_color = curr_fmt.foreground().color()
+        # Prefer persisted/current default text color for picker start.
+        curr_color = QColor(self.current_text_color) if isinstance(getattr(self, "current_text_color", None), QColor) else QColor()
+        if not curr_color.isValid():
+            curr_fmt = self.editor.currentCharFormat()
+            curr_color = curr_fmt.foreground().color()
         if not curr_color.isValid():
             curr_color = QColor(0, 0, 0) # Default to black/theme default
             
@@ -5511,12 +5628,16 @@ class TextEditor(QWidget):
                 self.editor.setFocus()
                 
                 # Save for persistence
-                self.current_text_color = color
+                self.current_text_color = QColor(color)
+                self._text_color_mode = "manual"
                 if self.data_manager:
+                    self.data_manager.set_setting("editor_text_color_mode", "manual")
                     self.data_manager.set_setting("editor_text_color", color.name())
                 
                 # Update Icon
                 self._update_text_color_icon(color)
+                # Re-apply effective colors so stylesheet/default typing color stay in sync.
+                self.set_background_color(getattr(self, "_current_background_color", None))
 
     def _update_text_color_icon(self, color):
         """Update the text color action icon with the selected color"""
