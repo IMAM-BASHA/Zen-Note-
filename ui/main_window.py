@@ -99,6 +99,14 @@ class MainWindow(QMainWindow):
         # Then Maximize
         self.setWindowState(Qt.WindowState.WindowMaximized)
         self.data_manager = DataManager()
+        self._custom_theme_entries = self._load_saved_custom_themes()
+        raw_theme_mode = self.data_manager.get_setting("theme_mode", "light")
+        if raw_theme_mode == "custom" and self._custom_theme_entries:
+            raw_theme_mode = self._custom_theme_entries[-1].get("key", "light")
+            self.data_manager.set_setting("theme_mode", raw_theme_mode)
+        normalized_theme_mode = styles.resolve_theme_key(raw_theme_mode)
+        if normalized_theme_mode != raw_theme_mode:
+            self.data_manager.set_setting("theme_mode", normalized_theme_mode)
         self.shortcut_manager = ShortcutManager(self.data_manager)
         self.current_folder = None
         self.current_note = None
@@ -140,6 +148,79 @@ class MainWindow(QMainWindow):
         self._is_resizing = False
         self._resize_edges = Qt.Edge(0)
         self.setMouseTracking(True) # Required for edge detection without clicking
+
+    def _load_saved_custom_themes(self):
+        saved_entries = self.data_manager.get_setting("custom_themes", [])
+        legacy_theme = self.data_manager.get_setting("custom_theme_data")
+        entries = []
+        changed = False
+
+        def _slugify(name):
+            if not isinstance(name, str):
+                name = ""
+            cleaned = "".join(ch.lower() if ch.isalnum() else "_" for ch in name).strip("_")
+            return cleaned or "custom"
+
+        def _unique_key(name, used):
+            base = f"custom_{_slugify(name)}"
+            key = base
+            idx = 2
+            while key in used:
+                key = f"{base}_{idx}"
+                idx += 1
+            return key
+
+        used_keys = {k for k in styles.ZEN_THEME if not k.startswith("custom_")}
+        raw_entries = saved_entries if isinstance(saved_entries, list) else []
+        if saved_entries and not isinstance(saved_entries, list):
+            changed = True
+
+        if isinstance(legacy_theme, dict) and legacy_theme and not raw_entries:
+            raw_entries = [{"name": legacy_theme.get("display_name", "My Custom"), "theme": legacy_theme}]
+            changed = True
+
+        for idx, item in enumerate(raw_entries):
+            if not isinstance(item, dict):
+                changed = True
+                continue
+            theme_data = item.get("theme")
+            if not isinstance(theme_data, dict):
+                changed = True
+                continue
+
+            name = str(item.get("name") or theme_data.get("display_name") or f"Custom Theme {idx + 1}").strip()
+            if not name:
+                name = f"Custom Theme {idx + 1}"
+                changed = True
+
+            key = str(item.get("key") or "").strip()
+            if not key.startswith("custom_") or key in used_keys:
+                key = _unique_key(name, used_keys)
+                changed = True
+            used_keys.add(key)
+
+            theme_copy = dict(theme_data)
+            theme_copy["display_name"] = name
+            theme_copy.setdefault("display_subtitle", "Custom Theme")
+            styles.ZEN_THEME[key] = theme_copy
+            entries.append({"key": key, "name": name, "theme": theme_copy})
+
+        # Keep runtime custom themes aligned with settings.
+        valid_keys = {entry.get("key") for entry in entries}
+        stale_keys = [k for k in list(styles.ZEN_THEME.keys()) if k.startswith("custom_") and k not in valid_keys]
+        for key in stale_keys:
+            styles.ZEN_THEME.pop(key, None)
+            changed = True
+
+        if "custom" in styles.ZEN_THEME:
+            styles.ZEN_THEME.pop("custom", None)
+            changed = True
+
+        if changed:
+            self.data_manager.set_setting("custom_themes", entries)
+            self.data_manager.set_setting("custom_theme_data", entries[-1]["theme"] if entries else None)
+
+        return entries
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -286,7 +367,7 @@ class MainWindow(QMainWindow):
 
         # 4. Editor
         self.editor = TextEditor(data_manager=self.data_manager, shortcut_manager=self.shortcut_manager)
-        current_theme = self.data_manager.get_setting("theme_mode", "light")
+        current_theme = styles.resolve_theme_key(self.data_manager.get_setting("theme_mode", "light"))
         self.editor.set_theme_mode(current_theme)
         
         # Disable editor initially (until a note is selected)
@@ -383,7 +464,7 @@ class MainWindow(QMainWindow):
         self.save_timer.timeout.connect(self._perform_save)
         
         # Apply Saved Theme
-        current_theme = self.data_manager.get_setting("theme_mode", "light")
+        current_theme = styles.resolve_theme_key(self.data_manager.get_setting("theme_mode", "light"))
         self.apply_theme(current_theme)
         
         # Apply Saved Wrap Mode
@@ -440,55 +521,50 @@ class MainWindow(QMainWindow):
     # --- Logic ---
     
     def toggle_theme(self, mode=None):
-        # Guard: QAction.triggered(bool) can pass False as mode — treat non-string as None
+        # Guard: QAction.triggered(bool) can pass False as mode - treat non-string as None
         if not isinstance(mode, str):
             mode = None
-            
+
         if mode is None:
             # Fallback: cycle if called without argument
-            current = self.data_manager.get_setting("theme_mode", "light")
-            # Ensure current is actually a string (hard reset if settings were corrupted)
+            current = styles.resolve_theme_key(self.data_manager.get_setting("theme_mode", "light"))
             if not isinstance(current, str):
                 current = "light"
-                
-            modes = ["light", "dark", "dark_blue", "rose", "ocean_depth", "forest_sage", "noir_ember"]
+
+            include_custom = any(k.startswith("custom_") for k in styles.ZEN_THEME) or ("custom" in styles.ZEN_THEME)
+            modes = styles.theme_cycle_order(include_custom=include_custom)
             try:
                 idx = modes.index(current)
                 mode = modes[(idx + 1) % len(modes)]
             except (ValueError, IndexError):
                 mode = "light"
-        
+        else:
+            mode = styles.resolve_theme_key(mode)
+
+        if mode == "custom":
+            custom_modes = [k for k in styles.theme_cycle_order(include_custom=True) if k.startswith("custom_")]
+            mode = custom_modes[-1] if custom_modes else "light"
+
+        if isinstance(mode, str) and mode.startswith("custom_"):
+            custom_data = styles.ZEN_THEME.get(mode)
+            if isinstance(custom_data, dict):
+                self.data_manager.set_setting("custom_theme_data", custom_data)
+
         self.data_manager.set_setting("theme_mode", mode)
         print(f"DEBUG: toggle_theme called with mode='{mode}'")
-        
+
         # Animate theme switch
         crossfade_theme(self, lambda: self.apply_theme(mode))
-        
-        # FIX: Refresh highlight preview to apply new theme CSS
+
+        # Refresh highlight preview so CSS updates instantly.
         self.refresh_highlight_preview_if_visible()
-        
+
     def apply_theme(self, mode):
+        mode = styles.resolve_theme_key(mode)
         # Apply global stylesheet
         css = styles.get_stylesheet(mode)
-        
-        # Map custom themes to qdarktheme base
-        dark_themes = {"dark", "dark_blue", "ocean_depth", "noir_ember"}
-        light_themes = {"light", "rose", "forest_sage"}
-        
-        if mode in dark_themes:
-            base_mode = "dark"
-        elif mode in light_themes:
-            base_mode = "light"
-        else:
-            # Custom theme — detect from background color
-            c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-            bg = c.get("background", "#FFFFFF")
-            # Simple brightness check
-            if bg.startswith("#"):
-                r = int(bg[1:3], 16)
-                base_mode = "dark" if r < 128 else "light"
-            else:
-                base_mode = "light"
+
+        base_mode = "dark" if styles.is_dark_theme(mode) else "light"
         
         try:
             import qdarktheme

@@ -1783,20 +1783,10 @@ class TextEditor(QWidget):
         try:
             import ui.styles as styles
             
-            # Determine defaults for old and new modes
-            
             # Auto-Refresh Level Boxes to ensure contrast is correct in new theme (though boxes rely on levelX_color, refreshing ensures consistency)
             self.renumber_all_levels()
-            # Fallback to hardcoded known defaults if styles dict is missing specific keys to prevent crash
-            # Fallback Highlight Colors (Yellow for light, darker Gold for dark)
-            HIGHLIGHT_DEFAULTS = {
-                "light": "#FFF176", 
-                "dark": "#FACC15", # Yellow-400 (Shadcn/Tailwind friendly)
-                "dark_blue": "#FACC15" # Same as Dark
-            }
-            
-            old_def_hex = HIGHLIGHT_DEFAULTS.get(old_mode, '#FFF176')
-            new_def_hex = HIGHLIGHT_DEFAULTS.get(mode, '#FFF176')
+            old_def_hex = "#FACC15" if styles.is_dark_theme(old_mode) else "#FFF176"
+            new_def_hex = "#FACC15" if styles.is_dark_theme(mode) else "#FFF176"
             
             old_default = QColor(old_def_hex)
             new_default = QColor(new_def_hex)
@@ -1916,7 +1906,7 @@ class TextEditor(QWidget):
     def _update_back_btn_style(self, mode):
         """Dynamic styling for the floating back button."""
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         
         bg = "#ECEFF1" if not is_dark else "#1F2937"
         fg = "#455A64" if not is_dark else "#E5E7EB"

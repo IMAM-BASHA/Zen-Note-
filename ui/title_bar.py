@@ -380,7 +380,7 @@ class CustomTitleBar(QWidget):
         
         # Use premium icon instead of text ellipsis
         mode = self.property("theme_mode") or "light"
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
         btn_color = "#FFFFFF" if is_dark else c['muted_foreground']
         
@@ -467,7 +467,7 @@ class CustomTitleBar(QWidget):
         # Hover: Slight tint of primary color
         # Checked: Solid subtle primary background
         
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         
         # Opacities for Zen feel
         active_bg = c.get('active_item_bg', "rgba(0,0,0,0.1)")
@@ -568,7 +568,7 @@ class CustomTitleBar(QWidget):
     def set_theme_mode(self, mode):
         """Update styles based on theme."""
         self.setProperty("theme_mode", mode) 
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
         
         # 1. Main Bar - Zen Clarity

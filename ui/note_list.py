@@ -77,7 +77,7 @@ class NoteList(QWidget):
         self.view_toggle_btn.setIconSize(QSize(20, 20))
         
         # Initial color based on theme_mode
-        initial_color = "#FFFFFF" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else "#09090b"
+        initial_color = "#FFFFFF" if styles.is_dark_theme(self.theme_mode) else "#09090b"
         self.view_toggle_btn.setIcon(get_premium_icon("layout_grid", color=initial_color)) 
         
         self.view_toggle_btn.setToolTip("Switch to Grid View")
@@ -268,11 +268,35 @@ class NoteList(QWidget):
 
     def set_theme_mode(self, mode):
         """Refreshes icons for theme changes."""
+        mode = styles.resolve_theme_key(mode)
         self.theme_mode = mode
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
         icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
+        btn_bg, btn_hover_bg = styles.get_primary_button_styles(c, dark_hint=styles.is_dark_theme(mode))
+        btn_fg = c.get("primary_foreground", "#FFFFFF")
         
         self.back_btn.setIcon(get_premium_icon("back", color=icon_color))
+        self.new_note_btn.setIcon(get_premium_icon("plus", color=btn_fg))
+        self.new_note_btn.setStyleSheet(f"""
+            QPushButton#NewNoteBtn {{
+                background: {btn_bg};
+                color: {btn_fg};
+                border: 1px solid {c.get('primary', '#7B9E87')}AA;
+                border-radius: 12px;
+                padding: 8px 14px;
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.03em;
+            }}
+            QPushButton#NewNoteBtn:hover {{
+                background: {btn_hover_bg};
+                border-color: {c.get('primary', '#7B9E87')};
+            }}
+            QPushButton#NewNoteBtn:pressed {{
+                background: {btn_bg};
+            }}
+        """)
         
         # Refresh View Toggle Icon (Phase 45)
         icon_name = "layout_list" if self.view_mode == VIEW_MODE_GRID else "layout_grid"

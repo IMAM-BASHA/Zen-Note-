@@ -246,7 +246,7 @@ class FolderListDelegate(QStyledItemDelegate):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         c = styles.ZEN_THEME.get(self.theme_mode, styles.ZEN_THEME["light"])
-        is_dark = self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(self.theme_mode)
         is_selected = option.state & QStyle.StateFlag.State_Selected
         is_hover = option.state & QStyle.StateFlag.State_MouseOver
         
@@ -1141,9 +1141,10 @@ class Sidebar(QWidget):
 
     def set_theme_mode(self, mode):
         """Updates the sidebar header and components for the given theme mode."""
+        mode = styles.resolve_theme_key(mode)
         self.theme_mode = mode
         c = styles.ZEN_THEME.get(mode, styles.ZEN_THEME["light"])
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         # DYNAMIC COLOR lookup instead of binary check
         self.current_icon_color = c.get('sidebar_fg', c.get('foreground', '#000000'))
         icon_color = self.current_icon_color
@@ -1155,8 +1156,8 @@ class Sidebar(QWidget):
             self.list_grid_delegate.set_theme_mode(mode)
             
         # Update Header Icons
-        is_dark_theme = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
-        self.theme_btn.setIcon(get_premium_icon("sun" if is_dark_theme else "moon", color=icon_color))
+        dark_ui = styles.is_dark_theme(mode)
+        self.theme_btn.setIcon(get_premium_icon("sun" if dark_ui else "moon", color=icon_color))
         self.focus_btn.setIcon(get_premium_icon("headphones", color=icon_color))
         self.settings_btn.setIcon(get_premium_icon("settings", color=icon_color))
         
@@ -1359,20 +1360,14 @@ class Sidebar(QWidget):
         self.view_toggle_btn.setIcon(get_premium_icon(view_icon, color=icon_color))
         self.panel_toggle_btn.setIcon(get_premium_icon("panel_toggle", color=icon_color))
         
-        add_icon_color = "#0d1219" if is_dark else "#FFFFFF"
+        add_icon_color = c.get('primary_foreground', "#FFFFFF")
         self.add_btn.setIcon(get_premium_icon("plus", color=add_icon_color))
         
         primary = c.get('primary', '#7B9E87')
         primary_fg = c.get('primary_foreground', '#FFFFFF')
         
-        if is_dark:
-            btn_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3dd6c4, stop:0.5 #4db8e8, stop:1 #5b9cf6)'
-            btn_fg = '#0d1219'
-            btn_hover_bg = 'qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #35c4b3, stop:0.5 #44a8d8, stop:1 #518ce6)'
-        else:
-            btn_bg = f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {primary}, stop:1 {primary}DD)"
-            btn_fg = primary_fg
-            btn_hover_bg = f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {primary}EE, stop:1 {primary})"
+        btn_bg, btn_hover_bg = styles.get_primary_button_styles(c, dark_hint=is_dark)
+        btn_fg = primary_fg
         
         self.add_btn.setStyleSheet(f"""
             QPushButton#NewFolderBtn {{
@@ -1465,7 +1460,7 @@ class Sidebar(QWidget):
         self.view_mode = mode
         
         # Use theme-aware color for icons
-        icon_color = "#FFFFFF" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else "#09090b"
+        icon_color = "#FFFFFF" if styles.is_dark_theme(self.theme_mode) else "#09090b"
         
         if mode == VIEW_MODE_GRID:
             # Switch to Grid Widget
@@ -1513,7 +1508,7 @@ class Sidebar(QWidget):
         self.list_tree.clear()
         self.list_grid.clear()
         
-        is_dark = self.theme_mode in ["dark", "dark_blue", "ocean_depth", "noir_ember"]
+        is_dark = styles.is_dark_theme(self.theme_mode)
 
         # --- DATA PREPARATION ---
         selected_nb_id = self.nb_selector.currentData()
@@ -1768,7 +1763,7 @@ class Sidebar(QWidget):
         if folder.is_pinned: indicators.append("pin")
         if getattr(folder, 'is_locked', False): indicators.append("lock")
         
-        icon_color = "white" if self.theme_mode in ("dark", "dark_blue", "ocean_depth", "noir_ember") else None
+        icon_color = "white" if styles.is_dark_theme(self.theme_mode) else None
         item.setIcon(0, get_combined_indicators(indicators, color=icon_color))
         return item
 

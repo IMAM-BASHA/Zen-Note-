@@ -221,14 +221,269 @@ ZEN_THEME = {
         "scrollbar_handle": "#2A2A2A",
         "elevated": "#1E1E1E",
         "shadow": "rgba(0, 0, 0, 0.7)"
+    },
+    # Curated Gradient Themes
+    "aurora_tide": {
+        "background": "#0B1220",
+        "window_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #071627, stop:0.52 #0B1E30, stop:1 #102A33)",
+        "foreground": "#E6F6F7",
+        "card": "#14263A",
+        "card_foreground": "#E6F6F7",
+        "popover": "#14263A",
+        "popover_foreground": "#E6F6F7",
+        "primary": "#22C7B8",
+        "primary_foreground": "#082022",
+        "primary_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #14B8A6, stop:1 #38BDF8)",
+        "primary_gradient_hover": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0EA59B, stop:1 #22AEEA)",
+        "secondary": "#173147",
+        "secondary_foreground": "#E6F6F7",
+        "muted": "#102537",
+        "muted_foreground": "#8FB7C2",
+        "accent": "rgba(20, 184, 166, 0.14)",
+        "accent_foreground": "#7DEFE4",
+        "destructive": "#EF4444",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#22455C",
+        "input": "#173147",
+        "ring": "#22C7B8",
+        "sidebar_bg": "#081624",
+        "sidebar_gradient": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #081726, stop:1 #0D2230)",
+        "sidebar_fg": "#E6F6F7",
+        "sidebar_border": "#1C3A4E",
+        "active_item_bg": "rgba(20, 184, 166, 0.18)",
+        "selection_bg": "#0F766E",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#0B1220",
+        "scrollbar_handle": "#22455C",
+        "elevated": "#173147",
+        "shadow": "rgba(0, 0, 0, 0.6)",
+        "preview_gradient": ["#0A1A2B", "#103045", "#1C4C58"],
+        "is_dark": True
+    },
+    "ember_dusk": {
+        "background": "#17110D",
+        "window_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #140F0A, stop:0.56 #26170F, stop:1 #18120F)",
+        "foreground": "#F9EFE6",
+        "card": "#261A14",
+        "card_foreground": "#F9EFE6",
+        "popover": "#261A14",
+        "popover_foreground": "#F9EFE6",
+        "primary": "#F59E0B",
+        "primary_foreground": "#1F1309",
+        "primary_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #F59E0B, stop:1 #F97316)",
+        "primary_gradient_hover": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #E68C00, stop:1 #EA650F)",
+        "secondary": "#302019",
+        "secondary_foreground": "#F9EFE6",
+        "muted": "#231813",
+        "muted_foreground": "#C5A58D",
+        "accent": "rgba(245, 158, 11, 0.14)",
+        "accent_foreground": "#FBBF24",
+        "destructive": "#EF4444",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#4A3225",
+        "input": "#302019",
+        "ring": "#F59E0B",
+        "sidebar_bg": "#120D0A",
+        "sidebar_gradient": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #140E0B, stop:1 #1D140F)",
+        "sidebar_fg": "#F9EFE6",
+        "sidebar_border": "#3D2A20",
+        "active_item_bg": "rgba(245, 158, 11, 0.18)",
+        "selection_bg": "#C2410C",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#17110D",
+        "scrollbar_handle": "#4A3225",
+        "elevated": "#302019",
+        "shadow": "rgba(0, 0, 0, 0.62)",
+        "preview_gradient": ["#23170F", "#3A2416", "#522E15"],
+        "is_dark": True
+    },
+    "pearl_mist": {
+        "background": "#F4F7F7",
+        "window_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #F7F9FF, stop:0.5 #EEF6F2, stop:1 #FFF7EC)",
+        "foreground": "#1F2E35",
+        "card": "#FFFFFF",
+        "card_foreground": "#1F2E35",
+        "popover": "#FFFFFF",
+        "popover_foreground": "#1F2E35",
+        "primary": "#0EA5A4",
+        "primary_foreground": "#FFFFFF",
+        "primary_gradient": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0EA5A4, stop:1 #3B82F6)",
+        "primary_gradient_hover": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0C9391, stop:1 #2D73DF)",
+        "secondary": "#E8EFF0",
+        "secondary_foreground": "#1F2E35",
+        "muted": "#F1F5F6",
+        "muted_foreground": "#607981",
+        "accent": "rgba(14, 165, 164, 0.12)",
+        "accent_foreground": "#0F766E",
+        "destructive": "#DC2626",
+        "destructive_foreground": "#FFFFFF",
+        "border": "#CAD8DC",
+        "input": "#FFFFFF",
+        "ring": "#0EA5A4",
+        "sidebar_bg": "#F2F7F8",
+        "sidebar_gradient": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #F4F8FB, stop:1 #EEF4F4)",
+        "sidebar_fg": "#1F2E35",
+        "sidebar_border": "#CAD8DC",
+        "active_item_bg": "rgba(14, 165, 164, 0.14)",
+        "selection_bg": "#0EA5A4",
+        "selection_fg": "#FFFFFF",
+        "scrollbar_bg": "#F4F7F7",
+        "scrollbar_handle": "#B9CBD0",
+        "elevated": "#FFFFFF",
+        "shadow": "rgba(10, 26, 32, 0.08)",
+        "preview_gradient": ["#F5FAFF", "#EEF6F2", "#FFF5EA"],
+        "is_dark": False
     }
 }
+
+# Curated list shown in the Theme Chooser and used by keyboard theme cycling.
+CURATED_THEME_ORDER = [
+    "light",
+    "forest_sage",
+    "pearl_mist",
+    "dark",
+    "aurora_tide",
+    "ember_dusk",
+    "noir_ember",
+]
+
+# Map legacy or removed keys to curated replacements.
+LEGACY_THEME_MAP = {
+    "dark_blue": "aurora_tide",
+    "ocean_depth": "aurora_tide",
+    "rose": "pearl_mist",
+}
+
+
+def _normalize_hex(color):
+    if not isinstance(color, str):
+        return None
+    s = color.strip()
+    if not s.startswith("#"):
+        return None
+    s = s[1:]
+    if len(s) == 3:
+        s = "".join(ch * 2 for ch in s)
+    if len(s) != 6:
+        return None
+    try:
+        int(s, 16)
+    except ValueError:
+        return None
+    return f"#{s.upper()}"
+
+
+def _mix_hex(a, b, ratio):
+    a = _normalize_hex(a)
+    b = _normalize_hex(b)
+    if not a:
+        return b or "#3B82F6"
+    if not b:
+        return a
+    ratio = max(0.0, min(1.0, float(ratio)))
+
+    ar, ag, ab = int(a[1:3], 16), int(a[3:5], 16), int(a[5:7], 16)
+    br, bg, bb = int(b[1:3], 16), int(b[3:5], 16), int(b[5:7], 16)
+
+    r = round(ar + (br - ar) * ratio)
+    g = round(ag + (bg - ag) * ratio)
+    bch = round(ab + (bb - ab) * ratio)
+    return f"#{r:02X}{g:02X}{bch:02X}"
+
+
+def get_primary_button_styles(theme_dict, dark_hint=None):
+    if not isinstance(theme_dict, dict):
+        theme_dict = {}
+
+    explicit_bg = theme_dict.get("primary_gradient")
+    explicit_hover = theme_dict.get("primary_gradient_hover")
+    if explicit_bg:
+        return explicit_bg, explicit_hover or explicit_bg
+
+    primary = _normalize_hex(theme_dict.get("primary", "#3B82F6")) or "#3B82F6"
+    if dark_hint is None:
+        dark_hint = bool(theme_dict.get("is_dark", False))
+
+    if dark_hint:
+        end = _mix_hex(primary, "#FFFFFF", 0.22)
+        hover_start = _mix_hex(primary, "#000000", 0.08)
+        hover_end = _mix_hex(end, "#FFFFFF", 0.10)
+    else:
+        end = _mix_hex(primary, "#0F172A", 0.18)
+        hover_start = _mix_hex(primary, "#0F172A", 0.10)
+        hover_end = _mix_hex(end, "#0F172A", 0.06)
+
+    bg = (
+        "qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        f"stop:0 {primary}, stop:1 {end})"
+    )
+    hover = (
+        "qlineargradient(x1:0, y1:0, x2:1, y2:0, "
+        f"stop:0 {hover_start}, stop:1 {hover_end})"
+    )
+    return bg, hover
+
+
+def resolve_theme_key(mode):
+    if not isinstance(mode, str):
+        return "light"
+    canonical = LEGACY_THEME_MAP.get(mode, mode)
+    return canonical if canonical in ZEN_THEME else "light"
+
+
+def is_dark_theme(mode):
+    key = resolve_theme_key(mode)
+    c = ZEN_THEME.get(key, ZEN_THEME["light"])
+    if "is_dark" in c:
+        return bool(c["is_dark"])
+
+    bg = c.get("background", "#FFFFFF")
+    if isinstance(bg, str) and bg.startswith("#") and len(bg) >= 7:
+        try:
+            r = int(bg[1:3], 16)
+            g = int(bg[3:5], 16)
+            b = int(bg[5:7], 16)
+            luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            return luminance < 140
+        except Exception:
+            pass
+
+    fg = c.get("foreground", "#000000")
+    if isinstance(fg, str) and fg.startswith("#") and len(fg) >= 7:
+        try:
+            r = int(fg[1:3], 16)
+            g = int(fg[3:5], 16)
+            b = int(fg[5:7], 16)
+            luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+            return luminance > 140
+        except Exception:
+            pass
+    return False
+
+
+def theme_cycle_order(include_custom=False):
+    order = [k for k in CURATED_THEME_ORDER if k in ZEN_THEME]
+    if include_custom:
+        custom_keys = [k for k in ZEN_THEME if k.startswith("custom_")]
+        custom_keys.sort(key=lambda k: ZEN_THEME.get(k, {}).get("display_name", k).lower())
+        order.extend(custom_keys)
+        if "custom" in ZEN_THEME and "custom" not in order:
+            order.append("custom")
+    return order
+
 
 # Compatibility Alias
 SHADCN_ZINC = ZEN_THEME
 
 def get_stylesheet(mode="light"):
+    mode = resolve_theme_key(mode)
     c = ZEN_THEME.get(mode, ZEN_THEME["light"])
+    window_bg = c.get("window_gradient", c["background"])
+    sidebar_bg = c.get("sidebar_gradient", c["sidebar_bg"])
+    card_bg = c.get("card_gradient", c["card"])
+    primary_btn_bg, primary_btn_hover_bg = get_primary_button_styles(
+        c, dark_hint=is_dark_theme(mode)
+    )
     
     # Common radius and font settings
     radius = "10px" # Refined rounded styling
@@ -248,14 +503,18 @@ def get_stylesheet(mode="light"):
             outline: none;
         }}
         
-        QMainWindow, QWidget#MainContainer, QDialog {{
+        QMainWindow, QWidget#MainContainer {{
+            background: {window_bg};
+            color: {c['foreground']};
+        }}
+        QDialog {{
             background-color: {c['background']};
             color: {c['foreground']};
         }}
 
         /* --- SIDEBAR --- */
         QWidget#Sidebar {{
-            background-color: {c['sidebar_bg']};
+            background: {sidebar_bg};
             border-right: 1px solid {c['sidebar_border']};
         }}
         QWidget#SidebarHeader {{
@@ -320,7 +579,7 @@ def get_stylesheet(mode="light"):
             font-size: 13px;
         }}
         QListWidget::item {{
-            background-color: {c['card']};
+            background: {card_bg};
             border: 1px solid {c['border']};
             border-radius: {radius};
             padding: 12px;
@@ -380,13 +639,13 @@ def get_stylesheet(mode="light"):
         
         /* Primary Action Buttons (e.g. New Note) - User should set ObjectName 'PrimaryBtn' */
         QPushButton#PrimaryBtn, QPushButton#NewNoteBtn, QPushButton#NewFolderBtn {{
-            background-color: {c['primary']};
+            background: {primary_btn_bg};
             color: {c['primary_foreground']};
             border: 1px solid {c['primary']};
             border-radius: 10px;
         }}
         QPushButton#PrimaryBtn:hover, QPushButton#NewNoteBtn:hover, QPushButton#NewFolderBtn:hover {{
-            background-color: {c['primary']};
+            background: {primary_btn_hover_bg};
             border: 1px solid {c['primary']};
             opacity: 0.9;
         }}

@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QPixmap
+import ui.styles as styles
 
 class EmptyStateWidget(QWidget):
     """
@@ -40,7 +41,7 @@ class EmptyStateWidget(QWidget):
         """
         Adjust style based on theme.
         """
-        is_dark = mode in ("dark", "dark_blue", "ocean_depth", "noir_ember")
+        is_dark = styles.is_dark_theme(mode)
         text_color = "#A1A1AA" if is_dark else "#52525B" # Zinc 400 vs Zinc 600
         
         self.text_lbl.setStyleSheet(f"""
